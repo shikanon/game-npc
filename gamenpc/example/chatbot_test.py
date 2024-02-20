@@ -7,7 +7,12 @@ def test_ask():
     url = "http://127.0.0.1:8000/ask"
     data = {
         "question": "我的账号有问题需要立刻帮我转人工", 
-        "history_messages": [("我的充值金额出现了问题，我充值了50块却只显示10块钱，快帮我看看","好的，请问您方便提供下您的账号和订单号吗？")]}
+        "history_messages": [{
+                "Human":"我的充值金额出现了问题，我充值了50块却只显示10块钱，快帮我看看"
+            },
+            {
+                "AI":"好的，请问您方便提供下您的账号和订单号吗？"
+            }]}
     response = requests.post(url, json=data)
     print(response.json())
 
@@ -43,6 +48,28 @@ def test_save_faq():
     assert response.json() == {"status": "success"}
 
 
+def test_load_template():
+    url = "http://127.0.0.1:8000/load-template/"
+    with open("gamenpc/template/game-customer-service.template","r",encoding="utf-8") as fr:
+        templ = fr.read()
+    data = {
+        "template": templ,
+        "template_id": 1,
+    }
+    requests.post(url, json=data)
+    url = "http://127.0.0.1:8000/ask"
+    data = {
+        "question": "中国在哪里", 
+        "history_messages": []}
+    response = requests.post(url, json=data)
+    print(response.json())
+    url = "http://127.0.0.1:8000/ask"
+    data = {
+        "question": "这个游戏怎么充值", 
+        "history_messages": []}
+    response = requests.post(url, json=data)
+    print(response.json())
+
 async def test_websocket_chatbot():
     # connect to the websocket
     async with websockets.connect('ws://127.0.0.1:8000/ws-chatbot') as websocket:
@@ -57,4 +84,5 @@ async def test_websocket_chatbot():
                 break
 
 if __name__ == "__main__":
-    asyncio.run(test_websocket_chatbot())
+    # asyncio.run(test_websocket_chatbot())
+    test_load_template()

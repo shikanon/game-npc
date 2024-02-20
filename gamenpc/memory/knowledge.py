@@ -35,6 +35,9 @@ class KnowlegeResult:
     
     def __str__(self)->str:
         return self.content
+    
+    def to_dict(self):
+        return {"score": self.score, "content": self.content}
 
 class MaaSKnowledgeEmbedding:
     def __init__(self, model, model_version) -> None:
@@ -112,7 +115,7 @@ class ESKnnVectorDB(VectorDB):
         else:
             self.debug_logger.debug("index已经存在: %s"%self.table)
 
-    def query(self, text: str):
+    def query(self, text: str)->str:
         """查询给定文本的最匹配的知识。
         
         参数:
@@ -121,9 +124,12 @@ class ESKnnVectorDB(VectorDB):
         返回:
             给定文本的最匹配的知识。
         """
-        return self.query_topk(text, topk=1, score=0.1)
+        query_result = self.query_topk(text, topk=1, score=0.1)
+        if len(query_result)>0:
+            return query_result[0]
+        return ""
 
-    def query_topk(self, text: str, topk:int, score:float):
+    def query_topk(self, text: str, topk:int, score:float)->List[str]:
         '''查询给定文本的前k个匹配知识。
         
         参数:
@@ -135,9 +141,10 @@ class ESKnnVectorDB(VectorDB):
             给定文本的前k个匹配知识。
         '''
         vectors = self.embedding.encode([text])
-        return self.query_topk_vector(vectors[0], topk, score)
+        res = [vector.content for vector in self.query_topk_vector(vectors[0], topk, score)]
+        return res
 
-    def query_topk_vector(self, vector:TextEmbeddingVector, topk:int, score:float):
+    def query_topk_vector(self, vector:TextEmbeddingVector, topk:int, score:float)->List[KnowlegeResult]:
         """查询给定向量knn算法下最相近的k个向量
         
         参数:
@@ -167,8 +174,8 @@ class ESKnnVectorDB(VectorDB):
         self.debug_logger.debug(es_res)
         result = []
         for hit in es_res['hits']['hits']:
-            if hit["score"] > score:
-                result.append(KnowlegeResult(hit["score"], hit["_source"]))
+            if hit["_score"] > score:
+                result.append(KnowlegeResult(hit["_score"], hit["_source"]))
         return result
     
     def bulk_insert(self, data: List[str])->None:

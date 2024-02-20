@@ -132,7 +132,7 @@ class ChatSkylark(BaseChatModel):
             "messages": messages_list
         }
         if self.functions is not None and len(self.functions) >0 :
-            req["functions"] = self.functions
+            req["functions"] = [fn.todict() for fn in self.functions]
         if self.model_version is not None:
             req["model"]["version"] = self.model_version
         if self.model_endpoint is not None:
