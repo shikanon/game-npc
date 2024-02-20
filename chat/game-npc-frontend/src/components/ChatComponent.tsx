@@ -15,11 +15,12 @@ const ChatComponent = () => {
     // 模拟发送消息到服务端并接收回复的逻辑
     // 这里只是一个例子，您应根据实际情况进行适当的实现
     const url = "http://127.0.0.1:8000/chat";
+    // const url = "http://175.178.22.107:8000/chat";
     user_name = "小名"
     npc_name = "西门牛牛"
     const postData = {
       question: question,
-      user_name: user_name, 
+      user_name: user_name,
       npc_name: npc_name,
     };
 

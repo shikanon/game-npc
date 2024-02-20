@@ -20,6 +20,11 @@ const nextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
+  transpilePackages: [
+    '@ant-design/pro-chat',
+    '@ant-design/pro-editor',
+    'react-intersection-observer',
+  ],
 };
 
 export default nextConfig;
