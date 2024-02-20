@@ -54,7 +54,6 @@ class NPC:
         self.affinity = affinity
         self.event = None
         self.dialogue_round = dialogue_round
-        self.players_information = {}
         #加载角色模板
         if role_template_filename == '':
             file_content = DEFAULT_ROLE_TEMPLATE
@@ -76,6 +75,14 @@ class NPC:
             model="skylark2-pro-character-4k",
             top_k=1,
         )
+
+    def get_character_info(self):
+        return {
+            "npc_name": self.name,
+            "npc_trait": self.trait,
+            "scene": self.scene,
+            "event": self.event,
+        }
     
     def validate_template(self, text):
         for key in ["name","scene","affinity","trait","event"]:
@@ -90,6 +97,9 @@ class NPC:
     def set_scene(self, scene:str):
         '''变更场景'''
         self.scene = scene
+    
+    def get_scene(self):
+        return self.scene
     
     async def update_affinity(self, player_name:str, message:str)->int:
         '''更新好感度'''
@@ -126,10 +136,12 @@ class NPC:
         return "当前时间：%s。\n%s"%(datetime.now().strftime("%A %B-%d %X"),message)
     
     async def thinking(self):
+        '''NPC思考问题'''
         self.event = self.dialogue_manager.gen_topic_event()
         return self.event
     
     def get_thought_context(self)->str:
+        '''获取NPC最近对话的思考'''
         conversations = self.dialogue_manager.get_recent_conversation()
         if conversations:
             return "\n".join(str(c) for c in conversations)
@@ -137,6 +149,7 @@ class NPC:
             return ""
 
     async def chat(self, player_name:str, message:str)->str:
+        '''NPC对话'''
         self.system_prompt = self.render_role_template()
         all_messages = [
             SystemMessage(content=self.system_prompt)

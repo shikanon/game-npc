@@ -15,16 +15,25 @@ def test_chat():
         "npc_name": test_npc_name,
         "question": test_question,
     }
-    
     # 对 /chat/ 发起POST请求
     response = client.post("/chat/",json=request_data)
-    
     # 检查响应是否为200 OK
     assert response.status_code == 200
-    
     # 检查响应数据
     data = response.json()
     print(data)
 
-# 调用测试函数
-test_chat()
+def test_get_npc_info():
+    # 假设的测试username
+    test_npc_name = "西门牛牛"
+    request_data = {
+        "npc_name": test_npc_name,
+    }
+    # 对 /npc-info/ 发起GET请求
+    response = client.get("/npc-info/",params=request_data)
+    # 检查响应是否为200 OK
+    assert response.status_code == 200
+    # 检查响应数据
+    data = response.json()
+    print(data)
+

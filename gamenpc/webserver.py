@@ -64,6 +64,7 @@ class ChatRequest(BaseModel):
     npc_name: str
     question: str
 
+
 def get_npc(req:ChatRequest=Depends) -> NPC:
     try:
         user = user_manager.get_user(user_name=req.user_name)
@@ -85,6 +86,11 @@ async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
         "thought": thought,
     }
     return response
+
+@app.get("/npc-info")
+async def get_npc_info(npc_name:str):
+    npc_instance = npc_manager.get_npc(npc_name)
+    return npc_instance.get_character_info()
 
 if __name__ == "__main__":
     import uvicorn
