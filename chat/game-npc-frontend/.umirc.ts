@@ -70,19 +70,24 @@ export default defineConfig({
       enable: true,
       changeOrigin: true,
       // eslint-disable-next-line @iceworks/best-practices/no-http-url
-      target: 'http://175.178.22.107:8000',
+      target: 'http://127.0.0.1:8000',
       pathRewrite: { '^/dev': '' },
     },
   },
   routes: [
     {
       path: '/',
-      redirect: '/home',
+      redirect: '/chat',
     },
     {
       name: '首页',
-      path: '/home',
-      component: '@/pages/Home',
+      path: '/chat',
+      component: '@/pages/Chat',
+    },
+    {
+      name: '首页',
+      path: '/npc_config',
+      component: '@/pages/NPCConfig',
     },
     {
       name: ' 403',

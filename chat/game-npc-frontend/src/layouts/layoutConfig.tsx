@@ -7,7 +7,7 @@ export default {
     routes: [
       {
         name: '聊天',
-        path: '/home',
+        path: '/chat',
         icon: <WechatOutlined />,
         routes: [],
       },
