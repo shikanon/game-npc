@@ -90,6 +90,9 @@ async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
 @app.get("/npc-info")
 async def get_npc_info(npc_name:str):
     npc_instance = npc_manager.get_npc(npc_name)
+    print(npc_instance)
+    if npc_instance.scene == "":
+        npc_instance.scene = "宅在家中"
     return npc_instance.get_character_info()
 
 if __name__ == "__main__":
