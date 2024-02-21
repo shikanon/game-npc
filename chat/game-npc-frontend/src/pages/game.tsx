@@ -37,7 +37,7 @@ const GameChatPage = () => {
         backgroundColor: theme.colorBgLayout,
       }}
     >
-      <h1>聊天应用-GameWorld-泛互行解团队演示demo</h1>
+      <h1>聊天应用-GameWorld</h1>
       <div className={styles.chatLayout}>
       <aside className={styles.listContainer}>
         {/* 在这里放置按钮列表，点击可以切换页面 */}
