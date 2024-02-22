@@ -70,7 +70,7 @@ export default defineConfig({
       enable: true,
       changeOrigin: true,
       // eslint-disable-next-line @iceworks/best-practices/no-http-url
-      target: 'http://127.0.0.1:8000',
+      target: 'http://127.0.0.1:8888',
       pathRewrite: { '^/dev': '' },
     },
   },
