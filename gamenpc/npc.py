@@ -101,6 +101,11 @@ class NPC:
     def get_scene(self):
         return self.scene
     
+    def re_init(self)->None:
+        self.affinity.set_score(0)
+        self.event = None
+        self.dialogue_manager.clear()
+    
     async def update_affinity(self, player_name:str, message:str)->int:
         '''更新好感度'''
         history = self.dialogue_manager.get_recent_dialogue(round=2)

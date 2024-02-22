@@ -279,6 +279,11 @@ class DialogueMemory:
     
     def get_all_conversation(self)->List[ConverationEntry]:
         return self.conversation
+    
+    def clear(self)->None:
+        self.dialogue_context = []
+        self.conversation = []
+        self.dialogue_pair_count = 0
 
     def gen_topic_event(self)->TopicEvent:
         conversation = self.get_all_conversation()

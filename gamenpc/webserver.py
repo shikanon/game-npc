@@ -75,6 +75,7 @@ def get_npc(req:ChatRequest=Depends) -> NPC:
 
 @app.post("/chat")
 async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
+    '''NPC聊天对话'''
     answer, affinity_score = await asyncio.gather(
         npc_instance.chat(req.user_name, req.question),
         npc_instance.update_affinity(req.user_name, req.question),
@@ -89,12 +90,23 @@ async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
 
 @app.get("/npc-info")
 async def get_npc_info(npc_name:str):
+    '''获取NPC信息'''
     npc_instance = npc_manager.get_npc(npc_name)
     print(npc_instance)
     if npc_instance.scene == "":
         npc_instance.scene = "宅在家中"
     return npc_instance.get_character_info()
 
+@app.get("/npc/clear_memory")
+async def clear_memory(npc_name:str):
+    '''获取NPC信息'''
+    npc_instance = npc_manager.get_npc(npc_name)
+    try:
+        npc_instance.re_init()
+        return {"status": "success", "message": "记忆、好感重置成功!"}
+    except KeyError:
+        return HTTPException(status_code=404, detail="NPC not found.")
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8888)

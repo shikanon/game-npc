@@ -108,6 +108,10 @@ class AffinityManager:
     def get_score(self):
         return self.score
     
+    def set_score(self, score:int):
+        self.score = score
+        return self.score
+    
     def get_relation_level(self)->str:
         return self.affinity_level.get_level_description(self.score)
     
