@@ -22,7 +22,7 @@ export const request: RequestConfig = {
     {
       localhost: '/dev',
       'game-npc.clarkchu.com':
-        'http://127.0.0.1:8888/v1/', // 云开发
+        'http://game-npc.clarkchu.com:8000', // 云开发
     }[window.location.hostname] || '/',
   timeout: 120000, // 超时设置
   withCredentials: true,
