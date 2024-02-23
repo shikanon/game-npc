@@ -3,7 +3,7 @@
 ## Chat接口
 该接口允许用户通与NPC进行聊天。
 
-方法：POST /chat
+方法：POST api/chat
 
 **请求**
 

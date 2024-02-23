@@ -1,6 +1,6 @@
 # coding:utf-8
 import asyncio
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict
@@ -9,6 +9,9 @@ from gamenpc.utils import logger
 from gamenpc.npc import NPC, NPCManager
 
 app = FastAPI()
+router = APIRouter(prefix="/api")
+app.include_router(router)
+
 npc_manager = NPCManager()
 
 debuglog = logger.DebugLogger("chat bot web")
@@ -73,7 +76,7 @@ def get_npc(req:ChatRequest=Depends) -> NPC:
     except KeyError:
         raise HTTPException(status_code=404, detail="NPC not found.")
 
-@app.post("/chat")
+@router.post("/chat")
 async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
     '''NPC聊天对话'''
     answer, affinity_score = await asyncio.gather(
@@ -88,7 +91,7 @@ async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
     }
     return response
 
-@app.get("/npc-info")
+@router.get("/npc-info")
 async def get_npc_info(npc_name:str):
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc(npc_name)
@@ -97,7 +100,7 @@ async def get_npc_info(npc_name:str):
         npc_instance.scene = "宅在家中"
     return npc_instance.get_character_info()
 
-@app.get("/npc/clear_memory")
+@router.get("/npc/clear_memory")
 async def clear_memory(npc_name:str):
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc(npc_name)
