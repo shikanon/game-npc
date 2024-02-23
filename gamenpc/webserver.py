@@ -10,7 +10,6 @@ from gamenpc.npc import NPC, NPCManager
 
 app = FastAPI()
 router = APIRouter(prefix="/api")
-app.include_router(router)
 
 npc_manager = NPCManager()
 
@@ -112,4 +111,5 @@ async def clear_memory(npc_name:str):
 
 if __name__ == "__main__":
     import uvicorn
+    app.include_router(router)
     uvicorn.run(app, host="0.0.0.0", port=8888)
