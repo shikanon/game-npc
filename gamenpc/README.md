@@ -18,3 +18,25 @@
 answer: string — 来自NPC的回答。
 affinity_score: int — 表示用户与NPC之间亲密度分数。
 thought: string — NPC的思考上下文信息。
+
+## clear 接口
+
+清楚 NPC 记忆
+
+## npc-info 接口
+
+查询 NPC 信息
+
+## clear 接口
+
+清楚 NPC 记忆
+
+## load-knowlege 接口
+
+加载和丰富NPC的知识库
+
+方法：POST api/npc/load-knowlege
+
+## shift-scenes 接口
+
+转换场景，提供场景转换能力

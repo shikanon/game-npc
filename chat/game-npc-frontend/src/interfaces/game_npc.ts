@@ -19,4 +19,5 @@ export interface IGetNPCInfoResponse {
   npcTrait: string;
   scene: string;
   event: string;
+  affinity: string;
 }

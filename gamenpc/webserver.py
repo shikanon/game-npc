@@ -60,12 +60,17 @@ user_manager = UserManager()
 class ChatRequest(BaseModel):
     '''
     user_name: 用户名称
+    npc_name: NPC的名称
     question: 问题，文本格式
     '''
     user_name: str
     npc_name: str
     question: str
 
+class NPCConfigRequest(BaseModel):
+    npc_name: str
+    trait: str
+    profile_url: str 
 
 def get_npc(req:ChatRequest=Depends) -> NPC:
     try:
@@ -108,6 +113,27 @@ async def clear_memory(npc_name:str):
         return {"status": "success", "message": "记忆、好感重置成功!"}
     except KeyError:
         return HTTPException(status_code=404, detail="NPC not found.")
+
+@router.post("/npc/config")
+async def set_npc_config(req: NPCConfigRequest):
+    '''设置NPC性格'''
+    npc_instance = npc_manager.get_npc(req.npc_name)
+    if npc_instance is None:
+        npc_instance = npc_manager.create_npc(npc_name=req.npc_name, npc_traits=req.trait)
+    else:
+        npc_instance.trait = req.trait
+    return npc_instance
+
+@router.post("/npc/config")
+async def shift_scenes(npc_name:str, scene:str):
+    '''切换场景'''
+    npc_instance = npc_manager.get_npc(npc_name)
+    if npc_instance is None:
+        return HTTPException(status_code=404, detail="Invaild value of npc_name, it not Exists")
+    npc_instance.set_scene(scene=scene)
+    return {"status": "success", "message": "场景转移成功!"}
+
+
 
 if __name__ == "__main__":
     import uvicorn

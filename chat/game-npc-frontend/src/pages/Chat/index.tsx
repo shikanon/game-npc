@@ -60,6 +60,7 @@ const GameChatPage = () => {
                       <h2>角色状态信息</h2>
                       <Space direction={'vertical'} size={'large'}>
                         <Row>角色名称：{npcInfo?.npcName}</Row>
+                        <Row>好感：{npcInfo?.affinity || '-'}</Row>
                         <Row>性格：{npcInfo?.npcTrait}</Row>
                         <Row>场景：{npcInfo?.scene}</Row>
                         <Row>想法：{npcInfo?.event || '-'}</Row>
@@ -81,7 +82,7 @@ const GameChatPage = () => {
             </Popover>
 
             {/* 更多按钮... */}
-            <Button style={{ width: '100%' }}>战斗</Button>
+            <Button style={{ width: '100%' }}>场景切换</Button>
             <Button style={{ width: '100%' }}>导入语料丰富角色设定</Button>
             <Button style={{ width: '100%' }}>清空对话和记忆</Button>
           </Space>
