@@ -4,6 +4,8 @@ import { RequestConfig } from '@umijs/max';
 import { message } from 'antd';
 import humps from 'humps';
 
+console.log('环境：', process.env.UMI_ENV);
+
 // 全局初始化数据配置，用于 Layout 用户信息和权限初始化
 // 更多信息见文档：https://umijs.org/docs/max/data-flow
 export async function getInitialState(): Promise<any> {
@@ -20,8 +22,7 @@ export const request: RequestConfig = {
   // 根据访问域名区分接口网关
   baseURL:
     {
-      // localhost: '/dev',
-      localhost: '/local',
+      localhost: `/${process.env.UMI_ENV}`,
       'game-npc.clarkchu.com':
         'http://game-npc.clarkchu.com/api', // 云开发
     }[window.location.hostname] || '/',

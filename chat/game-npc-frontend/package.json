@@ -3,7 +3,8 @@
   "private": true,
   "author": "ClarkChu <cc070194@gmail.com>",
   "scripts": {
-    "dev": "max dev",
+    "local": "UMI_ENV=local max dev",
+    "dev": "UMI_ENV=dev max dev",
     "build": "max build",
     "format": "prettier --cache --write .",
     "postinstall": "max setup",
