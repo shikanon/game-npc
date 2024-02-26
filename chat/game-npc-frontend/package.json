@@ -3,8 +3,8 @@
   "private": true,
   "author": "ClarkChu <cc070194@gmail.com>",
   "scripts": {
-    "local": "UMI_ENV=local max dev",
-    "dev": "UMI_ENV=dev max dev",
+    "local": "cross-env UMI_ENV=local max dev",
+    "dev": "cross-env UMI_ENV=dev max dev",
     "build": "max build",
     "format": "prettier --cache --write .",
     "postinstall": "max setup",
@@ -31,6 +31,7 @@
     "@types/react": "^18.2.57",
     "@types/react-dom": "^18.2.19",
     "@types/uuid": "^9.0.8",
+    "cross-env": "^7.0.3",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "prettier-plugin-organize-imports": "^3.2.4",
