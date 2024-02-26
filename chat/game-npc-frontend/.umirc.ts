@@ -66,6 +66,13 @@ export default defineConfig({
   // publicPath: '/abtestmanager-internal/', // *** 预发布环境项目部署到bsGW这种地址的时候，所有打包构建的资源要加一层path ***
   proxy: {
     // 开启本地代理功能
+    '/local': {
+      enable: true,
+      changeOrigin: true,
+      // eslint-disable-next-line @iceworks/best-practices/no-http-url
+      target: 'http://127.0.0.1:8000',
+      pathRewrite: { '^/local': '/api' },
+    },
     '/dev': {
       enable: true,
       changeOrigin: true,

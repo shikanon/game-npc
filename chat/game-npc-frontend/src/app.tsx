@@ -20,7 +20,8 @@ export const request: RequestConfig = {
   // 根据访问域名区分接口网关
   baseURL:
     {
-      localhost: '/dev',
+      // localhost: '/dev',
+      localhost: '/local',
       'game-npc.clarkchu.com':
         'http://game-npc.clarkchu.com/api', // 云开发
     }[window.location.hostname] || '/',
