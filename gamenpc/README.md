@@ -21,15 +21,14 @@ thought: string — NPC的思考上下文信息。
 
 ## clear 接口
 
-清楚 NPC 记忆
+清楚 NPC 记忆，重置
+
+方法：POST api/npc/clear_memory
 
 ## npc-info 接口
 
 查询 NPC 信息
 
-## clear 接口
-
-清楚 NPC 记忆
 
 ## load-knowlege 接口
 

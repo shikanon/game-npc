@@ -29,10 +29,13 @@ async def test_affinity():
         adversary="你厌恶主人，你们是敌对关系，因为契约你不得不服从他，你的表现是「恐惧、害怕、不甘心」"
     )
     affinity = emotion.AffinityManager(score=10,level=affinity_level)
-    print(affinity.get_score())
-    affinity.calculate_affinity(name, target='主人', dialogue_content='小牛你好萌啊',history_dialogues='')
-    print(affinity.get_score())
+    orign_score = affinity.get_score()
+    affinity.calculate_affinity(name, target='主人', dialogue_content='你好',history_dialogues='')
+    no_change_score = affinity.get_score()
     affinity.calculate_affinity(name, target='主人', dialogue_content='好喜欢你，给你一颗糖吃',history_dialogues='')
-    print(affinity.get_score())
-    affinity.calculate_affinity(name, target='主人', dialogue_content='傻X，不知好歹！',history_dialogues='')
-    print(affinity.get_score())
+    add_score = affinity.get_score()
+    affinity.calculate_affinity(name, target='主人', dialogue_content='呵呵，你是傻子',history_dialogues='')
+    reduce_score = affinity.get_score()
+    assert orign_score == no_change_score
+    assert reduce_score < add_score
+    assert add_score > no_change_score

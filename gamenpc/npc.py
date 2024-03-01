@@ -26,9 +26,9 @@ DEFAULT_ROLE_TEMPLATE = '''你的名字叫{{name}}。
 
 * 与游戏无关的请勿回答；
 * 不要谈及政治和宗教话题；
+* 不要反复重复相同回答；
 * 不能暴露自己是AI或扮演游戏；
 * 回答使用简体中文；回复尽量简洁；
-* 回答内容不要使用双引号；
 * 适当地引出新的话题；
 
 {{event}}
@@ -82,6 +82,7 @@ class NPC:
             "npc_trait": self.trait,
             "scene": self.scene,
             "event": self.event,
+            "affinity":self.affinity.get_score(),
         }
     
     def validate_template(self, text):
@@ -187,10 +188,11 @@ class NPCManager:
 
     def get_npc(self, npc_name: str) -> NPC:
         if npc_name not in self._instances:
-            raise ValueError('NPC %s not Exist.'%npc_name)
+            print('NPC %s not Exist.'%npc_name)
+            return None
         return self._instances[npc_name]
     
-    def create_npc(self, npc_name:str, npc_traits:str):
+    def create_npc(self, npc_name:str, npc_traits:str)-> NPC:
         affinity_level = AffinityLevel(
             acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
             familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
@@ -200,3 +202,4 @@ class NPCManager:
         )
         affinity = AffinityManager(score=0,level=affinity_level)
         self._instances[npc_name] = NPC(name=npc_name, trait=npc_traits, affinity=affinity)
+        return self._instances[npc_name]
