@@ -203,3 +203,5 @@ next-env.d.ts
 
 .idea/
 .vscode
+
+python-env

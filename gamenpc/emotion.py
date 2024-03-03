@@ -66,60 +66,36 @@ class AffinityManager:
         self.affinity_level = level
         # 定义模型
         funtioncall_increase_affinity = doubao.ModelFunctionClass(
-            name="improve_favorability",
-            description="""增加角色对玩家好感度的方法""",
+            name="IncreaseAffinity",
+            description="""基于对话内容，让角色增加好感度""",
             parameters={
                 "properties": {
-                    "reason": {"description": "从多个角度解释调用该方法的详细原因", "type":"string"},
-                    "amount": {"description": "参数为整型，表示提升好感度的数值，提升幅度在-5到5之间，其中1表示好感度轻微提升，5表示好感度大幅提升", "type":"string"},
+                    "amount": {"description": "参数为整型，表示增加好感度的数值，增加幅度在0-5，其中1表示好感度轻微提升，5表示好感度大幅提升", "type":"string"}
                     },
                     "required": ["amount"],
                     "type": "object",
             },
         )
         funtioncall_decrease_affinity = doubao.ModelFunctionClass(
-            name="reduce_favorability",
-            description="""降低角色对玩家好感度的方法""",
+            name="DecreaseAffinity",
+            description="""基于对话内容，让角色减少好感度，传入一个整数""",
             parameters={
                 "properties": {
-                    "reason": {"description": "从多个角度解释调用该方法的详细原因", "type":"string"},
-                    "amount": {"description": "参数为整型，表示降低好感度的数值，降低幅度在-5到5之间，其中1表示好感度轻微降低，5表示好感度大幅降低", "type":"string"},
+                    "amount": {"description": "参数为整型，表示减少好感度的数值，减少幅度在0-5，其中1表示好感度轻微减少，5表示好感度大幅减少", "type":"string"}
                     },
                     "required": ["amount"],
                     "type": "object",
             },
         )
-        funtioncall_no_change = doubao.ModelFunctionClass(
-            name="no_change",
-            description="""好感度没有变化""",
-            parameters={
-                "properties": {
-                    "reason": {"description": "从多个角度解释调用该方法的详细原因", "type":"string"}
-                    },
-                    "type": "object",
-            },
-        )
         self.model = doubao.ChatSkylark(
-            model="skylark2-pro-4k",
-            model_version="1.2",
-            top_k=1
-        )
-        self.fn_model = doubao.ChatSkylark(
             model="skylark2-pro-4k",
             model_version="1.100",
             model_endpoint="mse-20231227193502-58xhk",
             top_k=1,
-            functions=[funtioncall_increase_affinity, funtioncall_decrease_affinity, funtioncall_no_change]
+            functions=[funtioncall_increase_affinity, funtioncall_decrease_affinity]
         )
         # 好感计算提示词
-        self.analysis_system_prompt = '''# 角色
-你是一位情感洞察师，可以根据对人物性格的解析和对话内容以确定好感度的变化，要从角色深层想法去分析，结合场景说明为什么会变化，是大幅变化还是几乎没有变化。
-
-# 技能：分析角色情感变化原因
-1. 根据对人物性格和对话内容的分析，确定人物之间的好感度变化。通过观察和分析人物的言行举止、情感表达、人际关系等方面，了解人物的性格特点，分析对话中人物的语言、语气、态度等因素，了解人物的情感和想法，说明好感度变化的原因。
-2. 判断好感度变化的幅度，是大幅增加或减少，还是几乎没有变化。
-3. 不做过多假设和猜测。'''
-        
+        self.system_prompt = '''你是一位情感洞察师，可以根据对人物性格的解析和对话内容以确定好感度的变化。'''
 
     def increase_affinity(self, amount):
         """增加好感度"""
@@ -141,26 +117,18 @@ class AffinityManager:
     
     def calculate_affinity(self, npc:str, target:str, history_dialogues:str, dialogue_content:str)->None:
         affinity_level = self.affinity_level.get_level(self.score)
-        affinity_analysis_messages = [
-            SystemMessage(content=self.analysis_system_prompt),
-            HumanMessage(content=f"{history_dialogues}\n\n他们的关系是{affinity_level} \n分析{dialogue_content}这句话对角色好感的影响及原因")
-        ]
-        affinity_analysis_result = self.model(messages=affinity_analysis_messages)
-        affinity_analysis = affinity_analysis_result.content
-        print(affinity_analysis)
-        self.functioncall_system_prompt = f'''你是一个NPC角色好感系统控制器，负责调节角色好感的高低。基于NPC（{npc}）对玩家（{target}）的好感度变化调节NPC好感度'''
-        functioncall_messages = [SystemMessage(content=self.functioncall_system_prompt),HumanMessage(content=affinity_analysis)]
-        result = self.fn_model(messages=functioncall_messages)
+        affinity_analysis = f"""你任务是分析{npc}对{target}的好感变化，当前好感是：\n{affinity_level}\n，下面是他们的对话:\n{history_dialogues}\n现在{target}对{npc}说: "{dialogue_content}"，{npc}对{target}的好感度是增加还是减少，增加调用IncreaseAffinity函数，减少调用DecreaseAffinity"""
+        all_messages = [SystemMessage(content=self.system_prompt),HumanMessage(content=affinity_analysis)]
+        print(all_messages)
+        result = self.model(messages=all_messages)
         if "function_call" in result.additional_kwargs:
             fn_name = result.additional_kwargs["function_call"]["name"]
             fn_params = result.additional_kwargs["function_call"]["arguments"]
             fn_params = json.loads(fn_params)
-            print(result)
-            print(fn_name,fn_params)
             amount = int(fn_params["amount"])
-            if fn_name == "improve_favorability":
+            if fn_name == "IncreaseAffinity":
                 self.increase_affinity(amount)
-            if fn_name == "reduce_favorability":
+            if fn_name == "DecreaseAffinity":
                 self.decrease_affinity(amount)
         else:
             print("好感无变化.\n%s"%result.content)
