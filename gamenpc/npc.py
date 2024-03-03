@@ -152,7 +152,11 @@ class NPC:
         )
         score = self.affinity.get_score()
         update_data = {"score": score}
-        client.update_record("npcs", update_data, "id =" + self.id)
+        print(self.id)
+        condition = "id='"+self.id+"'"
+        print(update_data)
+        print(condition)
+        client.update_record("npcs", update_data, condition)
         return score
 
     
