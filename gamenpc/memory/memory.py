@@ -8,6 +8,8 @@ from typing import List
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessagePromptTemplate
+from gamenpc.store import MySQLDatabase
+import uuid
 
 summarize_dialogue_template = """
 # 角色
@@ -89,10 +91,12 @@ reason: 小A是你一直暗恋的人，他向你告白，你们终于在一起�
 
 class DialogueEntry:
     '''对话实体，谁说了什么话'''
-    def __init__(self, role:str ,content:str):
+    def __init__(self, id:str, role_from:str, role_to:str, content:str):
         self.timestamp = datetime.datetime.now()  # 获取当前时间戳
         self.content = content  # 存储对话内容
-        self.role = role
+        self.role_from = role_from
+        self.role_to = role_to
+        self.id = id
     
     def __str__(self) -> str:
         return "%s: %s"%(self.role, self.content)
@@ -232,10 +236,10 @@ class Mind:
 
 
 class DialogueMemory:
-    def __init__(self, mind:Mind, summarize_limit=10, max_dialogue_history=100):
+    def __init__(self, dialogue_context:List, mind:Mind, summarize_limit=10, max_dialogue_history=100):
         self.mind = mind
         # 对话上下文
-        self.dialogue_context = []  
+        self.dialogue_context = dialogue_context  
         # 最大存储的对话上下文数量，超出则从头部删除
         self.context_limit = max_dialogue_history
         # 会话，上下文的总结
@@ -244,12 +248,20 @@ class DialogueMemory:
         self.summarize_limit = summarize_limit
         self.dialogue_pair_count = 0
     
-    def add_dialogue(self, role, content)->None:
+    def add_dialogue(self, client: MySQLDatabase, role_from, role_to, content)->None:
         if len(self.dialogue_context) >= self.context_limit:
-            # 移除最早的上下文以便为新上下文腾出空间
-            self.dialogue_context.pop(0)
-        self.dialogue_context.append(DialogueEntry(role, content))
+            # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
+            dialogue = self.dialogue_context.pop(0)
+            client.delete_record("dialogues", "id =" + dialogue.id)
+
+        message_id = uuid.uuid4()
+        self.dialogue_context.append(DialogueEntry(message_id, role_from, role_to, content))
         self.dialogue_pair_count = self.dialogue_pair_count + 1
+
+        # 历史对话持久化到db中
+        dialogue = {"id": message_id, "role_from": role_from, "role_to": role_to,"content": content}
+        client.insert_record("dialogues", dialogue)
+
         # 如果新增会话大于阈值，对会话内容进行总结
         if self.dialogue_pair_count > self.summarize_limit:
             # 异步做总结可以不阻塞对话过程，保证延迟体验
@@ -280,7 +292,10 @@ class DialogueMemory:
     def get_all_conversation(self)->List[ConverationEntry]:
         return self.conversation
     
-    def clear(self)->None:
+    def clear(self, client: MySQLDatabase)->None:
+        # 清空db数据
+        for dialogue in self.dialogue_context:
+            client.delete_record("dialogues", "id =" + dialogue.id)
         self.dialogue_context = []
         self.conversation = []
         self.dialogue_pair_count = 0
