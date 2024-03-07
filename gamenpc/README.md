@@ -99,8 +99,3 @@ message: int — 执行信息。
 接口将返回一个包含以下字段的JSON对象：
 status: string — 状态。
 message: int — 执行信息。
-
-
-## 加载和丰富NPC的知识库接口
-
-方法：POST /api/npc/load-knowlege

@@ -70,12 +70,6 @@ class MySQLDatabase:
         # 关闭游标和连接
         cursor.close()
 
-# host = "gz-cynosdbmysql-grp-op7kboe3.sql.tencentcdb.com"
-# port = 29309
-# user = "root"
-# password = "Cc@19966282166"
-# database = "game-npc"
-
 # # 使用示例
 # db = MySQLDatabase(host=host, port=port, user=user, password=password, database=database)
 # db.connect()
@@ -100,9 +94,11 @@ class MySQLDatabase:
 #     print('name: ', record[0])
 #     print('money', record[1])
 
-# # 更新记录
-# update_data = {"money": 1000}
-# db.update_record("users", update_data, "name = 'John'")
+# 更新记录
+# update_data = {"score": 99}
+# test_id = '小名_西门牛牛'
+# condition = f"id='{test_id}'"
+# db.update_record("npcs", update_data, condition)
 
 # # 删除记录
 # # db.delete_record("users", "username = 'John'")

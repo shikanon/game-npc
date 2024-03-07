@@ -51,6 +51,11 @@ class NPC_config:
         return 2  # 假设这里的长度为2，表示两个字段
     def keys(self):
         return ['name', 'trait']
+    def values(self)->List:
+        values = []
+        values.append(self.name)
+        values.append(self.trait)
+        return values
 
 class NPC:
     '''
@@ -127,7 +132,8 @@ class NPC:
         '''变更场景'''
         self.scene = scene
         update_data = {"scene": scene}
-        client.update_record("npcs", update_data, "id =" + self.id)
+        condition = f"id='{self.id}'"
+        client.update_record("npcs", update_data, condition)
     
     def get_scene(self):
         return self.scene
@@ -152,7 +158,8 @@ class NPC:
         )
         score = self.affinity.get_score()
         update_data = {"score": score}
-        client.update_record("npcs", update_data, "id =" + self.id)
+        condition = f"id='{self.id}'"
+        client.update_record("npcs", update_data, condition)
         return score
 
     
