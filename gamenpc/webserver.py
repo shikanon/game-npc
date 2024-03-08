@@ -75,8 +75,11 @@ db.create_table(create_npc_user_conversation_sql)
 debuglog = logger.DebugLogger("chat bot web")
 
 class UserObject:
-    def __init__(self, user_name:str, money:int, npc_manager: NPCManager):
-        self.user_name = user_name
+    def __init__(self, id: str, name:str, sex:str, phone:str, money:int, npc_manager: NPCManager):
+        self.id = id
+        self.name = name
+        self.sex = sex
+        self.phone = phone
         self.money = money
         self.npc_manager = npc_manager
         self._npc = {}
@@ -90,10 +93,47 @@ class UserObject:
     
     def __len__(self):
         # 在这里定义对象的长度
-        return 2  # 假设这里的长度为2，表示两个字段
+        return 5  # 假设这里的长度为2，表示两个字段
 
     def keys(self):
-        return ['user_name', 'money']
+        return ['id', 'name', 'sex', 'phone', 'money']
+    
+    def values(self):
+        values = []
+        values.append(self.id)
+        values.append(self.name)
+        values.append(self.sex)
+        values.append(self.phone)
+        values.append(self.money)
+        return values
+
+class UserOpinion:
+    def __init__(self, id: str, name:str, content:str, labels:List):
+        self.id = id
+        self.name = name
+        self.labels = labels
+        self.content = content
+    
+    def __len__(self):
+        # 在这里定义对象的长度
+        return 4  # 假设这里的长度为2，表示两个字段
+
+    def keys(self)->List:
+        return ['id', 'name', 'labels', 'content']
+    
+    def values(self)->List:
+        values = []
+        values.append(self.id)
+        values.append(self.name)
+        separator = ','
+        label_strs = separator.join(map(str, self.labels))
+        values.append(label_strs)
+        values.append(self.content)
+        return values
+    def labels_str_to_list(label_strs:str)->List:
+        separator = ','
+        labels = label_strs.split(separator)
+        return labels
 
 class UserManager:
     def __init__(self, client: MySQLDatabase):

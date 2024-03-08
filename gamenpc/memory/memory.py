@@ -91,12 +91,13 @@ reason: 小A是你一直暗恋的人，他向你告白，你们终于在一起�
 
 class DialogueEntry:
     '''对话实体，谁说了什么话'''
-    def __init__(self, id:str, role_from:str, role_to:str, content:str):
-        self.timestamp = datetime.datetime.now()  # 获取当前时间戳
-        self.content = content  # 存储对话内容
+    def __init__(self, id:str, role_from:str, role_to:str, content:str, content_type:str):
+        self.id = id
         self.role_from = role_from
         self.role_to = role_to
-        self.id = id
+        self.content = content  # 存储对话内容
+        self.content_type = content_type
+        self.timestamp = datetime.datetime.now()  # 获取当前时间戳
     
     def __str__(self) -> str:
         return "%s: %s"%(self.role, self.content)

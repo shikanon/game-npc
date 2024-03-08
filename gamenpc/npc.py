@@ -41,20 +41,29 @@ class NPC_config:
     NPC配置, 暂时两个字段
     '''
     def __init__(self, 
+                 id:str, 
                  name:str, 
                  trait:str, 
+                 description:str, 
+                 updated_at:str, 
                  )->None:
+        self.id = id
         self.name = name
         self.trait = trait
+        self.description = description
+        self.updated_at = updated_at
     def __len__(self):
         # 在这里定义对象的长度
-        return 2  # 假设这里的长度为2，表示两个字段
+        return 5  # 假设这里的长度为2，表示两个字段
     def keys(self):
-        return ['name', 'trait']
+        return ['id', 'name', 'trait', 'description', 'updated_at']
     def values(self)->List:
         values = []
+        values.append(self.id)
         values.append(self.name)
         values.append(self.trait)
+        values.append(self.description)
+        values.append(self.updated_at)
         return values
 
 class NPC:
@@ -107,7 +116,7 @@ class NPC:
         # 在这里定义对象的长度
         return 6  # 假设这里的长度为2，表示两个字段
     
-    def keys(self):
+    def keys(self)->List:
         return ['id', 'name', 'user_name', 'trait', 'score', 'affinity_level']
 
     def get_character_info(self):
