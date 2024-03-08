@@ -18,6 +18,27 @@ class MySQLDatabase:
             database=self.database
         )
 
+# from sqlalchemy import create_engine, Column, Integer, String
+# from sqlalchemy.ext.declarative import declarative_base
+# from sqlalchemy.orm import sessionmaker
+
+# class MySQLDatabase:
+#     def __init__(self, host:str, port:int, user:str, password:str, database:str):
+#         self.host = host
+#         self.port = port
+#         self.user = user
+#         self.password = password
+#         self.database = database
+#         self.engine = None
+
+#     def connect(self):
+#         host=self.host,
+#         user=self.user,
+#         password=self.password,
+#         database=self.database
+#         config = f"mysql+pymysql://{user}:{password}@{host}/{database}"
+#         self.engine = create_engine(config)
+
     def disconnect(self):
         if self.connection:
             self.connection.close()
