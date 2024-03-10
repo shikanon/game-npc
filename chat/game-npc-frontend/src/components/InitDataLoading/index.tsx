@@ -17,6 +17,7 @@ export default function InitDataLoading() {
             height: 'auto',
             transform: 'translate(-50%,-50%)',
             objectFit: 'contain',
+            imageRendering: 'pixelated',
           }}
         />
       </div>

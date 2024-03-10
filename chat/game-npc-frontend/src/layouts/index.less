@@ -1,0 +1,49 @@
+.container {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  background-image: url("@/assets/images/login_bg.png");
+  background-size: cover;
+
+  .menu {
+    min-width: 160px;
+  }
+
+  .avatar {
+    background-color: #1677ff;
+  }
+}
+
+.nav {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  padding: 10px 20px;
+  z-index: 1000;
+
+  .productName {
+    font-size: 20px;
+    font-weight: bold;
+    transform: skew(-10deg);
+    color: #DD661B;
+  }
+}
+
+.feedbackItem {
+  width: 150px;
+  padding: 5px 0;
+  margin-right: 30px;
+  margin-bottom: 20px;
+  text-align: center;
+  border-radius: 20px;
+  border: 1px solid #bfbfbf;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.3s ease-in-out;
+
+  &:hover {
+    color: #1677ff;
+    border: 1px solid #1677ff;
+    transform: scale(1.1);
+  }
+}

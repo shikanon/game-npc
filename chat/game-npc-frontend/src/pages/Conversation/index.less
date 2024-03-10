@@ -1,0 +1,77 @@
+.container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  background-image: url("@/assets/images/login_bg.png");
+  background-size: cover;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  z-index: 100;
+
+  .left {
+    height: 100vh;
+    width: 25%;
+    padding: 50px 0 0 20px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+  }
+
+  .chatContainer {
+    height: 100vh;
+    width: 50%;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-items: center;
+    align-items: center;
+
+    .chatList {
+      flex: 1;
+      width: 100%;
+    }
+
+    .footer {
+      position: relative;
+      width: 100%;
+      display: flex;
+      margin-bottom: 30px;
+      flex-flow: row nowrap;
+      justify-content: center;
+      align-items: center;
+
+      .chatInput {
+        position: relative;
+        width: calc(100% - 200px);
+        margin: 0 100px;
+        padding: 10px 50px 10px 10px;
+        background-color: #fff;
+        border-radius: 50px;
+
+        .textArea {
+          width: 90%;
+        }
+
+        .sendBtn {
+          position: absolute;
+          right: 20px;
+          top: 10px;
+        }
+      }
+
+      .resetChat {
+        position: absolute;
+        right: 30px;
+      }
+    }
+  }
+
+  .right {
+    height: 100vh;
+    width: 25%;
+    padding: 150px 0 0 30px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+  }
+}

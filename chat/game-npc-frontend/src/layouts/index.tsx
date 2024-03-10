@@ -1,11 +1,23 @@
 import {} from '@/constants';
 import layoutConfig from '@/layouts/layoutConfig';
-import logoImg from '@/assets/images/logo.png';
+// import logoImg from '@/assets/images/logo.png';
+import userImg from '@/assets/images/user.png';
+import shareImg from '@/assets/images/share.png';
+import feedbackImg from '@/assets/images/feedback.png';
 import { ProLayout } from '@ant-design/pro-components';
 import { Outlet, useAccess, useLocation, useModel } from '@umijs/max';
 import { useMount } from 'ahooks';
-import { App, Image } from 'antd';
+import { App, Col, Image, Modal, Row, Input } from 'antd';
 import { useEffect, useState } from 'react';
+import styles from './index.less';
+
+const { TextArea } = Input;
+
+interface IFeedbackItemType {
+  label: string;
+  value: string;
+  selected: boolean;
+}
 
 export default () => {
   // 初始化的状态数据
@@ -17,6 +29,16 @@ export default () => {
   const { pathname } = useLocation();
   // 动态path切换
   const [currentPath, setCurrentPath] = useState('/');
+  // 反馈弹窗
+  const [modalOpen, setModalOpen] = useState(false);
+  // 反馈列表
+  const [feedbackList, setFeedbackList] = useState<IFeedbackItemType[]>([
+    { label: '功能不完善', value: '1', selected: false },
+    { label: '情感表达不准确', value: '2', selected: false },
+    { label: '缺乏个性化', value: '3', selected: false },
+    { label: '用户体验不佳', value: '4', selected: false },
+    { label: '情感表达过于机械', value: '5', selected: false },
+  ]);
 
   useMount(() => {
     console.log(initialState, 'initialState');
@@ -60,8 +82,9 @@ export default () => {
           colorBgMenuItemSelected: 'rgba(230,243,254,1)',
         },
       }}
-      title="AI聊天"
-      logo={<Image src={logoImg} preview={false} width={48}/>}
+      // title="AI聊天"
+      // logo={<Image src={logoImg} preview={false} width={48}/>}
+      pure={true} // 是否删除掉所有的自带界面
       menu={{
         locale: false, // 是否使用国际化
         defaultOpenAll: true, // 默认展开所有菜单
@@ -75,8 +98,68 @@ export default () => {
       headerContentRender={() => null}
       menuFooterRender={() => null}
     >
-      <App>
+      <App style={{ position: 'relative' }}>
+        <Row className={styles.nav} justify={'space-between'} align={'middle'}>
+          <Col className={styles.productName}>LoveTalk AI爱语</Col>
+          <Col>
+            <Row justify={'end'} align={'middle'}>
+              <Col
+                style={{ cursor: 'pointer' }}
+                onClick={() => setModalOpen(true)}
+              >
+                <Image src={feedbackImg} preview={false} width={32} />
+              </Col>
+              <Col style={{ margin: '0 30px' }}>
+                <Image src={shareImg} preview={false} width={32} />
+              </Col>
+              <Col>
+                <Image src={userImg} preview={false} width={32} />
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+
         <Outlet />
+
+        <Modal
+          title="你有什么想法，请务必告诉我们"
+          centered
+          destroyOnClose
+          open={modalOpen}
+          okText={'提交'}
+          width={600}
+          onOk={() => setModalOpen(false)}
+          okButtonProps={{ style: { background: 'linear-gradient(to right, #526EF8, #8AB6E8, #C2FFD8)', border: 'none' } }}
+          onCancel={() => setModalOpen(false)}
+        >
+          <Row style={{ marginTop: 30, marginBottom: 10 }} justify={'start'} align={'middle'}>
+            {
+              feedbackList.map((item, index) => {
+                return (
+                  <Col
+                    key={index}
+                    className={styles.feedbackItem}
+                    style={item.selected ? { backgroundColor: '#1677ff', color: '#fff' } : {}}
+                    onClick={() => {
+                      const list = [...feedbackList];
+                      list[index].selected = !list[index].selected;
+                      setFeedbackList(list);
+                    }}
+                  >
+                    {item.label}
+                  </Col>
+                );
+              })
+            }
+          </Row>
+
+          <Row>
+            <TextArea
+              style={{ width: '100%', height: 100, padding: 10 }}
+              placeholder={'你想要什么新体验？角色更丰富？聊天内容更劲爆？把你的想法告诉我们吧！'}
+            />
+          </Row>
+        </Modal>
       </App>
     </ProLayout>
   );

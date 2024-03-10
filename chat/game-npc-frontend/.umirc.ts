@@ -87,15 +87,35 @@ export default defineConfig({
   routes: [
     {
       path: '/',
-      redirect: '/chat',
+      redirect: '/login',
     },
     {
-      name: '首页',
+      name: '登录',
+      path: '/login',
+      component: '@/pages/Login',
+    },
+    {
+      name: '设置用户',
+      path: '/set_user',
+      component: '@/pages/SetUser',
+    },
+    {
+      name: '角色选择',
+      path: '/character',
+      component: '@/pages/Character',
+    },
+    {
+      name: '对话',
+      path: '/conversation',
+      component: '@/pages/Conversation',
+    },
+    {
+      name: '聊天',
       path: '/chat',
       component: '@/pages/Chat',
     },
     {
-      name: '首页',
+      name: 'NPC配置',
       path: '/npc_config',
       component: '@/pages/NPCConfig',
     },
