@@ -60,6 +60,12 @@ class ChatRequest(BaseModel):
     question: str
     contentType: str
 
+class NPCRequest(BaseModel):
+    user_id: Optional[str] = ""
+    npc_id: str
+    trait: str
+    profile_url: Optional[str] = ""
+
 def get_npc(req:ChatRequest=Depends) -> NPC:
     try:
         user = user_manager.get_user(user_name=req.user_name)
@@ -126,12 +132,6 @@ async def query_npc(npc_id: str):
     npc_config = npc_manager.get_npc(npc_id)
     npc_configs.append(npc_config)
     return npc_configs
-
-class NPCRequest(BaseModel):
-    user_id: Optional[str] = ""
-    npc_id: str
-    trait: str
-    profile_url: Optional[str] = ""
 
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
