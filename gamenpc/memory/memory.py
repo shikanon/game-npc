@@ -8,8 +8,12 @@ from typing import List
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessagePromptTemplate
-from gamenpc.store import MySQLDatabase
+from gamenpc.store import MySQLDatabase, Base
 import uuid
+
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
 
 summarize_dialogue_template = """
 # 角色
@@ -88,11 +92,38 @@ reason: 小A是你一直暗恋的人，他向你告白，你们终于在一起�
 """
 
 
+class Event(Base):
+    __tablename__ = 'event'
+    __table_args__ = {'extend_existing': True}
 
-class DialogueEntry:
+    id = Column(Integer, primary_key=True, autoincrement=True)  # 事件剧场ID，自增ID
+    npc_id = Column(Integer, ForeignKey('npc.id'))  # NPC对象，外键
+    theater = Column(String(255))  # 剧情章节
+    theater_event = Column(String(255))  # 剧情的事件（JSON）
+    created_at = Column(DateTime)  # 创建时间
+
+    #关联NPC对象
+    npc = relationship('NPC')
+
+    def __init__(self, npc_id, theater, theater_event, created_at):
+        self.npc_id = npc_id
+        self.theater = theater
+        self.theater_event = theater_event
+        self.created_at = created_at
+
+class DialogueEntry(Base):
+    __tablename__ = 'dialogue'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)  # 聊天ID，哈希类型
+    role_from = Column(Integer)  # 消息发出对象ID
+    role_to = Column(Integer)  # 消息接收对象ID
+    content = Column(String(255))  # 消息内容
+    content_type = Column(String(255))  # 内容类型
+    created_at = Column(DateTime)  # 创建时间
+
     '''对话实体，谁说了什么话'''
-    def __init__(self, id:str, role_from:str, role_to:str, content:str, content_type:str):
-        self.id = id
+    def __init__(self, role_from:str, role_to:str, content:str, content_type:str):
         self.role_from = role_from
         self.role_to = role_to
         self.content = content  # 存储对话内容
@@ -101,7 +132,6 @@ class DialogueEntry:
     
     def __str__(self) -> str:
         return "%s: %s"%(self.role, self.content)
-
 
 class ConverationEntry:
     '''会话场景'''
@@ -249,19 +279,17 @@ class DialogueMemory:
         self.summarize_limit = summarize_limit
         self.dialogue_pair_count = 0
     
-    def add_dialogue(self, client: MySQLDatabase, role_from, role_to, content)->None:
+    def add_dialogue(self, client: MySQLDatabase, role_from, role_to, content, contentType)->None:
         if len(self.dialogue_context) >= self.context_limit:
             # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
             dialogue = self.dialogue_context.pop(0)
-            client.delete_record("dialogues", "id =" + dialogue.id)
+            client.delete_record(dialogue)
 
-        message_id = uuid.uuid4()
-        self.dialogue_context.append(DialogueEntry(message_id, role_from, role_to, content))
+        dialogue =  DialogueEntry(role_from, role_to, content, contentType)
+        self.dialogue_context.append(dialogue)
         self.dialogue_pair_count = self.dialogue_pair_count + 1
-
         # 历史对话持久化到db中
-        dialogue = {"id": message_id, "role_from": role_from, "role_to": role_to,"content": content}
-        client.insert_record("dialogues", dialogue)
+        client.insert_record(dialogue)
 
         # 如果新增会话大于阈值，对会话内容进行总结
         if self.dialogue_pair_count > self.summarize_limit:
@@ -296,7 +324,7 @@ class DialogueMemory:
     def clear(self, client: MySQLDatabase)->None:
         # 清空db数据
         for dialogue in self.dialogue_context:
-            client.delete_record("dialogues", "id =" + dialogue.id)
+            client.delete_record(dialogue)
         self.dialogue_context = []
         self.conversation = []
         self.dialogue_pair_count = 0

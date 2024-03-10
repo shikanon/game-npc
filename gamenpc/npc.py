@@ -16,7 +16,10 @@ from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from gamenpc.memory.memory import Mind, DialogueMemory, DialogueEntry
 from gamenpc.model import doubao
 from gamenpc.emotion import AffinityManager, AffinityLevel
-from gamenpc.store import MySQLDatabase
+from gamenpc.store import MySQLDatabase, Base
+
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 
 
 DEFAULT_ROLE_TEMPLATE = '''你的名字叫{{name}}。
@@ -36,58 +39,78 @@ DEFAULT_ROLE_TEMPLATE = '''你的名字叫{{name}}。
 {{event}}
 '''
 
-class NPC_config:
-    '''
-    NPC配置, 暂时两个字段
-    '''
-    def __init__(self, 
-                 id:str, 
-                 name:str, 
-                 trait:str, 
-                 description:str, 
-                 updated_at:str, 
-                 )->None:
+class NPC(Base):
+    # 表的名字
+    __tablename__ = 'npc'
+    __table_args__ = {'extend_existing': True}
+
+    # 表的结构
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(64))
+    short_description = Column(String(255))
+    trait = Column(String(255))
+    prompt_description = Column(String(255))
+    profile = Column(String(255))
+    chat_background = Column(String(255))
+    affinity_level_description = Column(String(255))
+    knowledge_id = Column(String(64))
+    updated_at = Column(DateTime)
+    created_at = Column(DateTime)
+
+    def __init__(self, id, name, short_description, trait, prompt_description, profile, chat_background, 
+                 affinity_level_description, knowledge_id, updated_at):
         self.id = id
         self.name = name
+        self.short_description = short_description
         self.trait = trait
-        self.description = description
+        self.prompt_description = prompt_description
+        self.profile = profile
+        self.chat_background = chat_background
+        self.affinity_level_description = affinity_level_description
+        self.knowledge_id = knowledge_id
         self.updated_at = updated_at
-    def __len__(self):
-        # 在这里定义对象的长度
-        return 5  # 假设这里的长度为2，表示两个字段
-    def keys(self):
-        return ['id', 'name', 'trait', 'description', 'updated_at']
-    def values(self)->List:
-        values = []
-        values.append(self.id)
-        values.append(self.name)
-        values.append(self.trait)
-        values.append(self.description)
-        values.append(self.updated_at)
-        return values
 
-class NPC:
+class NPCUser(Base):
+        # 表的名字
+    __tablename__ = 'npc_user'
+    __table_args__ = {'extend_existing': True}
+
+    # 表的结构
+    id = Column(Integer, primary_key=True, autoincrement=True)  # NPC对话实例id，自增id
+    npc_id = Column(Integer, ForeignKey('npc.id'))  # npc配置对象，外键
+    # 通过关系关联NPCConfig对象
+    npc = relationship('NPC')
+    user_id = Column(Integer, ForeignKey('user.id'))  # 用户对象，外键
+    # 通过关系关联User对象
+    user = relationship('User')
+    scene = Column(String(255))  # 场景描述
+    score = Column(Integer)  # 好感分数
+    affinity_level = Column(Integer)  # 亲密度等级
+    created_at = Column(DateTime)  # 创建时间
     '''
     NPC名称、角色prompt模板、好感系统、场景
     '''
     def __init__(self, 
                  id:str,
-                 name:str,
-                 user_name:str,  
-                 trait:str, 
+                 npc_id:str,
+                 user_id:str,  
+                 score:int, 
+                 scene:str,
+                 trait:str,
+                 affinity_level: int,
                  dialogue_context:List,
                  affinity:AffinityManager, 
-                 scene='',
                  role_template_filename='',
                  dialogue_summarize_num=20,
                  dialogue_round=6,
                  )->None:
         self.id = id
-        self.name = name
-        self.user_name = user_name
-        self.trait = trait
+        self.npc_id = npc_id
+        self.user_id = user_id
+        self.score = score
         self.scene = scene
         self.affinity = affinity
+        self.affinity_level = affinity_level
         self.event = None
         self.dialogue_round = dialogue_round
         #加载角色模板
@@ -111,13 +134,6 @@ class NPC:
             model="skylark2-pro-character-4k",
             top_k=1,
         )
-
-    def __len__(self):
-        # 在这里定义对象的长度
-        return 6  # 假设这里的长度为2，表示两个字段
-    
-    def keys(self)->List:
-        return ['id', 'name', 'user_name', 'trait', 'score', 'affinity_level']
 
     def get_character_info(self):
         return {
@@ -203,7 +219,7 @@ class NPC:
         else:
             return ""
 
-    async def chat(self, client: MySQLDatabase, player_name:str, message:str)->str:
+    async def chat(self, client: MySQLDatabase, player_name:str, message:str, contentType: str)->str:
         '''NPC对话'''
         self.system_prompt = self.render_role_template()
         all_messages = [
@@ -223,21 +239,42 @@ class NPC:
         format_message = self.process_message(message)
         all_messages.append(HumanMessage(content=format_message))
         print(all_messages)
-        self.dialogue_manager.add_dialogue(client=client, role_from=player_name, role_to=self.name, content=message)
+        if contentType == '':
+            contentType = 'text'
+        self.dialogue_manager.add_dialogue(client=client, role_from=player_name, role_to=self.name, content=message, contentType=contentType)
     
         response = self.character_model(messages=all_messages)
         anwser = response.content
-        self.dialogue_manager.add_dialogue(client=client, role_from=self.name, role_to=player_name, content=anwser)
+        self.dialogue_manager.add_dialogue(client=client, role_from=self.name, role_to=player_name, content=anwser, contentType=contentType)
 
         return anwser
 
+class Scene(Base):
+    __tablename__ = 'scene'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    scene = Column(String(255))
+    theater = Column(String(255))
+    theater_event = Column(String(255))
+    roles = Column(String(255))
+    score = Column(String(255))
+    created_at = Column(DateTime)
+
+    def __init__(self, id, scene, theater, theater_event, roles, score):
+        self.id = id
+        self.scene = scene
+        self.theater = theater
+        self.theater_event = theater_event
+        self.roles = roles
+        self.score = score
 
 
 class NPCManager:
     def __init__(self, client: MySQLDatabase):
         self.client = client
         self._instances = {}
-        records = self.client.select_records("npcs")
+        records = self.client.select_records(NPCUser)
         for record in records:
             npc_id = record[0]
             name = record[1]
@@ -255,7 +292,7 @@ class NPCManager:
             affinity = AffinityManager(score=score,level=affinity_level)
             # db中加载历史对话
             dialogue_context = []
-            dialogue_records = self.client.select_records("dialogues")
+            dialogue_records = self.client.select_records(DialogueEntry)
             for dialogue_record in dialogue_records:
                 dialogue_id = dialogue_record[0]
                 dialogue_role_from = dialogue_record[1]
@@ -265,22 +302,22 @@ class NPCManager:
             self._instances[npc_id] = NPC(id=npc_id, name=name, user_name=user_name, 
                                              trait=traits, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
         self._instance_configs = {}
-        records = self.client.select_records("npc_configs")
+        records = self.client.select_records(NPC)
         for record in records:
             name = record[0]
             traits = record[1]
-            self._instance_configs[name] = NPC_config(name=name, trait=traits)
+            self._instance_configs[name] = NPC(name=name, trait=traits)
         print('self._instance_configs: ', self._instance_configs)
 
-    def get_npc(self, user_name: str, npc_name: str) -> NPC:
-        npc_id = user_name + '_' + npc_name
+    def get_npc_user(self, npc_id: str, user_id: str) -> NPC:
+        npc_user_id = npc_id + '_' + user_id
         # if npc_id not in self._instances:
         #     raise ValueError('NPC %s not Exist.'%npc_id)
-        return self._instances.get(npc_id)
+        return self._instances.get(npc_user_id)
 
-    def get_npc_config(self, npc_name: str) -> NPC_config:
-        npc_config = self._instance_configs.get(npc_name)
-        return npc_config
+    def get_npc(self, npc_id: str) -> NPC:
+        npc = self._instance_configs.get(npc_id)
+        return npc
     
     def get_all_npc_config(self) -> list:
         instance_config_list = []
@@ -289,8 +326,8 @@ class NPCManager:
         return instance_config_list
     
     def set_npc_config(self, npc_name: str, npc_traits: str):
-        new_npc_config= NPC_config(name=npc_name, trait=npc_traits)
-        self.client.insert_record("npc_configs", new_npc_config)
+        new_npc_config= NPC(name=npc_name, trait=npc_traits)
+        self.client.insert_record(new_npc_config)
         self._instance_configs[npc_name] = new_npc_config
     
     def create_npc(self, user_name:str, npc_name:str, npc_traits:str, scene: str) -> NPC:
@@ -304,8 +341,9 @@ class NPCManager:
         affinity = AffinityManager(score=0,level=affinity_level)
         npc_id = user_name + '_' + npc_name
         dialogue_context = []
-        self._instances[npc_id] = NPC(id=npc_id, name=npc_name, user_name=user_name, trait=npc_traits, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
+        new_npc = NPC(id=npc_id, name=npc_name, user_name=user_name, trait=npc_traits, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
+        self._instances[npc_id] = new_npc
         # affinity_json = json.dumps(affinity.__dict__)
-        npc = {"id": npc_id, "name": npc_name, "user_name": user_name, "trait": npc_traits, "score":0, "scene": scene, "affinity_level": 100}
-        self.client.insert_record("npcs", npc)
+        # npc = {"id": npc_id, "name": npc_name, "user_name": user_name, "trait": npc_traits, "score":0, "scene": scene, "affinity_level": 100}
+        self.client.insert_record(new_npc)
         return self._instances.get(npc_id)
