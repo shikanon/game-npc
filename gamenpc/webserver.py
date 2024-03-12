@@ -9,7 +9,8 @@ import os, uvicorn
 from gamenpc.utils import logger
 from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.user import UserManager
-from gamenpc.store import MySQLDatabase
+from gamenpc.store.mysql import MySQLDatabase
+from gamenpc.store.redis import RedisList
 
 
 app = FastAPI()
@@ -38,16 +39,25 @@ trait = '''
 default_npc_name = "西门牛牛"
 # default_npc = npc_manager.create_npc(db, "西门牛牛", trait)
 
-# 加载环境变量并获取 MySQL 相关配置
-host = os.environ.get('MYSQL_HOST')
-port = os.environ.get('MYSQL_PORT')
-user = os.environ.get('MYSQL_USER')
-password = os.environ.get('MYSQL_PASSWORD')
-database = os.environ.get('MYSQL_DATABASE')
 file_path = os.environ.get('FILE_PATH')
-db = MySQLDatabase(host=host, port=port, user=user, password=password, database=database)
-npc_manager = NPCManager(db)
-user_manager = UserManager(db, npc_manager)
+
+# 加载环境变量并获取 MySQL 相关配置
+mysql_host = os.environ.get('MYSQL_HOST')
+mysql_port = os.environ.get('MYSQL_PORT')
+mysql_user = os.environ.get('MYSQL_USER')
+mysql_password = os.environ.get('MYSQL_PASSWORD')
+mysql_database = os.environ.get('MYSQL_DATABASE')
+mysql_client = MySQLDatabase(host=mysql_host, port=mysql_port, user=mysql_user, password=mysql_password, database=mysql_database)
+
+redis_host = os.environ.get('REDIS_HOST')
+redis_port = os.environ.get('REDIS_PORT')
+redis_user = os.environ.get('REDIS_USER')
+redis_password = os.environ.get('REDIS_PASSWORD')
+redis_db = os.environ.get('MYSQL_DATABASE')
+redis_client = RedisList(host=redis_host, port=redis_port, user=redis_user, password=redis_password, db=redis_db)
+
+npc_manager = NPCManager(mysql_client, redis_client)
+user_manager = UserManager(mysql_client, npc_manager)
 
 # # 新增记录
 # npc = NPC(name="测试", short_description="测试", trait="测试", prompt_description="测试", profile="测试", chat_background="测试", 
@@ -71,6 +81,7 @@ class ChatRequest(BaseModel):
     npc_name: NPC的名称
     question: 问题，文本格式
     '''
+    id: str
     user_id: str
     npc_id: str
     scene: str
@@ -94,8 +105,7 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
             return None
         print(users)
         user = users[0]
-        filter_dict = {'user_id': req.user_id, 'npc_id': req.npc_id}
-        npc_users = user.get_npc_users(filter_dict=filter_dict)
+        npc_users = user.get_npc_users(npc_user_id=req.id, user_id=req.user_id, npc_id=req.npc_id, scene=req.scene)
         if npc_users.__len__ == 0:
             return None
         return npc_users[0]
@@ -106,8 +116,8 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
 async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     '''NPC聊天对话'''
     answer, affinity_score = await asyncio.gather(
-        npc_user_instance.chat(db, req.user_id, req.question, req.contentType),
-        npc_user_instance.update_affinity(db, req.user_id, req.question),
+        npc_user_instance.chat(mysql_client, req.user_id, req.question, req.contentType),
+        npc_user_instance.update_affinity(mysql_client, req.user_id, req.question),
     )
     thought = npc_user_instance.get_thought_context()
     data = {
@@ -139,7 +149,7 @@ async def clear_npc_user_memory(npc_user_id):
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc_user(npc_user_id)
     try:
-        npc_instance.re_init(db)
+        npc_instance.re_init(mysql_client)
         return response(message="记忆、好感重置成功!")
     except KeyError:
         return response(code=400, message="NPC not found")
@@ -177,7 +187,7 @@ async def shift_scenes(user_name:str, npc_name:str, scene:str):
     npc_instance = npc_manager.get_npc(user_name, npc_name)
     if npc_instance is None:
         return response(code=400, message="Invaild value of npc_name, it not Exists")
-    npc_instance.set_scene(client=db, scene=scene)
+    npc_instance.set_scene(client=mysql_client, scene=scene)
     return response(message="场景转移成功")
 
 class UserRequest(BaseModel):

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Integer, DateTime, Enum
 from sqlalchemy.dialects.postgresql import UUID
-from gamenpc.npc import NPC, NPCManager
-from gamenpc.store import MySQLDatabase, Base
+from gamenpc.npc import NPCUser, NPCManager
+from gamenpc.store.mysql import MySQLDatabase, Base
 from typing import List
 import uuid
 from datetime import datetime
@@ -28,12 +28,15 @@ class User(Base):
         self.npc_manager = npc_manager
         self._npc = {}
     
-    def get_npc(self, user_id:str, npc_id:str, scene:str)->NPC:
-        npc = self.npc_manager.get_npc(user_id=user_id, npc_id=npc_id)
-        if npc == None:
+    def get_npc_users(self, npc_user_id:str, user_id:str, npc_id:str, scene:str)->NPCUser:
+        filter_dict = {"id": npc_user_id}
+        npc_users = self.npc_manager.get_npcs(filter_dict=filter_dict)
+        if npc_users == None or npc_users.__len__ == 0:
             npc_config = self.npc_manager.get_npc_config(npc_id)
-            npc = self.npc_manager.create_npc(user_id=user_id, npc_id=npc_id, npc_traits=npc_config.trait, scene=scene)
-        return npc
+            npc_user = self.npc_manager.create_npc(user_id=user_id, npc_id=npc_id, npc_traits=npc_config.trait, scene=scene)
+        else:
+            npc_user = npc_users[0]
+        return npc_user
     
 class UserOpinion(Base):
     __tablename__ = 'user_opinion'

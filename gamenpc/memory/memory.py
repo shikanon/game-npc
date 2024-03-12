@@ -8,7 +8,8 @@ from typing import List
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessagePromptTemplate
-from gamenpc.store import MySQLDatabase, Base
+from gamenpc.store.mysql import MySQLDatabase, Base
+from gamenpc.store.redis import RedisList
 import uuid
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
@@ -280,17 +281,17 @@ class DialogueMemory:
         self.summarize_limit = summarize_limit
         self.dialogue_pair_count = 0
     
-    def add_dialogue(self, client: MySQLDatabase, role_from, role_to, content, contentType)->None:
+    def add_dialogue(self, redis_client: RedisList, role_from, role_to, content, contentType)->None:
         if len(self.dialogue_context) >= self.context_limit:
             # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
+            redis_client.pop("dialogue")
             dialogue = self.dialogue_context.pop(0)
-            client.delete_record(dialogue)
 
         dialogue =  DialogueEntry(role_from, role_to, content, contentType)
+        # 历史对话持久化到db中
+        redis_client.push("dialogue", dialogue)
         self.dialogue_context.append(dialogue)
         self.dialogue_pair_count = self.dialogue_pair_count + 1
-        # 历史对话持久化到db中
-        client.insert_record(dialogue)
 
         # 如果新增会话大于阈值，对会话内容进行总结
         if self.dialogue_pair_count > self.summarize_limit:
@@ -309,6 +310,10 @@ class DialogueMemory:
         # 返回所有上下文，按时间顺序排列
         return self.dialogue_context
     
+    def set_contexts(self, dialogue_context: List[DialogueEntry]):
+        # 返回所有上下文，按时间顺序排列
+        self.dialogue_context = dialogue_context
+    
     async def add_summary(self, dialogues: List[DialogueEntry]):
         # 异步函数，生成对话总结
         summary = await self.mind.summarize_dialogue2converation(dialogues)
@@ -322,10 +327,9 @@ class DialogueMemory:
     def get_all_conversation(self)->List[ConverationEntry]:
         return self.conversation
     
-    def clear(self, client: MySQLDatabase)->None:
+    def clear(self, redis_client: RedisList)->None:
         # 清空db数据
-        for dialogue in self.dialogue_context:
-            client.delete_record(dialogue)
+        redis_client.delete("dialogue")    
         self.dialogue_context = []
         self.conversation = []
         self.dialogue_pair_count = 0

@@ -16,7 +16,8 @@ from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from gamenpc.memory.memory import Mind, DialogueMemory, DialogueEntry
 from gamenpc.model import doubao
 from gamenpc.emotion import AffinityManager, AffinityLevel
-from gamenpc.store import MySQLDatabase, Base
+from gamenpc.store.mysql import MySQLDatabase, Base
+from gamenpc.store.redis import RedisList
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -168,6 +169,9 @@ class NPCUser(Base):
         self.event = None
         self.dialogue_manager.clear(client)
 
+    def set_dialogue_context(self, dialogue_context: List)->List:
+        return self.dialogue_manager.set_contexts(dialogue_context)
+
     def get_dialogue_context(self)->List:
         return self.dialogue_manager.get_all_contexts()
     
@@ -222,7 +226,7 @@ class NPCUser(Base):
         else:
             return ""
 
-    async def chat(self, client: MySQLDatabase, player_name:str, message:str, contentType: str)->str:
+    async def chat(self, redis_client: RedisList, player_name:str, message:str, contentType: str)->str:
         '''NPC对话'''
         self.system_prompt = self.render_role_template()
         all_messages = [
@@ -245,11 +249,11 @@ class NPCUser(Base):
 
         if contentType == '':
             contentType = 'text'
-        self.dialogue_manager.add_dialogue(client=client, role_from=player_name, role_to=self.name, content=message, contentType=contentType)
+        self.dialogue_manager.add_dialogue(client=redis_client, role_from=player_name, role_to=self.name, content=message, contentType=contentType)
     
         response = self.character_model(messages=all_messages)
         anwser = response.content
-        self.dialogue_manager.add_dialogue(client=client, role_from=self.name, role_to=player_name, content=anwser, contentType=contentType)
+        self.dialogue_manager.add_dialogue(client=redis_client, role_from=self.name, role_to=player_name, content=anwser, contentType=contentType)
 
         return anwser
 
@@ -275,8 +279,9 @@ class Scene(Base):
 
 
 class NPCManager:
-    def __init__(self, client: MySQLDatabase):
-        self.client = client
+    def __init__(self, mysql_client: MySQLDatabase, redis_client: RedisList):
+        self.client = mysql_client
+        self.redis_client = redis_client
         # # 加载npc_user到内存中
         # self._instances = {}
         # npc_users = self.client.select_records(record_class=NPCUser)
@@ -328,14 +333,8 @@ class NPCManager:
         npc_users = self.client.select_records(record_class=NPCUser, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
         for npc_user in npc_users:
             # db中加载历史对话
-            dialogue_context = []
-            user_filter_dict = {'role_from': filter_dict['user_id']}
-            user_dialogue_records = self.client.select_records(record_class=DialogueEntry, new_filter_dict=user_filter_dict)
-
-            npc_filter_dict = {'role_from': filter_dict['npc_id']}
-            npc_dialogue_records = self.client.select_records(record_class=DialogueEntry, new_filter_dict=npc_filter_dict)
-
-            npc_user.dialogue_context = dialogue_context
+            dialogue_context = self.redis_client.get_all("dialogue")
+            npc_user.set_dialogue_context(dialogue_context)
         return npc_users
 
     
