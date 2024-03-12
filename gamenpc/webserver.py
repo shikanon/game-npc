@@ -108,7 +108,7 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
     except KeyError:
         return None
 
-@router.post("/chat")
+@router.post("/npc/chat")
 async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     if npc_user_instance == None:
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
@@ -190,32 +190,10 @@ async def shift_scenes(user_name:str, npc_name:str, scene:str):
     return response(message="场景转移成功")
 
 class UserRequest(BaseModel):
-    '''
-    self.name = name
-    self.sex = sex
-    self.phone = phone
-    self.money = money
-    '''
     name: str
     sex: str
     phone: str
     money: str
-
-class UserQueryRequest(BaseModel):
-    '''
-    self.name = name
-    self.sex = sex
-    self.phone = phone
-    self.money = money
-    '''
-    id: str
-    name: str
-    sex: str
-    phone: str
-    money: str
-    order_by: str
-    page: int
-    per_page: int
 
 @router.post("/user/create")
 async def create_user(req: UserRequest):
@@ -226,6 +204,16 @@ async def create_user(req: UserRequest):
 async def remove_user(user_id: str):
     user = user_manager.remove_user(user_id=user_id)
     return response(data=user)
+
+class UserQueryRequest(BaseModel):
+    id: Optional[str] = ""
+    name: Optional[str] = ""
+    sex: Optional[str] = ""
+    phone: Optional[str] = ""
+    money: Optional[str] = ""
+    order_by: Optional[str] = "desc"
+    page: Optional[int] = 0
+    per_page: Optional[int] = 1
 
 @router.get("/user/query")
 async def query_user(req: UserQueryRequest):
@@ -239,8 +227,8 @@ async def query_user(req: UserQueryRequest):
     if req.phone is not None:
         filter_dict['phone'] = req.phone
     if req.money is not None:
-        filter_dict['money'] = req.mone
-    users = user_manager.get_user(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.per_page)
+        filter_dict['money'] = req.money
+    users = user_manager.get_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.per_page)
     return response(data=users)
 
 @router.get("/user/update")
