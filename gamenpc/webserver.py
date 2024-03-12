@@ -95,7 +95,7 @@ class NPCRequest(BaseModel):
     profile_url: Optional[str] = ""
 
 def response(code=0, message="执行成功", data=None)->any:
-    return {"code": code, "message": message, "data": data}
+    return {"code": code, "msg": message, "data": data}
 
 def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
     try:
@@ -263,7 +263,7 @@ async def upload_file(file: UploadFile = File(...)):
     # else:
     #     message = f"文件 '{file.filename}' 已经被保存到'{file_location}'，但没有上传到ObjectTypeStorage(OBS)。"
     message = f"文件 '{file.filename}' 已经被保存到 '{file_location}'"
-    return response(message=message)
+    return response(msg=message)
 
 if __name__ == "__main__":
     # 创建一个全局对象
