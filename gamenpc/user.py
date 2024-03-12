@@ -63,23 +63,18 @@ class UserManager:
     def __init__(self, client: MySQLDatabase, npc_manager: NPCManager):
         self.client = client
         self.npc_manager = npc_manager
-        self._instances = {}
-        users = self.client.select_records(record_class=User)
-        for user in users:
-            self._instances[user.id] = user
 
-    def get_user(self, user_id: str) -> User:
-        if user_id not in self._instances:
-            return None
-        return self._instances.get(user_id)
+    def get_users(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[User]:
+        users = self.client.select_records(User, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
+        return users
+
     
     def set_user(self, name, sex, phone, money) -> User:
         user = self.client.insert_record(User(name=name, sex=sex, phone=phone, money=money))
-        self._instances[user.id] = user
         return user
     
     def update_user(self, id, name, sex, phone, money) -> User:
-        self._instances[user.id] = user
+        # self._instances[user.id] = user
         user.name = name
         user.sex = sex
         user.phone = phone

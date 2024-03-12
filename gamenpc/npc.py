@@ -277,61 +277,67 @@ class Scene(Base):
 class NPCManager:
     def __init__(self, client: MySQLDatabase):
         self.client = client
-        # 加载npc_user到内存中
-        self._instances = {}
-        npc_users = self.client.select_records(record_class=NPCUser)
-        for npc_user in npc_users:
-            # 计算好感度
-            affinity_level = AffinityLevel(
-                acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
-                familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
-                friend="你们是亲密朋友关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「关爱、感激、深情、溺爱」。",
-                soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间理解和和谐到了几乎完美的境界，你们互信互依。",
-                adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
-            )
-            affinity = AffinityManager(score=npc_user.score,level=affinity_level)
-            npc_user.affinity = affinity
+        # # 加载npc_user到内存中
+        # self._instances = {}
+        # npc_users = self.client.select_records(record_class=NPCUser)
+        # for npc_user in npc_users:
+        #     # 计算好感度
+        #     affinity_level = AffinityLevel(
+        #         acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
+        #         familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
+        #         friend="你们是亲密朋友关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「关爱、感激、深情、溺爱」。",
+        #         soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间理解和和谐到了几乎完美的境界，你们互信互依。",
+        #         adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
+        #     )
+        #     affinity = AffinityManager(score=npc_user.score,level=affinity_level)
+        #     npc_user.affinity = affinity
 
-            # db中加载历史对话
-            dialogue_context = []
-            dialogue_records = self.client.select_records(record_class=DialogueEntry)
-            for dialogue_record in dialogue_records:
-                dialogue_id = dialogue_record[0]
-                dialogue_role_from = dialogue_record[1]
-                dialogue_role_to = dialogue_record[2]
-                dialogue_content = dialogue_record[3]
-                dialogue_context.append(DialogueEntry(dialogue_id, dialogue_role_from, dialogue_role_to, dialogue_content))
-            npc_user.dialogue_context = dialogue_context
+        #     # db中加载历史对话
+        #     dialogue_context = []
+        #     dialogue_records = self.client.select_records(record_class=DialogueEntry)
+        #     for dialogue_record in dialogue_records:
+        #         dialogue_id = dialogue_record[0]
+        #         dialogue_role_from = dialogue_record[1]
+        #         dialogue_role_to = dialogue_record[2]
+        #         dialogue_content = dialogue_record[3]
+        #         dialogue_context.append(DialogueEntry(dialogue_id, dialogue_role_from, dialogue_role_to, dialogue_content))
+        #     npc_user.dialogue_context = dialogue_context
 
-            self._instances[npc_user.id] = npc_user
-        print('self._instances: ', self._instances)
+        #     self._instances[npc_user.id] = npc_user
+        # print('self._instances: ', self._instances)
 
-        # 加载npc配置到内存中
-        self._instance_configs = {}
-        npcs = self.client.select_records(record_class=NPC)
-        for npc in npcs:
-            self._instance_configs[npc.id] = npc
-        print('self._instance_configs: ', self._instance_configs)
+        # # 加载npc配置到内存中
+        # self._instance_configs = {}
+        # npcs = self.client.select_records(record_class=NPC)
+        # for npc in npcs:
+        #     self._instance_configs[npc.id] = npc
+        # print('self._instance_configs: ', self._instance_configs)
 
-    def get_npc(self, npc_id: str) -> NPC:
-        npc = self._instance_configs.get(npc_id)
-        return npc
+    def get_npcs(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[NPC]:
+        npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
+        # npc = self._instance_configs.get(npc_id)
+        return npcs
     
-    def set_npc(self, npc_name: str, npc_traits: str):
+    def set_npc(self, npc_name: str, npc_traits: str)->NPC:
         new_npc= NPC(name=npc_name, trait=npc_traits)
         new_npc = self.client.insert_record(new_npc)
-        self._instance_configs[new_npc.id] = new_npc
+        # self._instance_configs[new_npc.id] = new_npc
+        return new_npc
     
-    def get_all_npc(self) -> list:
-        instance_config_list = []
-        for npc_id in self._instance_configs:
-            instance_config_list.append(self._instance_configs[npc_id])
-        return instance_config_list
-    
-    def get_npc_user(self, npc_user_id: str) -> NPC:
-        if npc_user_id not in self._instances:
-            return None
-        return self._instances.get(npc_user_id)
+    def get_npc_users(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[NPCUser]:
+        npc_users = self.client.select_records(record_class=NPCUser, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
+        for npc_user in npc_users:
+            # db中加载历史对话
+            dialogue_context = []
+            user_filter_dict = {'role_from': filter_dict['user_id']}
+            user_dialogue_records = self.client.select_records(record_class=DialogueEntry, new_filter_dict=user_filter_dict)
+
+            npc_filter_dict = {'role_from': filter_dict['npc_id']}
+            npc_dialogue_records = self.client.select_records(record_class=DialogueEntry, new_filter_dict=npc_filter_dict)
+
+            npc_user.dialogue_context = dialogue_context
+        return npc_users
+
     
     def create_npc(self, user_name:str, npc_name:str, npc_traits:str, scene: str) -> NPC:
         affinity_level = AffinityLevel(
@@ -345,5 +351,5 @@ class NPCManager:
         dialogue_context = []
         new_npc = NPC(name=npc_name, user_name=user_name, trait=npc_traits, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
         new_npc = self.client.insert_record(new_npc)
-        self._instances[new_npc.id] = new_npc
+        # self._instances[new_npc.id] = new_npc
         return new_npc

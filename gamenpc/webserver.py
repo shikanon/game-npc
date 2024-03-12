@@ -7,7 +7,7 @@ from typing import Optional
 import os, uvicorn
 
 from gamenpc.utils import logger
-from gamenpc.npc import NPC, NPCManager
+from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.user import UserManager
 from gamenpc.store import MySQLDatabase
 
@@ -86,24 +86,30 @@ class NPCRequest(BaseModel):
 def response(code=0, message="执行成功", data=None)->any:
     return {"code": code, "message": message, "data": data}
 
-def get_npc(req:ChatRequest=Depends) -> NPC:
+def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
     try:
-        user = user_manager.get_user(user_id=req.user_id)
-        print(user)
-        if req.scene == '':
-            req.scene = '宅在家里'
-        return user.get_npc_user(req.user_id, req.npc_id, req.scene)
+        filter_dict = {"id": req.user_id}
+        users = user_manager.get_users(filter_dict=filter_dict)
+        if users.__len__ == 0:
+            return None
+        print(users)
+        user = users[0]
+        filter_dict = {'user_id': req.user_id, 'npc_id': req.npc_id}
+        npc_users = user.get_npc_users(filter_dict=filter_dict)
+        if npc_users.__len__ == 0:
+            return None
+        return npc_users[0]
     except KeyError:
         return None
 
 @router.post("/chat")
-async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
+async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     '''NPC聊天对话'''
     answer, affinity_score = await asyncio.gather(
-        npc_instance.chat(db, req.user_name, req.question, req.contentType),
-        npc_instance.update_affinity(db, req.user_name, req.question),
+        npc_user_instance.chat(db, req.user_id, req.question, req.contentType),
+        npc_user_instance.update_affinity(db, req.user_id, req.question),
     )
-    thought = npc_instance.get_thought_context()
+    thought = npc_user_instance.get_thought_context()
     data = {
         "answer": answer,
         "affinity_score": affinity_score,
@@ -138,16 +144,21 @@ async def clear_npc_user_memory(npc_user_id):
     except KeyError:
         return response(code=400, message="NPC not found")
 
+class NpcQueryRequest(BaseModel):
+    id: str
+    name: str
+    order_by: str
+    page: int
+    per_page: int
+
 @router.get("/npc/query")
-async def query_npc(npc_id: str):
-    '''获取单个NPC配置信息'''
-    print('npc_id: ', npc_id)
-    if npc_id == "":
-        '''获取所有NPC配置信息'''
-        return npc_manager.get_all_npc()
-    npcs = []
-    npc = npc_manager.get_npc(npc_id)
-    npcs.append(npc)
+async def query_npc(req: NpcQueryRequest):
+    filter_dict = {}
+    if req.id is not None:
+        filter_dict['id'] = req.id
+    if req.name is not None:
+        filter_dict['name'] = req.name
+    npcs = npc_manager.get_npc(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.per_page)
     return response(data=npcs)
 
 @router.post("/npc/create")
@@ -181,6 +192,22 @@ class UserRequest(BaseModel):
     phone: str
     money: str
 
+class UserQueryRequest(BaseModel):
+    '''
+    self.name = name
+    self.sex = sex
+    self.phone = phone
+    self.money = money
+    '''
+    id: str
+    name: str
+    sex: str
+    phone: str
+    money: str
+    order_by: str
+    page: int
+    per_page: int
+
 @router.post("/user/create")
 async def create_user(req: UserRequest):
     user = user_manager.set_user(req.name, req.sex, req.phone, req.money)
@@ -192,9 +219,20 @@ async def remove_user(user_id: str):
     return response(data=user)
 
 @router.get("/user/query")
-async def query_user(user_id: str):
-    user = user_manager.get_user(user_id=user_id)
-    return response(data=user)
+async def query_user(req: UserQueryRequest):
+    filter_dict = {}
+    if req.id is not None:
+        filter_dict['id'] = req.id
+    if req.name is not None:
+        filter_dict['name'] = req.name
+    if req.sex is not None:
+        filter_dict['sex'] = req.sex
+    if req.phone is not None:
+        filter_dict['phone'] = req.phone
+    if req.money is not None:
+        filter_dict['money'] = req.mone
+    users = user_manager.get_user(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.per_page)
+    return response(data=users)
 
 @router.get("/user/update")
 async def update_user(req: UserRequest):
@@ -210,7 +248,14 @@ async def upload_file(file: UploadFile = File(...)):
         # 读取上传的文件数据
         content = await file.read()
         f.write(content)
-    return response(message=f"文件 '{file.filename}' 已经被保存到 '{file_location}'.")
+    # # 上传文件到OBS
+    # obs_response = obs_client.putFile(bucket_name, file.filename, file_location)
+    # if obs_response.status < 300:
+    #     message = f"文件 '{file.filename}' 已经被保存到 '{file_location}' 和 ObjectTypeStorage(OBS)."
+    # else:
+    #     message = f"文件 '{file.filename}' 已经被保存到'{file_location}'，但没有上传到ObjectTypeStorage(OBS)。"
+    message = f"文件 '{file.filename}' 已经被保存到 '{file_location}'"
+    return response(message=message)
 
 if __name__ == "__main__":
     # 创建一个全局对象
