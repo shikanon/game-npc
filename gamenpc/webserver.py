@@ -125,14 +125,25 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     }
     return response(message="返回成功", data=data)
 
-@router.get("/npc/get_npc_user")
-async def get_npc_user(npc_user_id: str):
+class NpcUserQueryRequest(BaseModel):
+    id: Optional[str] = ""
+    order_by: Optional[str] = "desc"
+    page: Optional[int] = 0
+    limit: Optional[int] = 1
+
+@router.get("/npc/get_npc_users")
+async def get_npc_users(req: NpcUserQueryRequest):
     '''获取NPC信息'''
-    filter_dict = {"id": npc_user_id}
-    npc_instance = npc_manager.get_npc_users(filter_dict=filter_dict)
-    if npc_instance == None:
-        return response(code=400, message="Invaild value of npc_name, it not Exists")
-    return response(data=npc_instance.get_character_info())
+    filter_dict = {}
+    if req.id is not None:
+        filter_dict['id'] = req.id
+    npc_users = npc_manager.get_npc_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
+    if npc_users == None:
+        return response(code=-1, message="Invaild value of npc_id, it not Exists")
+    npc_instances = []
+    for npc_user in npc_users:
+        npc_instances.append(npc_user.get_character_info())
+    return response(data=npc_instances)
 
 @router.get("/npc/get_npc_user_memory")
 async def get_npc_user_memory(npc_user_id: str):
@@ -156,9 +167,9 @@ async def clear_npc_user_memory(npc_user_id):
 class NpcQueryRequest(BaseModel):
     id: str
     name: str
-    order_by: str
-    page: int
-    per_page: int
+    order_by: Optional[str] = "desc"
+    page: Optional[int] = 0
+    limit: Optional[int] = 1
 
 @router.get("/npc/query")
 async def query_npc(req: NpcQueryRequest):
@@ -167,7 +178,7 @@ async def query_npc(req: NpcQueryRequest):
         filter_dict['id'] = req.id
     if req.name is not None:
         filter_dict['name'] = req.name
-    npcs = npc_manager.get_npcs(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.per_page)
+    npcs = npc_manager.get_npcs(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
     return response(data=npcs)
 
 @router.post("/npc/create")
@@ -213,7 +224,7 @@ class UserQueryRequest(BaseModel):
     money: Optional[str] = ""
     order_by: Optional[str] = "desc"
     page: Optional[int] = 0
-    per_page: Optional[int] = 1
+    limit: Optional[int] = 1
 
 @router.get("/user/query")
 async def query_user(req: UserQueryRequest):
@@ -228,7 +239,7 @@ async def query_user(req: UserQueryRequest):
         filter_dict['phone'] = req.phone
     if req.money is not None:
         filter_dict['money'] = req.money
-    users = user_manager.get_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.per_page)
+    users = user_manager.get_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.limit)
     return response(data=users)
 
 @router.get("/user/update")

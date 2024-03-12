@@ -67,8 +67,8 @@ class UserManager:
         self.client = client
         self.npc_manager = npc_manager
 
-    def get_users(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[User]:
-        users = self.client.select_records(User, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
+    def get_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[User]:
+        users = self.client.select_records(User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         return users
     
     def get_user(self, filter_dict=None) -> User:

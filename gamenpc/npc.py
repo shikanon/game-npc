@@ -138,8 +138,9 @@ class NPCUser(Base):
 
     def get_character_info(self):
         return {
-            "npc_name": self.name,
-            "npc_trait": self.trait,
+            "id": self.id,
+            "name": self.name,
+            "trait": self.trait,
             "scene": self.scene,
             "event": self.event,
         }
@@ -318,8 +319,8 @@ class NPCManager:
         #     self._instance_configs[npc.id] = npc
         # print('self._instance_configs: ', self._instance_configs)
 
-    def get_npcs(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[NPC]:
-        npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
+    def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
+        npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         # npc = self._instance_configs.get(npc_id)
         return npcs
     
@@ -329,8 +330,8 @@ class NPCManager:
         # self._instance_configs[new_npc.id] = new_npc
         return new_npc
     
-    def get_npc_users(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[NPCUser]:
-        npc_users = self.client.select_records(record_class=NPCUser, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
+    def get_npc_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPCUser]:
+        npc_users = self.client.select_records(record_class=NPCUser, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         for npc_user in npc_users:
             # db中加载历史对话
             dialogue_context = self.redis_client.get_all("dialogue")
