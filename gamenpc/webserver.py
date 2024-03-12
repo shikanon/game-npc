@@ -100,20 +100,18 @@ def response(code=0, message="执行成功", data=None)->any:
 def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
     try:
         filter_dict = {"id": req.user_id}
-        users = user_manager.get_users(filter_dict=filter_dict)
-        if users.__len__ == 0:
+        user = user_manager.get_user(filter_dict=filter_dict)
+        if user == None:
             return None
-        print(users)
-        user = users[0]
-        npc_users = user.get_npc_users(npc_user_id=req.id, user_id=req.user_id, npc_id=req.npc_id, scene=req.scene)
-        if npc_users.__len__ == 0:
-            return None
-        return npc_users[0]
+        npc_user = user.get_npc_user(npc_user_id=req.id, user_id=req.user_id, npc_id=req.npc_id, scene=req.scene)
+        return npc_user
     except KeyError:
         return None
 
 @router.post("/chat")
 async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
+    if npc_user_instance == None:
+        return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
     '''NPC聊天对话'''
     answer, affinity_score = await asyncio.gather(
         npc_user_instance.chat(mysql_client, req.user_id, req.question, req.contentType),
@@ -169,7 +167,7 @@ async def query_npc(req: NpcQueryRequest):
         filter_dict['id'] = req.id
     if req.name is not None:
         filter_dict['name'] = req.name
-    npcs = npc_manager.get_npc(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.per_page)
+    npcs = npc_manager.get_npcs(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.per_page)
     return response(data=npcs)
 
 @router.post("/npc/create")

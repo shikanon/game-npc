@@ -28,12 +28,12 @@ class User(Base):
         self.npc_manager = npc_manager
         self._npc = {}
     
-    def get_npc_users(self, npc_user_id:str, user_id:str, npc_id:str, scene:str)->NPCUser:
+    def get_npc_user(self, npc_user_id:str, user_id:str, npc_id:str, scene:str)->NPCUser:
         filter_dict = {"id": npc_user_id}
-        npc_users = self.npc_manager.get_npcs(filter_dict=filter_dict)
+        npc_users = self.npc_manager.get_npc_users(filter_dict=filter_dict)
         if npc_users == None or npc_users.__len__ == 0:
             npc_config = self.npc_manager.get_npc_config(npc_id)
-            npc_user = self.npc_manager.create_npc(user_id=user_id, npc_id=npc_id, npc_traits=npc_config.trait, scene=scene)
+            npc_user = self.npc_manager.create_npc_user(user_id=user_id, npc_id=npc_id, npc_traits=npc_config.trait, scene=scene)
         else:
             npc_user = npc_users[0]
         return npc_user
@@ -70,7 +70,14 @@ class UserManager:
     def get_users(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[User]:
         users = self.client.select_records(User, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
         return users
-
+    
+    def get_user(self, filter_dict=None) -> User:
+        users = self.client.select_records(User, filter_dict=filter_dict)
+        if users.__len__ == 0:
+            return None
+        print(users)
+        user = users[0]
+        return user
     
     def set_user(self, name, sex, phone, money) -> User:
         user = self.client.insert_record(User(name=name, sex=sex, phone=phone, money=money))

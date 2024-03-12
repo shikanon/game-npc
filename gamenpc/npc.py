@@ -338,7 +338,7 @@ class NPCManager:
         return npc_users
 
     
-    def create_npc(self, user_name:str, npc_name:str, npc_traits:str, scene: str) -> NPC:
+    def create_npc_user(self, user_name:str, npc_name:str, npc_traits:str, scene: str) -> NPCUser:
         affinity_level = AffinityLevel(
             acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
             familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
@@ -348,7 +348,7 @@ class NPCManager:
         )
         affinity = AffinityManager(score=0,level=affinity_level)
         dialogue_context = []
-        new_npc = NPC(name=npc_name, user_name=user_name, trait=npc_traits, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
-        new_npc = self.client.insert_record(new_npc)
+        new_npc_user = NPCUser(name=npc_name, user_name=user_name, trait=npc_traits, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
+        new_npc_user = self.client.insert_record(new_npc_user)
         # self._instances[new_npc.id] = new_npc
-        return new_npc
+        return new_npc_user
