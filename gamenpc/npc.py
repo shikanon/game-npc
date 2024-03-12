@@ -5,7 +5,7 @@ author: shikanon
 create: 2024/1/21
 """
 import jinja2
-import json
+import json, uuid
 from typing import Dict, List
 from datetime import datetime
 from langchain.chat_models.base import BaseChatModel
@@ -45,7 +45,7 @@ class NPC(Base):
     __table_args__ = {'extend_existing': True}
 
     # 表的结构
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(255), primary_key=True, default=str(uuid.uuid4()), unique=True)
     name = Column(String(64))
     short_description = Column(String(255))
     trait = Column(String(255))
@@ -54,11 +54,11 @@ class NPC(Base):
     chat_background = Column(String(255))
     affinity_level_description = Column(String(255))
     knowledge_id = Column(String(64))
-    updated_at = Column(DateTime)
-    created_at = Column(DateTime)
+    updated_at = Column(DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now())
+    created_at = Column(DateTime, default=datetime.datetime.now())
 
-    def __init__(self, id, name, short_description, trait, prompt_description, profile, chat_background, 
-                 affinity_level_description, knowledge_id, updated_at):
+    def __init__(self, id=None, name=None, short_description=None, trait=None, prompt_description=None, profile=None, chat_background=None, 
+                 affinity_level_description=None, knowledge_id=None, updated_at=None):
         self.id = id
         self.name = name
         self.short_description = short_description
@@ -76,31 +76,31 @@ class NPCUser(Base):
     __table_args__ = {'extend_existing': True}
 
     # 表的结构
-    id = Column(Integer, primary_key=True, autoincrement=True)  # NPC对话实例id，自增id
-    npc_id = Column(Integer, ForeignKey('npc.id'))  # npc配置对象，外键
+    id = Column(String(255), primary_key=True, default=str(uuid.uuid4()), unique=True)
+    npc_id = Column(String(255), ForeignKey('npc.id'))  # npc配置对象，外键
     # 通过关系关联NPCConfig对象
     npc = relationship('NPC')
-    user_id = Column(Integer, ForeignKey('user.id'))  # 用户对象，外键
+    user_id = Column(String(255), ForeignKey('user.id'))  # 用户对象，外键
     # 通过关系关联User对象
     user = relationship('User')
     scene = Column(String(255))  # 场景描述
     score = Column(Integer)  # 好感分数
     affinity_level = Column(Integer)  # 亲密度等级
-    created_at = Column(DateTime)  # 创建时间
+    created_at = Column(DateTime, default=datetime.datetime.now())  # 创建时间
     '''
     NPC名称、角色prompt模板、好感系统、场景
     '''
     def __init__(self, 
-                 id:str,
-                 npc_id:str,
-                 user_id:str,  
-                 score:int, 
-                 scene:str,
-                 trait:str,
-                 affinity_level: int,
-                 dialogue_context:List,
-                 affinity:AffinityManager, 
-                 role_template_filename='',
+                 id=None,
+                 npc_id=None, 
+                 user_id=None,   
+                 score=None,  
+                 scene=None, 
+                 trait=None, 
+                 affinity_level=None, 
+                 dialogue_context=None,
+                 affinity=AffinityManager, 
+                 role_template_filename=None,
                  dialogue_summarize_num=20,
                  dialogue_round=6,
                  )->None:
@@ -253,15 +253,15 @@ class Scene(Base):
     __tablename__ = 'scene'
     __table_args__ = {'extend_existing': True}
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(255), primary_key=True, default=str(uuid.uuid4()), unique=True)
     scene = Column(String(255))
     theater = Column(String(255))
     theater_event = Column(String(255))
     roles = Column(String(255))
     score = Column(String(255))
-    created_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.datetime.now())
 
-    def __init__(self, id, scene, theater, theater_event, roles, score):
+    def __init__(self, id=None, scene=None,  theater=None, theater_event=None, roles=None, score=None):
         self.id = id
         self.scene = scene
         self.theater = theater
@@ -304,9 +304,10 @@ class NPCManager:
         self._instance_configs = {}
         records = self.client.select_records(NPC)
         for record in records:
-            name = record[0]
-            traits = record[1]
-            self._instance_configs[name] = NPC(name=name, trait=traits)
+            npc_id = record.id
+            name = record.name
+            trait = record.trait
+            self._instance_configs[npc_id] = NPC(id=npc_id, name=name, trait=trait)
         print('self._instance_configs: ', self._instance_configs)
 
     def get_npc_user(self, npc_id: str, user_id: str) -> NPC:

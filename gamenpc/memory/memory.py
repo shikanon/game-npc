@@ -14,6 +14,7 @@ import uuid
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
+from datetime import datetime
 
 summarize_dialogue_template = """
 # 角色
@@ -96,34 +97,34 @@ class Event(Base):
     __tablename__ = 'event'
     __table_args__ = {'extend_existing': True}
 
-    id = Column(Integer, primary_key=True, autoincrement=True)  # 事件剧场ID，自增ID
-    npc_id = Column(Integer, ForeignKey('npc.id'))  # NPC对象，外键
+    id = Column(String(255), primary_key=True, default=str(uuid.uuid4()), unique=True)
+    npc_id = Column(String(255), ForeignKey('npc.id'))  # NPC对象，外键
     theater = Column(String(255))  # 剧情章节
     theater_event = Column(String(255))  # 剧情的事件（JSON）
-    created_at = Column(DateTime)  # 创建时间
+    created_at = Column(DateTime, default=datetime.datetime.now())  # 创建时间
 
     #关联NPC对象
     npc = relationship('NPC')
 
-    def __init__(self, npc_id, theater, theater_event, created_at):
+    def __init__(self, npc_id=None, theater=None, theater_event=None):
         self.npc_id = npc_id
         self.theater = theater
         self.theater_event = theater_event
-        self.created_at = created_at
 
 class DialogueEntry(Base):
     __tablename__ = 'dialogue'
     __table_args__ = {'extend_existing': True}
 
-    id = Column(Integer, primary_key=True, autoincrement=True)  # 聊天ID，哈希类型
+    id = Column(String(255), primary_key=True)  # 聊天ID，哈希类型
     role_from = Column(Integer)  # 消息发出对象ID
     role_to = Column(Integer)  # 消息接收对象ID
     content = Column(String(255))  # 消息内容
     content_type = Column(String(255))  # 内容类型
-    created_at = Column(DateTime)  # 创建时间
+    created_at = Column(DateTime, default=datetime.datetime.now())  # 创建时间
 
     '''对话实体，谁说了什么话'''
-    def __init__(self, role_from:str, role_to:str, content:str, content_type:str):
+    def __init__(self, id:str, role_from:str, role_to:str, content:str, content_type:str):
+        self.id = id
         self.role_from = role_from
         self.role_to = role_to
         self.content = content  # 存储对话内容

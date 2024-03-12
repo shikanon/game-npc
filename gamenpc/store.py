@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from urllib.parse import quote_plus
@@ -16,22 +17,26 @@ class MySQLDatabase:
     def get_engine(self): 
         return self.engine
 
-    def insert_record(self, record):
+    def insert_record(self, record)->any:
         session = self.session()
         session.add(record)
         session.commit()
+        session.refresh(record)  # update the record object with new data from database
+        return record
 
     def delete_record(self, record):
         session = self.session()
         session.delete(record)
         session.commit()
 
-    def update_record(self, record):
+    def update_record(self, record)->any:
         session = self.session()
         session.merge(record)
         session.commit()
+        session.refresh(record)
+        return record
 
-    def select_records(self, record_class):
+    def select_records(self, record_class)->List:
         session = self.session()
         result = session.query(record_class).all()
-        return result  
+        return result

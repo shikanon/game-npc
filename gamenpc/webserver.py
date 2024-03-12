@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import os, uvicorn
+import os, uvicorn, uuid, datetime
 
 from gamenpc.utils import logger
 from gamenpc.npc import NPC, NPCManager
@@ -48,6 +48,12 @@ db = MySQLDatabase(host=host, port=port, user=user, password=password, database=
 npc_manager = NPCManager(db)
 user_manager = UserManager(db, npc_manager)
 
+# 新增记录
+npc = NPC(name="测试", short_description="测试", trait="测试", prompt_description="测试", profile="测试", chat_background="测试", 
+                 affinity_level_description="测试", knowledge_id="测试", updated_at=datetime.datetime.now())
+new_npc = db.insert_record(npc)
+print('new_npc id: ', new_npc.id)
+
 class ChatRequest(BaseModel):
     '''
     user_name: 用户名称
@@ -68,7 +74,7 @@ class NPCRequest(BaseModel):
 
 def get_npc(req:ChatRequest=Depends) -> NPC:
     try:
-        user = user_manager.get_user(user_name=req.user_name)
+        user = user_manager.get_user(user_id=req.user_id)
         print(user)
         if req.scene == '':
             req.scene = '宅在家里'

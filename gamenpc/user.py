@@ -3,6 +3,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from gamenpc.npc import NPC, NPCManager
 from gamenpc.store import MySQLDatabase, Base
 from typing import List
+import uuid
+from datetime import datetime
 
 class User(Base):
     # 表的名字
@@ -10,14 +12,14 @@ class User(Base):
     __table_args__ = {'extend_existing': True}
 
     # 表的结构
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(255), primary_key=True, default=str(uuid.uuid4()), unique=True)
     name = Column(String(64))
     sex = Column(Enum("男", "女", "未知"))
     phone = Column(String(11))
     money = Column(Integer)
-    created_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.datetime.now())
 
-    def __init__(self, id: str, name:str, sex:str, phone:str, money:int, npc_manager: NPCManager):
+    def __init__(self, id=None, name=None, sex=None, phone=None, money=None, npc_manager=NPCManager):
         self.id = id
         self.name = name
         self.sex = sex
@@ -26,24 +28,24 @@ class User(Base):
         self.npc_manager = npc_manager
         self._npc = {}
     
-    def get_npc(self, user_name:str, npc_name:str, scene:str)->NPC:
-        npc = self.npc_manager.get_npc(user_name=user_name, npc_name=npc_name)
+    def get_npc(self, user_id:str, npc_id:str, scene:str)->NPC:
+        npc = self.npc_manager.get_npc(user_id=user_id, npc_id=npc_id)
         if npc == None:
-            npc_config = self.npc_manager.get_npc_config(npc_name)
-            npc = self.npc_manager.create_npc(user_name=user_name, npc_name=npc_name, npc_traits=npc_config.trait, scene=scene)
+            npc_config = self.npc_manager.get_npc_config(npc_id)
+            npc = self.npc_manager.create_npc(user_id=user_id, npc_id=npc_id, npc_traits=npc_config.trait, scene=scene)
         return npc
     
 class UserOpinion(Base):
     __tablename__ = 'user_opinion'
     __table_args__ = {'extend_existing': True}
 
-    id = Column(Integer, primary_key=True, autoincrement=True)  # 用户意见ID
+    id = Column(String(255), primary_key=True, default=str(uuid.uuid4()), unique=True)
     labels = Column(String(255))  # 意见标签（多标签通过逗号隔开）
     name = Column(String(255))  # 用户名称
     content = Column(String(255))  # 用户意见
-    created_at = Column(DateTime)  # 创建时间
+    created_at = Column(DateTime, default=datetime.datetime.now())  # 创建时间
 
-    def __init__(self, labels, name, content, created_at):
+    def __init__(self, labels=None, name=None, content=None):
         self.labels = labels
         self.name = name
         self.content = content
@@ -64,15 +66,16 @@ class UserManager:
         self._instances = {}
         records = self.client.select_records(User)
         for record in records:
+            user_id = record[0]
             name = record[1]
             money = record[2]
-            self._instances[name] = User(name, money, self.npc_manager)
+            self._instances[user_id] = User(user_id, name, money, self.npc_manager)
 
-    def get_user(self, user_name: str) -> User:
-        if user_name not in self._instances:
-            self._instances[user_name] = User(user_name, 100, self.npc_manager)
+    def get_user(self, user_id: str) -> User:
+        if user_id not in self._instances:
+            self._instances[user_id] = User(user_id, 100, self.npc_manager)
 
-        return self._instances.get(user_name)
+        return self._instances.get(user_id)
     
     def set_user(self, user_name: str):
         money = 100
