@@ -88,12 +88,6 @@ class ChatRequest(BaseModel):
     question: str
     contentType: str
 
-class NPCRequest(BaseModel):
-    user_id: Optional[str] = ""
-    npc_id: str
-    trait: str
-    profile_url: Optional[str] = ""
-
 def response(code=0, message="执行成功", data=None)->any:
     return {"code": code, "msg": message, "data": data}
 
@@ -113,15 +107,15 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     if npc_user_instance == None:
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
     '''NPC聊天对话'''
-    answer, affinity_score = await asyncio.gather(
+    message, affinity_score = await asyncio.gather(
         npc_user_instance.chat(mysql_client, req.user_id, req.question, req.contentType),
         npc_user_instance.update_affinity(mysql_client, req.user_id, req.question),
     )
-    thought = npc_user_instance.get_thought_context()
+    # thought = npc_user_instance.get_thought_context()
     data = {
-        "answer": answer,
+        "message": message,
+        "message_type": "text",
         "affinity_score": affinity_score,
-        "thought": thought,
     }
     return response(message="返回成功", data=data)
 
@@ -145,8 +139,8 @@ async def get_npc_users(req: NpcUserQueryRequest):
         npc_instances.append(npc_user.get_character_info())
     return response(data=npc_instances)
 
-@router.get("/npc/get_npc_user_memory")
-async def get_npc_user_memory(npc_user_id: str):
+@router.get("/npc/get_history_dialogue")
+async def get_history_dialogue(npc_user_id: str):
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc_user(npc_user_id)
     try:
@@ -154,8 +148,8 @@ async def get_npc_user_memory(npc_user_id: str):
     except KeyError:
         return response(code=400, message="NPC not found")
 
-@router.get("/npc/clear_npc_user_memory")
-async def clear_npc_user_memory(npc_user_id):
+@router.get("/npc/clear_history_dialogue")
+async def clear_history_dialogue(npc_user_id: str):
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc_user(npc_user_id)
     try:
@@ -181,23 +175,30 @@ async def query_npc(req: NpcQueryRequest):
     npcs = npc_manager.get_npcs(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
     return response(data=npcs)
 
+class NPCRequest(BaseModel):
+    name: str
+    trait: str
+    short_description: Optional[str] = ""
+    prompt_description: str
+    profile: str
+    chat_background: str
+    affinity_level_description: str
+
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
     '''设置NPC性格'''
-    npc_instance = npc_manager.get_npc(req.npc_id)
-    if npc_instance is None:
-        npc_instance = npc_manager.set_npc(npc_name=req.npc_id, npc_traits=req.trait)
-    else:
-        npc_instance.trait = req.trait
-    return response(data=npc_instance)
+    npc = npc_manager.set_npc(name=req.name, traits=req.trait, short_description=req.short_description,
+                               prompt_description=req.prompt_description, profile=req.profile, 
+                               chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
+    return response(data=npc)
 
 @router.post("/npc/shift_scenes")
-async def shift_scenes(user_name:str, npc_name:str, scene:str):
+async def shift_scenes(npc_user_id: str, scene:str):
     '''切换场景'''
-    npc_instance = npc_manager.get_npc(user_name, npc_name)
-    if npc_instance is None:
+    npc_user = npc_manager.get_npc_user(npc_user_id)
+    if npc_user is None:
         return response(code=400, message="Invaild value of npc_name, it not Exists")
-    npc_instance.set_scene(client=mysql_client, scene=scene)
+    npc_user.set_scene(client=mysql_client, scene=scene)
     return response(message="场景转移成功")
 
 class UserRequest(BaseModel):
@@ -219,9 +220,6 @@ async def remove_user(user_id: str):
 class UserQueryRequest(BaseModel):
     id: Optional[str] = ""
     name: Optional[str] = ""
-    sex: Optional[str] = ""
-    phone: Optional[str] = ""
-    money: Optional[str] = ""
     order_by: Optional[str] = "desc"
     page: Optional[int] = 0
     limit: Optional[int] = 1
@@ -233,12 +231,6 @@ async def query_user(req: UserQueryRequest):
         filter_dict['id'] = req.id
     if req.name is not None:
         filter_dict['name'] = req.name
-    if req.sex is not None:
-        filter_dict['sex'] = req.sex
-    if req.phone is not None:
-        filter_dict['phone'] = req.phone
-    if req.money is not None:
-        filter_dict['money'] = req.money
     users = user_manager.get_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.limit)
     return response(data=users)
 

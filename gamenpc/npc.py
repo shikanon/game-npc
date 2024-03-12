@@ -253,10 +253,10 @@ class NPCUser(Base):
         self.dialogue_manager.add_dialogue(client=redis_client, role_from=player_name, role_to=self.name, content=message, contentType=contentType)
     
         response = self.character_model(messages=all_messages)
-        anwser = response.content
-        self.dialogue_manager.add_dialogue(client=redis_client, role_from=self.name, role_to=player_name, content=anwser, contentType=contentType)
+        content = response.content
+        self.dialogue_manager.add_dialogue(client=redis_client, role_from=self.name, role_to=player_name, content=content, contentType=contentType)
 
-        return anwser
+        return content
 
 class Scene(Base):
     __tablename__ = 'scene'
@@ -324,8 +324,10 @@ class NPCManager:
         # npc = self._instance_configs.get(npc_id)
         return npcs
     
-    def set_npc(self, npc_name: str, npc_traits: str)->NPC:
-        new_npc= NPC(name=npc_name, trait=npc_traits)
+    def set_npc(self, name: str, traits: str, short_description: str,
+                               prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:
+        new_npc= NPC(name=name, traits=traits, short_description=short_description,
+                               prompt_description=prompt_description, profile=profile, chat_background=chat_background, affinity_level_description=affinity_level_description)
         new_npc = self.client.insert_record(new_npc)
         # self._instance_configs[new_npc.id] = new_npc
         return new_npc
