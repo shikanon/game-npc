@@ -101,7 +101,7 @@ class Event(Base):
     npc_id = Column(String(255), ForeignKey('npc.id'))  # NPC对象，外键
     theater = Column(String(255))  # 剧情章节
     theater_event = Column(String(255))  # 剧情的事件（JSON）
-    created_at = Column(DateTime, default=datetime.datetime.now())  # 创建时间
+    created_at = Column(DateTime, default=datetime.now())  # 创建时间
 
     #关联NPC对象
     npc = relationship('NPC')
@@ -120,7 +120,7 @@ class DialogueEntry(Base):
     role_to = Column(Integer)  # 消息接收对象ID
     content = Column(String(255))  # 消息内容
     content_type = Column(String(255))  # 内容类型
-    created_at = Column(DateTime, default=datetime.datetime.now())  # 创建时间
+    created_at = Column(DateTime, default=datetime.now())  # 创建时间
 
     '''对话实体，谁说了什么话'''
     def __init__(self, id:str, role_from:str, role_to:str, content:str, content_type:str):
@@ -129,7 +129,7 @@ class DialogueEntry(Base):
         self.role_to = role_to
         self.content = content  # 存储对话内容
         self.content_type = content_type
-        self.timestamp = datetime.datetime.now()  # 获取当前时间戳
+        self.timestamp = datetime.now()  # 获取当前时间戳
     
     def __str__(self) -> str:
         return "%s: %s"%(self.role, self.content)

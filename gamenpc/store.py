@@ -24,19 +24,32 @@ class MySQLDatabase:
         session.refresh(record)  # update the record object with new data from database
         return record
 
-    def delete_record(self, record):
+    def delete_record_by_id(self, record_class, id):
         session = self.session()
-        session.delete(record)
-        session.commit()
+        record = session.query(record_class).filter_by(id=id).first()
+        if record:    # 判断是否查找到相应记录
+            session.delete(record)
+            session.commit()
+        else:
+            print("没有找到对应id的记录, 无法删除")
 
     def update_record(self, record)->any:
         session = self.session()
         session.merge(record)
         session.commit()
-        session.refresh(record)
         return record
+    
+    # def delete_records(self, record_class, filter_dict):
+    #     session = self.session()
+    #     records = session.query(record_class).filter_by(**filter_dict)
+    #     deleted_records_count = records.delete(synchronize_session=False)
+    #     session.commit()
+    #     return deleted_records_count
 
-    def select_records(self, record_class)->List:
+    def select_records(self, record_class, filter_dict=None)->List:
         session = self.session()
-        result = session.query(record_class).all()
+        if filter_dict == None:
+            result = session.query(record_class).all()
+        else:
+            result = session.query(record_class).filter_by(**filter_dict).all()
         return result

@@ -48,11 +48,21 @@ db = MySQLDatabase(host=host, port=port, user=user, password=password, database=
 npc_manager = NPCManager(db)
 user_manager = UserManager(db, npc_manager)
 
-# 新增记录
-npc = NPC(name="测试", short_description="测试", trait="测试", prompt_description="测试", profile="测试", chat_background="测试", 
-                 affinity_level_description="测试", knowledge_id="测试", updated_at=datetime.datetime.now())
-new_npc = db.insert_record(npc)
-print('new_npc id: ', new_npc.id)
+# # 新增记录
+# npc = NPC(name="测试", short_description="测试", trait="测试", prompt_description="测试", profile="测试", chat_background="测试", 
+#                  affinity_level_description="测试", knowledge_id="测试", updated_at=datetime.datetime.now())
+# new_npc = db.insert_record(npc)
+
+# # 修改记录
+# new_npc.name = "hahaha"
+# new_npc = db.update_record(new_npc)
+
+# # 查询记录
+# npcs = db.select_records(NPC)
+# print('npc: ', npcs)
+
+# # 新增记录
+# db.delete_record_by_id(NPC, new_npc.id)
 
 class ChatRequest(BaseModel):
     '''
@@ -72,6 +82,9 @@ class NPCRequest(BaseModel):
     trait: str
     profile_url: Optional[str] = ""
 
+def response(code=200, message="执行成功", data=None)->any:
+    return {"code": code, "message": message, "data": data}
+
 def get_npc(req:ChatRequest=Depends) -> NPC:
     try:
         user = user_manager.get_user(user_id=req.user_id)
@@ -80,7 +93,7 @@ def get_npc(req:ChatRequest=Depends) -> NPC:
             req.scene = '宅在家里'
         return user.get_npc_user(req.user_id, req.npc_id, req.scene)
     except KeyError:
-        raise HTTPException(status_code=404, detail="NPC not found.")
+        return None
 
 @router.post("/chat")
 async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
@@ -90,42 +103,39 @@ async def chat(req: ChatRequest, npc_instance=Depends(get_npc)):
         npc_instance.update_affinity(db, req.user_name, req.question),
     )
     thought = npc_instance.get_thought_context()
-    response = {
+    data = {
         "answer": answer,
         "affinity_score": affinity_score,
         "thought": thought,
     }
-    return response
+    return response(message="返回成功", data=data)
 
 @router.get("/npc/get_npc_user")
-async def get_npc_user(npc_id: str, user_id: str):
+async def get_npc_user(npc_user_id: str):
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_id, user_id)
+    npc_instance = npc_manager.get_npc_user(npc_user_id)
     if npc_instance == None:
-        return HTTPException(status_code=400, detail="Invaild value of npc_name, it not Exists")
-    # if npc_instance.scene == "":
-    #     npc_instance.scene = "宅在家中"
-    return npc_instance.get_character_info()
+        return response(code=400, message="Invaild value of npc_name, it not Exists")
+    return response(data=npc_instance.get_character_info())
 
 @router.get("/npc/get_npc_user_memory")
-async def get_npc_user_memory(npc_id: str, user_id: str):
+async def get_npc_user_memory(npc_user_id: str):
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_id, user_id)
+    npc_instance = npc_manager.get_npc_user(npc_user_id)
     try:
-        npc_instance.re_init(db)
-        return {"status": "success", "message": "记忆、好感重置成功!"}
+        return response(data=npc_instance.get_dialogue_context())
     except KeyError:
-        return HTTPException(status_code=404, detail="NPC not found.")
+        return response(code=400, message="NPC not found")
 
 @router.get("/npc/clear_npc_user_memory")
-async def clear_npc_user_memory(npc_id: str, user_id: str):
+async def clear_npc_user_memory(npc_user_id):
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_id, user_id)
+    npc_instance = npc_manager.get_npc_user(npc_user_id)
     try:
         npc_instance.re_init(db)
-        return {"status": "success", "message": "记忆、好感重置成功!"}
+        return response(message="记忆、好感重置成功!")
     except KeyError:
-        return HTTPException(status_code=404, detail="NPC not found.")
+        return response(code=400, message="NPC not found")
 
 @router.get("/npc/query")
 async def query_npc(npc_id: str):
@@ -134,10 +144,10 @@ async def query_npc(npc_id: str):
     if npc_id == "":
         '''获取所有NPC配置信息'''
         return npc_manager.get_all_npc()
-    npc_configs = []
-    npc_config = npc_manager.get_npc(npc_id)
-    npc_configs.append(npc_config)
-    return npc_configs
+    npcs = []
+    npc = npc_manager.get_npc(npc_id)
+    npcs.append(npc)
+    return response(data=npcs)
 
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
@@ -147,16 +157,16 @@ async def create_npc(req: NPCRequest):
         npc_instance = npc_manager.set_npc(npc_name=req.npc_id, npc_traits=req.trait)
     else:
         npc_instance.trait = req.trait
-    return npc_instance
+    return response(data=npc_instance)
 
 @router.post("/npc/shift_scenes")
 async def shift_scenes(user_name:str, npc_name:str, scene:str):
     '''切换场景'''
     npc_instance = npc_manager.get_npc(user_name, npc_name)
     if npc_instance is None:
-        return HTTPException(status_code=400, detail="Invaild value of npc_name, it not Exists")
+        return response(code=400, message="Invaild value of npc_name, it not Exists")
     npc_instance.set_scene(client=db, scene=scene)
-    return {"status": "success", "message": "场景转移成功!"}
+    return response(message="场景转移成功")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ class User(Base):
     sex = Column(Enum("男", "女", "未知"))
     phone = Column(String(11))
     money = Column(Integer)
-    created_at = Column(DateTime, default=datetime.datetime.now())
+    created_at = Column(DateTime, default=datetime.now())
 
     def __init__(self, id=None, name=None, sex=None, phone=None, money=None, npc_manager=NPCManager):
         self.id = id
@@ -43,7 +43,7 @@ class UserOpinion(Base):
     labels = Column(String(255))  # 意见标签（多标签通过逗号隔开）
     name = Column(String(255))  # 用户名称
     content = Column(String(255))  # 用户意见
-    created_at = Column(DateTime, default=datetime.datetime.now())  # 创建时间
+    created_at = Column(DateTime, default=datetime.now())  # 创建时间
 
     def __init__(self, labels=None, name=None, content=None):
         self.labels = labels
@@ -64,21 +64,17 @@ class UserManager:
         self.client = client
         self.npc_manager = npc_manager
         self._instances = {}
-        records = self.client.select_records(User)
-        for record in records:
-            user_id = record[0]
-            name = record[1]
-            money = record[2]
-            self._instances[user_id] = User(user_id, name, money, self.npc_manager)
+        users = self.client.select_records(record_class=User)
+        for user in users:
+            self._instances[user.id] = user
 
     def get_user(self, user_id: str) -> User:
         if user_id not in self._instances:
-            self._instances[user_id] = User(user_id, 100, self.npc_manager)
-
+            return None
         return self._instances.get(user_id)
     
-    def set_user(self, user_name: str):
-        money = 100
-        self._instances[user_name] = User(user_name, money, self.npc_manager)
-        user = User(name=user_name, money=money)
-        self.client.insert_record(user)
+    def set_user(self, user: User) -> User:
+        user = self.client.insert_record(user)
+        self._instances[user.id] = user
+        return user
+        
