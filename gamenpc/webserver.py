@@ -130,7 +130,8 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
 @router.get("/npc/get_npc_user")
 async def get_npc_user(npc_user_id: str):
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_user_id)
+    filter_dict = {"id": npc_user_id}
+    npc_instance = npc_manager.get_npc_users(filter_dict=filter_dict)
     if npc_instance == None:
         return response(code=400, message="Invaild value of npc_name, it not Exists")
     return response(data=npc_instance.get_character_info())
