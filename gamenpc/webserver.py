@@ -1,10 +1,10 @@
 # coding:utf-8
 import asyncio
-from fastapi import FastAPI, Depends, HTTPException, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import os, uvicorn, uuid, datetime
+import os, uvicorn
 
 from gamenpc.utils import logger
 from gamenpc.npc import NPC, NPCManager
@@ -44,6 +44,7 @@ port = os.environ.get('MYSQL_PORT')
 user = os.environ.get('MYSQL_USER')
 password = os.environ.get('MYSQL_PASSWORD')
 database = os.environ.get('MYSQL_DATABASE')
+file_path = os.environ.get('FILE_PATH')
 db = MySQLDatabase(host=host, port=port, user=user, password=password, database=database)
 npc_manager = NPCManager(db)
 user_manager = UserManager(db, npc_manager)
@@ -82,7 +83,7 @@ class NPCRequest(BaseModel):
     trait: str
     profile_url: Optional[str] = ""
 
-def response(code=200, message="执行成功", data=None)->any:
+def response(code=0, message="执行成功", data=None)->any:
     return {"code": code, "message": message, "data": data}
 
 def get_npc(req:ChatRequest=Depends) -> NPC:
@@ -168,6 +169,48 @@ async def shift_scenes(user_name:str, npc_name:str, scene:str):
     npc_instance.set_scene(client=db, scene=scene)
     return response(message="场景转移成功")
 
+class UserRequest(BaseModel):
+    '''
+    self.name = name
+    self.sex = sex
+    self.phone = phone
+    self.money = money
+    '''
+    name: str
+    sex: str
+    phone: str
+    money: str
+
+@router.post("/user/create")
+async def create_user(req: UserRequest):
+    user = user_manager.set_user(req.name, req.sex, req.phone, req.money)
+    return response(data=user)
+    
+@router.post("/user/remove")
+async def remove_user(user_id: str):
+    user = user_manager.remove_user(user_id=user_id)
+    return response(data=user)
+
+@router.get("/user/query")
+async def query_user(user_id: str):
+    user = user_manager.get_user(user_id=user_id)
+    return response(data=user)
+
+@router.get("/user/update")
+async def update_user(req: UserRequest):
+    user = user_manager.update_user(req.name, req.sex, req.phone, req.money)
+    return response(data=user)
+
+@router.post("/file/upload")
+# 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
+async def upload_file(file: UploadFile = File(...)):
+    file_location = f"{file_path}/{file.filename}"  
+    # 使用 'wb' 模式以二进制写入文件
+    with open(file_location, "wb") as f:
+        # 读取上传的文件数据
+        content = await file.read()
+        f.write(content)
+    return response(message=f"文件 '{file.filename}' 已经被保存到 '{file_location}'.")
 
 if __name__ == "__main__":
     # 创建一个全局对象

@@ -73,8 +73,20 @@ class UserManager:
             return None
         return self._instances.get(user_id)
     
-    def set_user(self, user: User) -> User:
-        user = self.client.insert_record(user)
+    def set_user(self, name, sex, phone, money) -> User:
+        user = self.client.insert_record(User(name=name, sex=sex, phone=phone, money=money))
         self._instances[user.id] = user
         return user
+    
+    def update_user(self, id, name, sex, phone, money) -> User:
+        self._instances[user.id] = user
+        user.name = name
+        user.sex = sex
+        user.phone = phone
+        user.money = money
+        user = self.client.update_record(user)
+        return user
+    
+    def remove_user(self, user_id: str):
+        self.client.delete_record_by_id(user_id)
         
