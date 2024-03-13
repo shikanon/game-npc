@@ -17,14 +17,16 @@ class User(Base):
     sex = Column(Enum("男", "女", "未知"))
     phone = Column(String(11))
     money = Column(Integer)
+    password = Column(String(11))
     created_at = Column(DateTime, default=datetime.now())
 
-    def __init__(self, id=None, name=None, sex=None, phone=None, money=None, npc_manager=NPCManager):
+    def __init__(self, id=None, name=None, sex=None, phone=None, money=None, password=None, npc_manager=NPCManager):
         self.id = id
         self.name = name
         self.sex = sex
         self.phone = phone
         self.money = money
+        self.password = password
         self.npc_manager = npc_manager
         self._npc = {}
     
@@ -79,16 +81,18 @@ class UserManager:
         user = users[0]
         return user
     
-    def set_user(self, name, sex, phone, money) -> User:
-        user = self.client.insert_record(User(name=name, sex=sex, phone=phone, money=money))
+    def set_user(self, name, sex, phone, money, password) -> User:
+        user = self.client.insert_record(User(name=name, sex=sex, phone=phone, money=money, password=password))
         return user
     
-    def update_user(self, id, name, sex, phone, money) -> User:
+    def update_user(self, id, name, sex, phone, money, password) -> User:
         # self._instances[user.id] = user
+        user.id = id
         user.name = name
         user.sex = sex
         user.phone = phone
         user.money = money
+        user.password = password
         user = self.client.update_record(user)
         return user
     

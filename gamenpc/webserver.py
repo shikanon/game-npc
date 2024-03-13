@@ -194,10 +194,11 @@ class UserRequest(BaseModel):
     sex: str
     phone: str
     money: str
+    password: str
 
 @router.post("/user/create")
 async def create_user(req: UserRequest):
-    user = user_manager.set_user(req.name, req.sex, req.phone, req.money)
+    user = user_manager.set_user(req.name, req.sex, req.phone, req.money, req.password)
     return response(data=user)
     
 @router.post("/user/remove")
@@ -233,7 +234,7 @@ async def query_user(req: UserQueryRequest):
 
 @router.get("/user/update")
 async def update_user(req: UserRequest):
-    user = user_manager.update_user(req.name, req.sex, req.phone, req.money)
+    user = user_manager.update_user(req.id, req.name, req.sex, req.phone, req.money)
     return response(data=user)
 
 @router.post("/file/upload")
