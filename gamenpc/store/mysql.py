@@ -54,7 +54,7 @@ class MySQLDatabase:
     #         result = session.query(record_class).filter_by(**filter_dict).all()
     #     return result
     
-    def select_records(self, record_class, order_by=None, filter_dict=None, page=1, per_page=10)->List:
+    def select_records(self, record_class, order_by=None, filter_dict=None, page=1, limit=10)->List:
         session = self.session()
         query = session.query(record_class)
         if filter_dict is not None:
@@ -68,7 +68,7 @@ class MySQLDatabase:
                         query = query.order_by(key)
                     else:
                         query = query.order_by(desc(key))
-        if page is not None and per_page is not None:         # 加入分页功能
-            query = query.limit(per_page).offset((page-1)*per_page)
+        if page is not None and limit is not None:         # 加入分页功能
+            query = query.limit(limit).offset((page-1)*limit)
         results = query.all()
         return results

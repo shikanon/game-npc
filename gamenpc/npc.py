@@ -138,8 +138,9 @@ class NPCUser(Base):
 
     def get_character_info(self):
         return {
-            "npc_name": self.name,
-            "npc_trait": self.trait,
+            "id": self.id,
+            "name": self.name,
+            "trait": self.trait,
             "scene": self.scene,
             "event": self.event,
         }
@@ -252,10 +253,10 @@ class NPCUser(Base):
         self.dialogue_manager.add_dialogue(client=redis_client, role_from=player_name, role_to=self.name, content=message, contentType=contentType)
     
         response = self.character_model(messages=all_messages)
-        anwser = response.content
-        self.dialogue_manager.add_dialogue(client=redis_client, role_from=self.name, role_to=player_name, content=anwser, contentType=contentType)
+        content = response.content
+        self.dialogue_manager.add_dialogue(client=redis_client, role_from=self.name, role_to=player_name, content=content, contentType=contentType)
 
-        return anwser
+        return content
 
 class Scene(Base):
     __tablename__ = 'scene'
@@ -318,19 +319,21 @@ class NPCManager:
         #     self._instance_configs[npc.id] = npc
         # print('self._instance_configs: ', self._instance_configs)
 
-    def get_npcs(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[NPC]:
-        npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
+    def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
+        npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         # npc = self._instance_configs.get(npc_id)
         return npcs
     
-    def set_npc(self, npc_name: str, npc_traits: str)->NPC:
-        new_npc= NPC(name=npc_name, trait=npc_traits)
+    def set_npc(self, name: str, traits: str, short_description: str,
+                               prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:
+        new_npc= NPC(name=name, traits=traits, short_description=short_description,
+                               prompt_description=prompt_description, profile=profile, chat_background=chat_background, affinity_level_description=affinity_level_description)
         new_npc = self.client.insert_record(new_npc)
         # self._instance_configs[new_npc.id] = new_npc
         return new_npc
     
-    def get_npc_users(self, order_by=None, filter_dict=None, page=1, per_page=10) -> List[NPCUser]:
-        npc_users = self.client.select_records(record_class=NPCUser, order_by=order_by, filter_dict=filter_dict, page=page, per_page=per_page)
+    def get_npc_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPCUser]:
+        npc_users = self.client.select_records(record_class=NPCUser, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         for npc_user in npc_users:
             # db中加载历史对话
             dialogue_context = self.redis_client.get_all("dialogue")
