@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import os, uvicorn
+import os, uvicorn, json
 
 from gamenpc.utils import logger
 from gamenpc.npc import NPCUser, NPCManager
@@ -158,23 +158,6 @@ async def clear_history_dialogue(npc_user_id: str):
     except KeyError:
         return response(code=400, message="NPC not found")
 
-class NpcQueryRequest(BaseModel):
-    id: str
-    name: str
-    order_by: Optional[str] = "desc"
-    page: Optional[int] = 0
-    limit: Optional[int] = 1
-
-@router.get("/npc/query")
-async def query_npc(req: NpcQueryRequest):
-    filter_dict = {}
-    if req.id is not None:
-        filter_dict['id'] = req.id
-    if req.name is not None:
-        filter_dict['name'] = req.name
-    npcs = npc_manager.get_npcs(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
-    return response(data=npcs)
-
 class NPCRequest(BaseModel):
     name: str
     trait: str
@@ -187,10 +170,27 @@ class NPCRequest(BaseModel):
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
     '''设置NPC性格'''
-    npc = npc_manager.set_npc(name=req.name, traits=req.trait, short_description=req.short_description,
+    npc = npc_manager.set_npc(name=req.name, trait=req.trait, short_description=req.short_description,
                                prompt_description=req.prompt_description, profile=req.profile, 
                                chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
-    return response(data=npc)
+    return response(data=npc.to_dict())
+
+class NpcQueryRequest(BaseModel):
+    id: str
+    name: str
+    order_by: Optional[str] = "desc"
+    page: Optional[int] = 1
+    limit: Optional[int] = 10
+
+@router.get("/npc/query")
+async def query_npc(req: NpcQueryRequest):
+    filter_dict = {}
+    if req.id is not None:
+        filter_dict['id'] = req.id
+    if req.name is not None:
+        filter_dict['name'] = req.name
+    npcs = npc_manager.get_npcs(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
+    return response(data=json.dumps([npc.to_dict() for npc in npcs]))
 
 @router.post("/npc/shift_scenes")
 async def shift_scenes(npc_user_id: str, scene:str):
@@ -201,44 +201,50 @@ async def shift_scenes(npc_user_id: str, scene:str):
     npc_user.set_scene(client=mysql_client, scene=scene)
     return response(message="场景转移成功")
 
-class UserRequest(BaseModel):
+class UserCreateRequest(BaseModel):
     name: str
     sex: str
     phone: str
-    money: str
+    money: int
     password: str
 
 @router.post("/user/create")
-async def create_user(req: UserRequest):
+async def create_user(req: UserCreateRequest):
     user = user_manager.set_user(req.name, req.sex, req.phone, req.money, req.password)
-    return response(data=user)
+    if user == None:
+        return response(message=f'user {req.name}, phone {req.phone} 已存在, 请勿重复创建')
+    else:
+        return response(data=user.to_dict())
     
+class UserRemoveRequest(BaseModel):
+    id: str
+
 @router.post("/user/remove")
-async def remove_user(user_id: str):
-    user = user_manager.remove_user(user_id=user_id)
-    return response(data=user)
+async def remove_user(req: UserRemoveRequest):
+    user_manager.remove_user(user_id=req.id)
+    return response(message=f'删除 user {req.id} 成功')
 
 class UserQueryRequest(BaseModel):
-    id: Optional[str] = ""
-    name: Optional[str] = ""
-    order_by: Optional[str] = "desc"
-    page: Optional[int] = 0
-    limit: Optional[int] = 1
+    id: Optional[str] = None
+    name: Optional[str] = None
+    order_by: Optional[str] = {"id": False}
+    page: Optional[int] = 1
+    limit: Optional[int] = 10
 
-@router.get("/user/query")
+@router.post("/user/query")
 async def query_user(req: UserQueryRequest):
     filter_dict = {}
     if req.id is not None:
         filter_dict['id'] = req.id
     if req.name is not None:
         filter_dict['name'] = req.name
-    users = user_manager.get_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, per_page=req.limit)
-    return response(data=users)
+    users = user_manager.get_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
+    return response(data=json.dumps([user.to_dict() for user in users]))
 
-@router.get("/user/update")
-async def update_user(req: UserRequest):
+@router.post("/user/update")
+async def update_user(req: UserCreateRequest):
     user = user_manager.update_user(req.id, req.name, req.sex, req.phone, req.money)
-    return response(data=user)
+    return response(data=user.to_dict())
 
 @router.post("/file/upload")
 # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
