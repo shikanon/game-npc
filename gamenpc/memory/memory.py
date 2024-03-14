@@ -101,12 +101,11 @@ class Event(Base):
 
     id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
     npc_id = Column(String(255), ForeignKey('npc.id'))  # NPC对象，外键
+    #关联NPC对象
+    npc = relationship('NPC')
     theater = Column(String(255))  # 剧情章节
     theater_event = Column(String(255))  # 剧情的事件（JSON）
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
-
-    #关联NPC对象
-    npc = relationship('NPC')
 
     def __init__(self, npc_id=None, theater=None, theater_event=None):
         self.npc_id = npc_id
