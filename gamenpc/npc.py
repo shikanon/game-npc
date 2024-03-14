@@ -41,71 +41,9 @@ DEFAULT_ROLE_TEMPLATE = '''你的名字叫{{name}}。
 {{event}}
 '''
 
-@dataclass
+
+
 class NPC(Base):
-    # 表的名字
-    __tablename__ = 'npc'
-    __table_args__ = {'extend_existing': True}
-
-    # 表的结构
-    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
-    name = Column(String(64))
-    short_description = Column(String(255))
-    trait = Column(Text)
-    prompt_description = Column(Text)
-    profile = Column(Text)
-    chat_background = Column(Text)
-    affinity_level_description = Column(Text)
-    knowledge_id = Column(String(255))
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
-    created_at = Column(DateTime, default=datetime.now())
-
-    def __init__(self, id=None, name=None, short_description=None, trait=None, prompt_description=None, profile=None, chat_background=None, 
-                 affinity_level_description=None, knowledge_id=None, updated_at=None):
-        self.id = id
-        self.name = name
-        self.short_description = short_description
-        self.trait = trait
-        self.prompt_description = prompt_description
-        self.profile = profile
-        self.chat_background = chat_background
-        self.affinity_level_description = affinity_level_description
-        self.knowledge_id = knowledge_id
-        self.updated_at = updated_at
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'short_description': self.short_description,
-            'trait': self.trait,
-            'prompt_description': self.prompt_description,
-            'profile': self.profile,
-            'chat_background': self.chat_background,
-            'affinity_level_description': self.affinity_level_description,
-            'knowledge_id': self.knowledge_id,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
-            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
-        }
-
-@dataclass
-class NPCUser(Base):
-        # 表的名字
-    __tablename__ = 'npc_user'
-    __table_args__ = {'extend_existing': True}
-
-    # 表的结构
-    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
-    npc_id = Column(String(255), ForeignKey('npc.id'))  # npc配置对象，外键
-    # 通过关系关联NPCConfig对象
-    npc = relationship('NPC')
-    user_id = Column(String(255), ForeignKey('user.id'))  # 用户对象，外键
-    # 通过关系关联User对象
-    user = relationship('User')
-    scene = Column(String(255))  # 场景描述
-    score = Column(Integer)  # 好感分数
-    affinity_level = Column(Integer)  # 亲密度等级
-    created_at = Column(DateTime, default=datetime.now())  # 创建时间
     '''
     NPC名称、角色prompt模板、好感系统、场景
     '''
@@ -305,78 +243,12 @@ class NPCUser(Base):
 
         return content
 
-@dataclass
-class Scene(Base):
-    __tablename__ = 'scene'
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
-    scene = Column(Text)
-    theater = Column(Text)
-    theater_event = Column(Text)
-    roles = Column(String(255))
-    score = Column(String(255))
-    created_at = Column(DateTime, default=datetime.now())
-
-    def __init__(self, id=None, scene=None,  theater=None, theater_event=None, roles=None, score=None):
-        self.id = id
-        self.scene = scene
-        self.theater = theater
-        self.theater_event = theater_event
-        self.roles = roles
-        self.score = score
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'scene': self.scene,
-            'theater': self.theater,
-            'theater_event': self.theater_event,
-            'roles': self.roles,
-            'score': self.score,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
-        }
 
 
 class NPCManager:
     def __init__(self, mysql_client: MySQLDatabase, redis_client: RedisList):
         self.client = mysql_client
         self.redis_client = redis_client
-        # # 加载npc_user到内存中
-        # self._instances = {}
-        # npc_users = self.client.select_records(record_class=NPCUser)
-        # for npc_user in npc_users:
-        #     # 计算好感度
-        #     affinity_level = AffinityLevel(
-        #         acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
-        #         familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
-        #         friend="你们是亲密朋友关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「关爱、感激、深情、溺爱」。",
-        #         soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间理解和和谐到了几乎完美的境界，你们互信互依。",
-        #         adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
-        #     )
-        #     affinity = AffinityManager(score=npc_user.score,level=affinity_level)
-        #     npc_user.affinity = affinity
-
-        #     # db中加载历史对话
-        #     dialogue_context = []
-        #     dialogue_records = self.client.select_records(record_class=DialogueEntry)
-        #     for dialogue_record in dialogue_records:
-        #         dialogue_id = dialogue_record[0]
-        #         dialogue_role_from = dialogue_record[1]
-        #         dialogue_role_to = dialogue_record[2]
-        #         dialogue_content = dialogue_record[3]
-        #         dialogue_context.append(DialogueEntry(dialogue_id, dialogue_role_from, dialogue_role_to, dialogue_content))
-        #     npc_user.dialogue_context = dialogue_context
-
-        #     self._instances[npc_user.id] = npc_user
-        # print('self._instances: ', self._instances)
-
-        # # 加载npc配置到内存中
-        # self._instance_configs = {}
-        # npcs = self.client.select_records(record_class=NPC)
-        # for npc in npcs:
-        #     self._instance_configs[npc.id] = npc
-        # print('self._instance_configs: ', self._instance_configs)
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
         npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
