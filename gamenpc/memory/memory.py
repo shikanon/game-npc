@@ -8,7 +8,7 @@ from typing import List
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessagePromptTemplate
-from gamenpc.store.mysql import MySQLDatabase, Base
+from gamenpc.store.mysql import Base
 from gamenpc.store.redis import RedisList
 import uuid
 
@@ -135,8 +135,7 @@ class DialogueEntry(Base):
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
 
     '''对话实体，谁说了什么话'''
-    def __init__(self, id:str, role_from:str, role_to:str, content:str, content_type:str):
-        self.id = id
+    def __init__(self, role_from:str, role_to:str, content:str, content_type:str):
         self.role_from = role_from
         self.role_to = role_to
         self.content = content  # 存储对话内容
@@ -314,13 +313,13 @@ class DialogueMemory:
             'dialogue_pair_count': self.dialogue_pair_count,
         }
     
-    def add_dialogue(self, redis_client: RedisList, role_from, role_to, content, contentType)->None:
+    def add_dialogue(self, redis_client: RedisList, role_from, role_to, content, content_type)->None:
         if len(self.dialogue_context) >= self.context_limit:
             # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
             redis_client.pop("dialogue")
             dialogue = self.dialogue_context.pop(0)
 
-        dialogue =  DialogueEntry(role_from, role_to, content, contentType)
+        dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         # 历史对话持久化到db中
         redis_client.push("dialogue", dialogue)
         self.dialogue_context.append(dialogue)

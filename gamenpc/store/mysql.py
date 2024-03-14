@@ -42,7 +42,7 @@ class MySQLDatabase:
     
     def select_record(self, record_class, filter_dict=None)->any:
         session = self.session()
-        record = session.query(record_class).filter_by(filter_dict).first()
+        record = session.query(record_class).filter_by(**filter_dict).first()
         return record
     
     # def delete_records(self, record_class, filter_dict):

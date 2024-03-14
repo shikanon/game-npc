@@ -86,7 +86,7 @@ class ChatRequest(BaseModel):
     npc_id: str
     scene: str
     question: str
-    contentType: str
+    content_type: str
 
 def response(code=0, message="执行成功", data=None)->any:
     return {"code": code, "msg": message, "data": data}
@@ -97,6 +97,7 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
         user = user_manager.get_user(filter_dict=filter_dict)
         if user == None:
             return None
+        user.npc_manager = npc_manager
         npc_user = user.get_npc_user(npc_user_id=req.id, user_id=req.user_id, npc_id=req.npc_id, scene=req.scene)
         return npc_user
     except KeyError:
@@ -108,8 +109,8 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
     '''NPC聊天对话'''
     message, affinity_score = await asyncio.gather(
-        npc_user_instance.chat(mysql_client, req.user_id, req.question, req.contentType),
-        npc_user_instance.update_affinity(mysql_client, req.user_id, req.question),
+        npc_user_instance.chat(client=redis_client, player_name=req.user_id, content=req.question, content_type=req.content_type),
+        npc_user_instance.update_affinity(client=mysql_client, player_name=req.user_id, content=req.question),
     )
     # thought = npc_user_instance.get_thought_context()
     data = {
@@ -176,13 +177,13 @@ async def create_npc(req: NPCRequest):
     return response(data=npc.to_dict())
 
 class NpcQueryRequest(BaseModel):
-    id: str
-    name: str
-    order_by: Optional[str] = "desc"
+    id: Optional[str] = None
+    name: Optional[str] = None
+    order_by: Optional[str] = {"id": False}
     page: Optional[int] = 1
     limit: Optional[int] = 10
 
-@router.get("/npc/query")
+@router.post("/npc/query")
 async def query_npc(req: NpcQueryRequest):
     filter_dict = {}
     if req.id is not None:

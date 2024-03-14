@@ -47,8 +47,8 @@ class User(Base):
         filter_dict = {"id": npc_user_id}
         npc_users = self.npc_manager.get_npc_users(filter_dict=filter_dict)
         if npc_users == None or len(npc_users) == 0:
-            npc_config = self.npc_manager.get_npc_config(npc_id)
-            npc_user = self.npc_manager.create_npc_user(user_id=user_id, npc_id=npc_id, npc_traits=npc_config.trait, scene=scene)
+            npc = self.npc_manager.get_npc(npc_id)
+            npc_user = self.npc_manager.create_npc_user(name=npc.name, user_id=user_id, npc_id=npc_id, trait=npc.trait, scene=scene)
         else:
             npc_user = npc_users[0]
         return npc_user
