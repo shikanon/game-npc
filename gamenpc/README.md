@@ -387,7 +387,6 @@ class NPCUser(Base):
 |-------------|------------|-----|--------|-----|-----|----|------|
 | id          | String(255)| 是   | uuid.uuid4 | 是  |     |    |  ID |
 | npc_id      | String(255)| 否   | None | 否  | 是   | NPC | NPC对象，外键 |
-| npc         | relationship | 否 | None | 否  |     |    | 关联NPC对象 |
 | theater     | String(255)| 否   | None | 否  |     |    | 剧情章节 |
 | theater_event | String(255)| 否 | None | 否  |     |    | 剧情的事件（JSON） |
 | created_at  | DateTime   | 否   | datetime.now | 否 |     |    | 创建时间 |
