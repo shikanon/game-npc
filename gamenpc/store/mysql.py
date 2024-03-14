@@ -1,5 +1,5 @@
 from typing import List
-from sqlalchemy import create_engine, desc
+from sqlalchemy import create_engine, desc, text
 from sqlalchemy.orm import sessionmaker
 from urllib.parse import quote_plus
 from sqlalchemy.ext.declarative import declarative_base
@@ -26,7 +26,8 @@ class MySQLDatabase:
 
     def delete_record_by_id(self, record_class, id):
         session = self.session()
-        record = session.query(record_class).filter_by(id=id).first()
+        filter_dict = {'id': id}
+        record = session.query(record_class).filter_by(**filter_dict).first()
         if record:    # 判断是否查找到相应记录
             session.delete(record)
             session.commit()
@@ -37,6 +38,11 @@ class MySQLDatabase:
         session = self.session()
         session.merge(record)
         session.commit()
+        return record
+    
+    def select_record(self, record_class, filter_dict=None)->any:
+        session = self.session()
+        record = session.query(record_class).filter_by(**filter_dict).first()
         return record
     
     # def delete_records(self, record_class, filter_dict):
@@ -61,14 +67,14 @@ class MySQLDatabase:
             query = query.filter_by(**filter_dict)
         if order_by is not None:
             if isinstance(order_by, str):                      # order_by 默认为升序
-                query = query.order_by(order_by)
+                query = query.order_by(text(order_by))
             elif isinstance(order_by, dict):                   # 如果为字典时，key也就是需要排序的字段，value为True则为升序，False则为降序
                 for key, value in order_by.items():
                     if value:
-                        query = query.order_by(key)
+                        query = query.order_by(text(key))
                     else:
-                        query = query.order_by(desc(key))
-        if page is not None and limit is not None:         # 加入分页功能
+                        query = query.order_by(text(key + " DESC"))     # 使用sqlalchemy的desc函数进行降序排序
+        if page is not None and limit is not None:             # 加入分页功能
             query = query.limit(limit).offset((page-1)*limit)
         results = query.all()
         return results

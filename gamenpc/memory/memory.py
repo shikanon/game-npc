@@ -8,7 +8,7 @@ from typing import List
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessagePromptTemplate
-from gamenpc.store.mysql import MySQLDatabase, Base
+from gamenpc.store.mysql import Base
 from gamenpc.store.redis import RedisList
 import uuid
 
@@ -16,6 +16,7 @@ from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
+from dataclasses import dataclass
 
 summarize_dialogue_template = """
 # 角色
@@ -93,30 +94,39 @@ reason: 小A是你一直暗恋的人，他向你告白，你们终于在一起�
 - 尽量用角色知道的信息回答问题。 
 """
 
-
+@dataclass
 class Event(Base):
     __tablename__ = 'event'
     __table_args__ = {'extend_existing': True}
 
-    id = Column(String(255), primary_key=True, default=str(uuid.uuid4()), unique=True)
+    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
     npc_id = Column(String(255), ForeignKey('npc.id'))  # NPC对象，外键
+    #关联NPC对象
+    npc = relationship('NPC')
     theater = Column(String(255))  # 剧情章节
     theater_event = Column(String(255))  # 剧情的事件（JSON）
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
-
-    #关联NPC对象
-    npc = relationship('NPC')
 
     def __init__(self, npc_id=None, theater=None, theater_event=None):
         self.npc_id = npc_id
         self.theater = theater
         self.theater_event = theater_event
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'npc_id': self.npc_id,
+            'theater': self.theater,
+            'theater_event': self.theater_event,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+        }
+
+@dataclass
 class DialogueEntry(Base):
     __tablename__ = 'dialogue'
     __table_args__ = {'extend_existing': True}
 
-    id = Column(String(255), primary_key=True)  # 聊天ID，哈希类型
+    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
     role_from = Column(Integer)  # 消息发出对象ID
     role_to = Column(Integer)  # 消息接收对象ID
     content = Column(String(255))  # 消息内容
@@ -124,17 +134,26 @@ class DialogueEntry(Base):
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
 
     '''对话实体，谁说了什么话'''
-    def __init__(self, id:str, role_from:str, role_to:str, content:str, content_type:str):
-        self.id = id
+    def __init__(self, role_from:str, role_to:str, content:str, content_type:str):
         self.role_from = role_from
         self.role_to = role_to
         self.content = content  # 存储对话内容
         self.content_type = content_type
-        self.timestamp = datetime.now()  # 获取当前时间戳
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'role_from': self.role_from,
+            'role_to': self.role_to,
+            'content': self.content,
+            'content_type': self.content_type,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+        }
     
     def __str__(self) -> str:
         return "%s: %s"%(self.role, self.content)
 
+@dataclass
 class ConverationEntry:
     '''会话场景'''
     def __init__(self, scene:str, emotion:str, emotion_reason:str) -> None:
@@ -165,6 +184,7 @@ class ConverationEntry:
         return "场景：%s\n 心情：%s\n 情绪原因：%s"%(self.scene, self.emotion, self.reason)
 
 
+@dataclass
 class TopicEvent:
     '''主题事件'''
     def __init__(self, content:str, event_type:str, score:int, reason:str) -> None:
@@ -194,6 +214,7 @@ class TopicEvent:
             return "[关键事件]：%s"%self.content
         return self.content
 
+@dataclass
 class Mind:
     '''
     转换关系：DialogueEntry -> Converation -> TopicEvent
@@ -267,7 +288,7 @@ class Mind:
         event = TopicEvent(content=event_content, event_type=event_type, score=score, reason=reason)
         return event
 
-
+@dataclass
 class DialogueMemory:
     def __init__(self, dialogue_context:List, mind:Mind, summarize_limit=10, max_dialogue_history=100):
         self.mind = mind
@@ -280,14 +301,24 @@ class DialogueMemory:
         # 计数器，每个会话由多个对话对组成
         self.summarize_limit = summarize_limit
         self.dialogue_pair_count = 0
+
+    def to_dict(self):
+        return {
+            'mind': self.mind,
+            'dialogue_context': self.dialogue_context,
+            'context_limit': self.context_limit,
+            'conversation': self.conversation,
+            'summarize_limit': self.summarize_limit,
+            'dialogue_pair_count': self.dialogue_pair_count,
+        }
     
-    def add_dialogue(self, redis_client: RedisList, role_from, role_to, content, contentType)->None:
+    def add_dialogue(self, redis_client: RedisList, role_from, role_to, content, content_type)->None:
         if len(self.dialogue_context) >= self.context_limit:
             # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
             redis_client.pop("dialogue")
             dialogue = self.dialogue_context.pop(0)
 
-        dialogue =  DialogueEntry(role_from, role_to, content, contentType)
+        dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         # 历史对话持久化到db中
         redis_client.push("dialogue", dialogue)
         self.dialogue_context.append(dialogue)
