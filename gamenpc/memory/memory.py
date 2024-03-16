@@ -8,8 +8,8 @@ from typing import List
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessagePromptTemplate
-from gamenpc.store.mysql import Base
-from gamenpc.store.redis import RedisList
+from gamenpc.store.mysql_client import Base
+from gamenpc.store.redis_client import RedisList
 import uuid
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey

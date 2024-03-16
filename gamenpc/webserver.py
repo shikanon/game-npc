@@ -9,8 +9,8 @@ import os, uvicorn, json
 from gamenpc.utils import logger
 from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.user import UserManager
-from gamenpc.store.mysql import MySQLDatabase
-from gamenpc.store.redis import RedisList
+from gamenpc.store.mysql_client import MySQLDatabase
+from gamenpc.store.redis_client import RedisList
 
 
 app = FastAPI()
@@ -53,8 +53,8 @@ redis_host = os.environ.get('REDIS_HOST')
 redis_port = os.environ.get('REDIS_PORT')
 redis_user = os.environ.get('REDIS_USER')
 redis_password = os.environ.get('REDIS_PASSWORD')
-redis_db = os.environ.get('MYSQL_DATABASE')
-redis_client = RedisList(host=redis_host, port=redis_port, user=redis_user, password=redis_password, db=redis_db)
+redis_db = os.environ.get('REDIS_DATABASE')
+redis_client = RedisList(host=redis_host, port=redis_port, user=redis_user, password=redis_password, db=int(redis_db))
 
 npc_manager = NPCManager(mysql_client, redis_client)
 user_manager = UserManager(mysql_client, npc_manager)
@@ -98,7 +98,7 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
         if user == None:
             return None
         user.npc_manager = npc_manager
-        npc_user = user.get_npc_user(npc_user_id=req.id, user_id=req.user_id, npc_id=req.npc_id, scene=req.scene)
+        npc_user = user.get_npc_user(npc_id=req.npc_id, user_id=req.user_id, scene=req.scene)
         return npc_user
     except KeyError:
         return None
@@ -121,7 +121,8 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     return response(message="返回成功", data=data)
 
 class NpcUserQueryRequest(BaseModel):
-    id: Optional[str] = ""
+    npc_id: Optional[str] = ""
+    user_id: Optional[str] = ""
     order_by: Optional[str] = "desc"
     page: Optional[int] = 0
     limit: Optional[int] = 1
@@ -130,8 +131,8 @@ class NpcUserQueryRequest(BaseModel):
 async def get_npc_users(req: NpcUserQueryRequest):
     '''获取NPC信息'''
     filter_dict = {}
-    if req.id is not None:
-        filter_dict['id'] = req.id
+    if req.npc_id is not None & req.user_id is not None:
+        filter_dict['npc_user_id'] = f'{req.npc_id}_{req.user_id}'
     npc_users = npc_manager.get_npc_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
     if npc_users == None:
         return response(code=-1, message="Invaild value of npc_id, it not Exists")
@@ -141,18 +142,18 @@ async def get_npc_users(req: NpcUserQueryRequest):
     return response(data=npc_instances)
 
 @router.get("/npc/get_history_dialogue")
-async def get_history_dialogue(npc_user_id: str):
+async def get_history_dialogue(npc_id: str, user_id: str):
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_user_id)
+    npc_instance = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
     try:
         return response(data=npc_instance.get_dialogue_context())
     except KeyError:
         return response(code=400, message="NPC not found")
 
 @router.get("/npc/clear_history_dialogue")
-async def clear_history_dialogue(npc_user_id: str):
+async def clear_history_dialogue(npc_id: str, user_id: str):
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_user_id)
+    npc_instance = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
     try:
         npc_instance.re_init(mysql_client)
         return response(message="记忆、好感重置成功!")
@@ -193,24 +194,31 @@ async def query_npc(req: NpcQueryRequest):
     npcs = npc_manager.get_npcs(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
     return response(data=json.dumps([npc.to_dict() for npc in npcs]))
 
+class ShiftSceneRequest(BaseModel):
+    npc_id: str
+    user_id: str
+    scene: Optional[str] = "窝在家里"
+
 @router.post("/npc/shift_scenes")
-async def shift_scenes(npc_user_id: str, scene:str):
+async def shift_scenes(req: ShiftSceneRequest):
     '''切换场景'''
-    npc_user = npc_manager.get_npc_user(npc_user_id)
+    npc_user = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_user is None:
         return response(code=400, message="Invaild value of npc_name, it not Exists")
-    npc_user.set_scene(client=mysql_client, scene=scene)
+    npc_user.set_scene(client=mysql_client, scene=req.scene)
     return response(message="场景转移成功")
 
 class UserCreateRequest(BaseModel):
     name: str
-    sex: str
-    phone: str
-    money: int
+    sex: Optional[str] = "未知"
+    phone: Optional[str] = ""
+    money: Optional[int] = 0
     password: str
 
 @router.post("/user/create")
 async def create_user(req: UserCreateRequest):
+    if req.sex == "" or req.sex is None:
+        req.sex = "未知"
     user = user_manager.set_user(req.name, req.sex, req.phone, req.money, req.password)
     if user == None:
         return response(message=f'user {req.name}, phone {req.phone} 已存在, 请勿重复创建')

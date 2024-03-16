@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Integer, DateTime, Enum, Text
 from sqlalchemy.dialects.postgresql import UUID
 from gamenpc.npc import NPCUser, NPCManager
-from gamenpc.store.mysql import MySQLDatabase, Base
+from gamenpc.store.mysql_client import MySQLDatabase, Base
 from typing import List
 import uuid
 from datetime import datetime
@@ -43,14 +43,15 @@ class User(Base):
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
         }
     
-    def get_npc_user(self, npc_user_id:str, user_id:str, npc_id:str, scene:str)->NPCUser:
-        filter_dict = {"id": npc_user_id}
+    def get_npc_user(self, npc_id:str, user_id:str, scene:str)->NPCUser:
+        filter_dict = {"id": f'{npc_id}_{user_id}'}
         npc_users = self.npc_manager.get_npc_users(filter_dict=filter_dict)
         if npc_users == None or len(npc_users) == 0:
             npc = self.npc_manager.get_npc(npc_id)
-            npc_user = self.npc_manager.create_npc_user(name=npc.name, user_id=user_id, npc_id=npc_id, trait=npc.trait, scene=scene)
+            npc_user = self.npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, trait=npc.trait, scene=scene)
         else:
             npc_user = npc_users[0]
+        print('npc_user: ', npc_user.to_dict())
         return npc_user
     
 @dataclass

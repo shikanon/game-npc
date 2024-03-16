@@ -12,12 +12,11 @@ from langchain.chat_models.base import BaseChatModel
 from langchain.schema.messages import BaseMessage
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 
-# from gamenpc import memory
-from gamenpc.memory.memory import Mind, DialogueMemory, DialogueEntry
+from gamenpc.memory.memory import Mind, DialogueMemory
 from gamenpc.model import doubao
 from gamenpc.emotion import AffinityManager, AffinityLevel
-from gamenpc.store.mysql import MySQLDatabase, Base
-from gamenpc.store.redis import RedisList
+from gamenpc.store.mysql_client import MySQLDatabase, Base
+from gamenpc.store.redis_client import RedisList
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
@@ -95,16 +94,18 @@ class NPCUser(Base):
     __table_args__ = {'extend_existing': True}
 
     # 表的结构
-    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
+    id = Column(String(255), primary_key=True, unique=True)
     npc_id = Column(String(255), ForeignKey('npc.id'))  # npc配置对象，外键
     # 通过关系关联NPCConfig对象
     npc = relationship('NPC')
     user_id = Column(String(255), ForeignKey('user.id'))  # 用户对象，外键
     # 通过关系关联User对象
     user = relationship('User')
+    name = Column(String(255))  # NPC名称
     scene = Column(String(255))  # 场景描述
+    trait = Column(Text)  # 场景描述
     score = Column(Integer)  # 好感分数
-    affinity_level = Column(Integer)  # 亲密度等级
+    affinity_level = Column(Text)  # 亲密度等级
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
     '''
     NPC名称、角色prompt模板、好感系统、场景
@@ -114,10 +115,10 @@ class NPCUser(Base):
                  name=None,
                  npc_id=None, 
                  user_id=None,   
-                 score=None,  
+                 score=0,  
                  scene=None, 
                  trait=None, 
-                 affinity_level=None, 
+                 affinity_level="", 
                  dialogue_context=None,
                  affinity=AffinityManager, 
                  role_template_filename=None,
@@ -158,6 +159,7 @@ class NPCUser(Base):
         )
     
     def to_dict(self):
+        dialogue_context = self.dialogue_manager.get_all_contexts()
         return {
             'id': self.id,
             'name': self.name,
@@ -167,15 +169,13 @@ class NPCUser(Base):
             'scene': self.scene,
             'trait': self.trait,
             'affinity_level': self.affinity_level,
-            'dialogue_context': self.dialogue_context,
-            'affinity': str(self.affinity),
-            'role_template_filename': self.role_template_filename,
-            'dialogue_summarize_num': self.dialogue_summarize_num,
+            'dialogue_context': dialogue_context,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
 
     def get_character_info(self):
+         dialogue_context = self.dialogue_manager.get_all_contexts()
          return {
             'id': self.id,
             'name': self.name,
@@ -185,13 +185,50 @@ class NPCUser(Base):
             'scene': self.scene,
             'trait': self.trait,
             'affinity_level': self.affinity_level,
-            'dialogue_context': self.dialogue_context,
-            'affinity': str(self.affinity),
-            'role_template_filename': self.role_template_filename,
-            'dialogue_summarize_num': self.dialogue_summarize_num,
+            'dialogue_context': dialogue_context,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
+    
+    def init(self, 
+             redis_client: RedisList, 
+             role_template_filename=None,
+             dialogue_summarize_num=20,
+            dialogue_round=6):
+        # db中加载历史对话
+        dialogue_context = redis_client.get_all("dialogue")
+        affinity_level = AffinityLevel(
+            acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
+            familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
+            friend="你们是亲密朋友关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「关爱、感激、深情、溺爱」。",
+            soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间理解和和谐到了几乎完美的境界，你们互信互依。",
+            adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
+        )
+        self.affinity = AffinityManager(score=self.score,level=affinity_level)
+        self.event = None
+        self.dialogue_round = dialogue_round
+        #加载角色模板
+        if role_template_filename == None:
+            file_content = DEFAULT_ROLE_TEMPLATE
+        else:
+            with open(role_template_filename, 'r', encoding="utf-8") as fr:
+                file_content = fr.read()
+        if not self.validate_template(file_content):
+            raise ValueError(f"模板错误，缺少必须的关键字")
+        self.role_chat_template = jinja2.Template(file_content)
+        # 记忆及思维
+        model = doubao.ChatSkylark(
+            model="skylark2-pro-32k",
+            top_k=1,
+        )
+        self.thoughts = Mind(model=model, character=self.trait)
+        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.thoughts, summarize_limit=dialogue_summarize_num)
+        # character model
+        self.character_model = doubao.ChatSkylark(
+            model="skylark2-pro-character-4k",
+            top_k=1,
+        )
+        return
     
     def validate_template(self, text):
         for key in ["name","scene","affinity","trait","event"]:
@@ -206,14 +243,13 @@ class NPCUser(Base):
     def set_scene(self, client: MySQLDatabase, scene:str):
         '''变更场景'''
         self.scene = scene
-        update_data = {"scene": scene}
         condition = f"id='{self.id}'"
-        client.update_record("npcs", update_data, condition)
+        client.update_record(NPCUser, self, condition)
     
     def get_scene(self):
         return self.scene
     
-    def re_init(self, client: MySQLDatabase)->None:
+    def re_init(self, client: RedisList)->None:
         self.affinity.set_score(0)
         self.event = None
         self.dialogue_manager.clear(client)
@@ -237,10 +273,10 @@ class NPCUser(Base):
             history_dialogues=history_dialogues,
             dialogue_content=content,
         )
-        score = self.affinity.get_score()
-        self.score = score
-        client.update_record(NPCUser, self)
-        return score
+        self.affinity_level = self.affinity.get_relation_level()
+        self.score = self.affinity.get_score()
+        client.update_record(self)
+        return self.score
 
     
     def render_role_template(self):
@@ -254,7 +290,7 @@ class NPCUser(Base):
                 scene=self.scene,
                 trait=self.trait,
                 event=event,
-                affinity=str(self.affinity),
+                affinity=self.affinity,
                 )
     
     def process_message(self, message:str)->str:
@@ -342,41 +378,6 @@ class NPCManager:
     def __init__(self, mysql_client: MySQLDatabase, redis_client: RedisList):
         self.client = mysql_client
         self.redis_client = redis_client
-        # # 加载npc_user到内存中
-        # self._instances = {}
-        # npc_users = self.client.select_records(record_class=NPCUser)
-        # for npc_user in npc_users:
-        #     # 计算好感度
-        #     affinity_level = AffinityLevel(
-        #         acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
-        #         familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
-        #         friend="你们是亲密朋友关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「关爱、感激、深情、溺爱」。",
-        #         soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间理解和和谐到了几乎完美的境界，你们互信互依。",
-        #         adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
-        #     )
-        #     affinity = AffinityManager(score=npc_user.score,level=affinity_level)
-        #     npc_user.affinity = affinity
-
-        #     # db中加载历史对话
-        #     dialogue_context = []
-        #     dialogue_records = self.client.select_records(record_class=DialogueEntry)
-        #     for dialogue_record in dialogue_records:
-        #         dialogue_id = dialogue_record[0]
-        #         dialogue_role_from = dialogue_record[1]
-        #         dialogue_role_to = dialogue_record[2]
-        #         dialogue_content = dialogue_record[3]
-        #         dialogue_context.append(DialogueEntry(dialogue_id, dialogue_role_from, dialogue_role_to, dialogue_content))
-        #     npc_user.dialogue_context = dialogue_context
-
-        #     self._instances[npc_user.id] = npc_user
-        # print('self._instances: ', self._instances)
-
-        # # 加载npc配置到内存中
-        # self._instance_configs = {}
-        # npcs = self.client.select_records(record_class=NPC)
-        # for npc in npcs:
-        #     self._instance_configs[npc.id] = npc
-        # print('self._instance_configs: ', self._instance_configs)
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
         npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
@@ -394,19 +395,24 @@ class NPCManager:
         new_npc= NPC(name=name, trait=trait, short_description=short_description,
                                prompt_description=prompt_description, profile=profile, chat_background=chat_background, affinity_level_description=affinity_level_description)
         new_npc = self.client.insert_record(new_npc)
-        # self._instance_configs[new_npc.id] = new_npc
         return new_npc
     
+    def get_npc_user(self, npc_id: str, user_id: str) -> NPCUser:
+        filter_dict = {'id': f'{npc_id}_{user_id}'}
+        npc_user = self.client.select_record(record_class=NPCUser, filter_dict=filter_dict)
+        npc_user.init(self.redis_client)
+        return npc_user
+
     def get_npc_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPCUser]:
         npc_users = self.client.select_records(record_class=NPCUser, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
+        new_npc_users = []
         for npc_user in npc_users:
-            # db中加载历史对话
-            dialogue_context = self.redis_client.get_all("dialogue")
-            npc_user.set_dialogue_context(dialogue_context)
-        return npc_users
+            npc_user.init(self.redis_client)
+            new_npc_users.append(npc_user)
+        return new_npc_users
 
     
-    def create_npc_user(self, name:str, user_id:str, npc_id:str, trait:str, scene: str) -> NPCUser:
+    def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str) -> NPCUser:
         affinity_level = AffinityLevel(
             acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
             familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
@@ -414,9 +420,9 @@ class NPCManager:
             soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间理解和和谐到了几乎完美的境界，你们互信互依。",
             adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
         )
-        affinity = AffinityManager(score=0,level=affinity_level)
+        affinity = AffinityManager(score=0, level=affinity_level)
         dialogue_context = []
-        new_npc_user = NPCUser(name=name, user_id=user_id, npc_id=npc_id, trait=trait, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
+        npc_user_id = f'{npc_id}_{user_id}'
+        new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, trait=trait, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
         new_npc_user = self.client.insert_record(new_npc_user)
-        # self._instances[new_npc.id] = new_npc
         return new_npc_user
