@@ -124,14 +124,14 @@ class NpcUserQueryRequest(BaseModel):
     user_id: Optional[str] = ""
     order_by: Optional[str] = "desc"
     page: Optional[int] = 0
-    limit: Optional[int] = 1
+    limit: Optional[int] = 10
 
 @router.post("/npc/get_npc_users")
 async def get_npc_users(req: NpcUserQueryRequest):
     '''获取NPC信息'''
     filter_dict = {}
-    if req.npc_id is not None & req.user_id is not None:
-        filter_dict['npc_user_id'] = f'{req.npc_id}_{req.user_id}'
+    if req.npc_id != "" and req.user_id != "":
+        filter_dict['id'] = f'{req.npc_id}_{req.user_id}'
     npc_users = npc_manager.get_npc_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
     if npc_users == None:
         return response(code=-1, message="Invaild value of npc_id, it not Exists")
@@ -163,7 +163,7 @@ async def clear_history_dialogue(req: DefaultRequest):
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_instance == None:
         return response(code=400, message="NPC not found")
-    npc_instance.re_init(mysql_client)
+    npc_instance.re_init(redis_client)
     return response(message="记忆、好感重置成功!")
 
 class NPCRequest(BaseModel):

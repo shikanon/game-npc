@@ -159,7 +159,7 @@ class NPCUser(Base):
         )
     
     def to_dict(self):
-        dialogue_context = self.dialogue_manager.get_all_contexts()
+        # dialogue_context = self.dialogue_manager.get_all_contexts()
         return {
             'id': self.id,
             'name': self.name,
@@ -169,13 +169,13 @@ class NPCUser(Base):
             'scene': self.scene,
             'trait': self.trait,
             'affinity_level': self.affinity_level,
-            'dialogue_context': dialogue_context,
+            # 'dialogue_context': dialogue_context,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
 
     def get_character_info(self):
-         dialogue_context = self.dialogue_manager.get_all_contexts()
+        #  dialogue_context = self.dialogue_manager.get_all_contexts()
          return {
             'id': self.id,
             'name': self.name,
@@ -185,7 +185,7 @@ class NPCUser(Base):
             'scene': self.scene,
             'trait': self.trait,
             'affinity_level': self.affinity_level,
-            'dialogue_context': dialogue_context,
+            # 'dialogue_context': dialogue_context,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
@@ -198,11 +198,12 @@ class NPCUser(Base):
         # db中加载历史对话
         dialogue_context = []
         list_name = f'dialogue_{self.npc_id}_{self.user_id}'
+        print('list_name: ', list_name)
         dialogue_context_bytes_list = redis_client.get_all(list_name)
         print('dialogue_context_bytes_list: ', dialogue_context_bytes_list)
         for dialogue_context_byte in dialogue_context_bytes_list:
             # 这里将dialogue_context_byte转成dialogue
-            dialogue = json.loads(dialogue_context_byte)
+            dialogue = pickle.loads(dialogue_context_byte)
             dialogue_context.append(dialogue)
 
         affinity_level = AffinityLevel(
@@ -262,7 +263,7 @@ class NPCUser(Base):
     def re_init(self, client: RedisList)->None:
         self.affinity.set_score(0)
         self.event = None
-        self.dialogue_manager.clear(client)
+        self.dialogue_manager.clear(client, self.id)
 
     def set_dialogue_context(self, dialogue_context: List)->List:
         return self.dialogue_manager.set_contexts(dialogue_context)
@@ -344,12 +345,11 @@ class NPCUser(Base):
         if content_type == '':
             content_type = 'text'
         
-        npc_user_id = f'{self.id}_{player_id}'
-        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=npc_user_id, role_from=player_id, role_to=self.id, content=content, content_type=content_type)
+        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=self.id, role_from=player_id, role_to=self.id, content=content, content_type=content_type)
     
         response = self.character_model(messages=all_messages)
         content = response.content
-        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=npc_user_id, role_from=self.id, role_to=player_id, content=content, content_type=content_type)
+        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=self.id, role_from=self.id, role_to=player_id, content=content, content_type=content_type)
 
         return content
 
@@ -420,7 +420,7 @@ class NPCManager:
         new_npc_users = []
         for npc_user in npc_users:
             npc_user.init(self.redis_client)
-            new_npc_users.append(npc_user)
+            new_npc_users.append(npc_user.to_dict())
         return new_npc_users
 
     

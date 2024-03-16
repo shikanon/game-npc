@@ -1,5 +1,5 @@
 import redis
-import json
+import pickle
 # from urllib.parse import quote_plus
 
 class RedisList:
@@ -12,7 +12,9 @@ class RedisList:
         self.redis_client = redis.Redis(host=host, port=port, username=user, password=password, db=db)
 
     def push(self, name, value):
-        valuetes = json.dumps(value)
+        valuetes = pickle.dumps(value)
+        print('name: ', str(name))
+        print('valuetes: ', str(valuetes))
         return self.redis_client.lpush(name, valuetes)
 
     def pop(self, name):
