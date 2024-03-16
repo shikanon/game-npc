@@ -108,8 +108,8 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
     '''NPC聊天对话'''
     message, affinity_score = await asyncio.gather(
-        npc_user_instance.chat(client=redis_client, player_name=req.user_id, content=req.question, content_type=req.content_type),
-        npc_user_instance.update_affinity(client=mysql_client, player_name=req.user_id, content=req.question),
+        npc_user_instance.chat(client=redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),
+        npc_user_instance.update_affinity(client=mysql_client, player_id=req.user_id, content=req.question),
     )
     # thought = npc_user_instance.get_thought_context()
     data = {
@@ -155,7 +155,7 @@ async def get_history_dialogue(req: DefaultRequest):
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_instance == None:
         return response(code=400, message="NPC not found")
-    return response(data=npc_instance.get_dialogue_context())
+    return response(data= [dialogue.to_dict() for dialogue in npc_instance.get_dialogue_context()])
 
 @router.post("/npc/clear_history_dialogue")
 async def clear_history_dialogue(req: DefaultRequest):
@@ -264,9 +264,18 @@ async def query_user(req: UserQueryRequest):
     user = user_manager.get_user(filter_dict=filter_dict)
     return response(data=user.to_dict())
 
+class UserCreateRequest(BaseModel):
+    id: str
+    name: Optional[str] = ""
+    sex: Optional[str] = ""
+    phone: Optional[str] = ""
+    password: Optional[str] = ""
+
 @router.post("/user/update")
-async def update_user(req: UserCreateRequest):
-    user = user_manager.update_user(req.id, req.name, req.sex, req.phone, req.money)
+async def update_user(req: UserCreateRequest):        
+    user = user_manager.update_user(id=req.id, name=req.name, sex=req.sex, phone=req.phone, password=req.password)
+    if user == None:
+        return response(code=400, message=f'user {req.name} 不存在, 请先注册')
     return response(data=user.to_dict())
 
 @router.post("/file/upload")

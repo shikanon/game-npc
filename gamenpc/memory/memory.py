@@ -321,7 +321,7 @@ class DialogueMemory:
 
         dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         # 历史对话持久化到db中
-        redis_client.push(list_name, dialogue)
+        redis_client.push(list_name, dialogue.to_dict())
         self.dialogue_context.append(dialogue)
         self.dialogue_pair_count = self.dialogue_pair_count + 1
 

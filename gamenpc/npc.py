@@ -197,10 +197,12 @@ class NPCUser(Base):
             dialogue_round=6):
         # db中加载历史对话
         dialogue_context = []
-        list_name = f'dialogue_{self.id}'
+        list_name = f'dialogue_{self.npc_id}_{self.user_id}'
         dialogue_context_bytes_list = redis_client.get_all(list_name)
+        print('dialogue_context_bytes_list: ', dialogue_context_bytes_list)
         for dialogue_context_byte in dialogue_context_bytes_list:
-            dialogue = pickle.loads(dialogue_context_byte)
+            # 这里将dialogue_context_byte转成dialogue
+            dialogue = json.loads(dialogue_context_byte)
             dialogue_context.append(dialogue)
 
         affinity_level = AffinityLevel(
@@ -268,7 +270,7 @@ class NPCUser(Base):
     def get_dialogue_context(self)->List:
         return self.dialogue_manager.get_all_contexts()
     
-    async def update_affinity(self, client: MySQLDatabase, player_name:str, content:str)->int:
+    async def update_affinity(self, client: MySQLDatabase, player_id:str, content:str)->int:
         '''更新好感度'''
         history = self.dialogue_manager.get_recent_dialogue(round=2)
         if history:
@@ -276,8 +278,8 @@ class NPCUser(Base):
         else:
             history_dialogues = ""
         self.affinity.calculate_affinity(
-            npc=self.name, 
-            target=player_name,
+            npc=self.id, 
+            target=player_id,
             history_dialogues=history_dialogues,
             dialogue_content=content,
         )
@@ -318,7 +320,7 @@ class NPCUser(Base):
         else:
             return ""
 
-    async def chat(self, client: RedisList, player_name:str, content:str, content_type: str)->str:
+    async def chat(self, client: RedisList, player_id:str, content:str, content_type: str)->str:
         '''NPC对话'''
         self.system_prompt = self.render_role_template()
         all_messages = [
@@ -326,7 +328,7 @@ class NPCUser(Base):
         ]
         history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
         for dialog in history_dialogues:
-            if dialog.role_from == self.name:
+            if dialog.role_from == self.id:
                 all_messages.append(
                     AIMessage(content=dialog.content)
                 )
@@ -342,12 +344,12 @@ class NPCUser(Base):
         if content_type == '':
             content_type = 'text'
         
-        npc_user_id = f'{self.name}_{player_name}'
-        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=npc_user_id, role_from=player_name, role_to=self.name, content=content, content_type=content_type)
+        npc_user_id = f'{self.id}_{player_id}'
+        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=npc_user_id, role_from=player_id, role_to=self.id, content=content, content_type=content_type)
     
         response = self.character_model(messages=all_messages)
         content = response.content
-        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=npc_user_id, role_from=self.name, role_to=player_name, content=content, content_type=content_type)
+        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=npc_user_id, role_from=self.id, role_to=player_id, content=content, content_type=content_type)
 
         return content
 

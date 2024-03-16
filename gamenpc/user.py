@@ -106,14 +106,19 @@ class UserManager:
         user = self.client.insert_record(user)
         return user
     
-    def update_user(self, id, name, sex, phone, money, password) -> User:
-        # self._instances[user.id] = user
-        user.id = id
-        user.name = name
-        user.sex = sex
-        user.phone = phone
-        user.money = money
-        user.password = password
+    def update_user(self, id, name, sex, phone, password) -> User:
+        filter_dict = {'id': id}
+        user = self.client.select_record(User, filter_dict=filter_dict)
+        if user == None:
+            return None
+        if name != "":
+            user.name = name
+        if sex != "":  
+            user.sex = sex
+        if phone != "":
+            user.phone = phone
+        if password != "": 
+            user.password = password
         user = self.client.update_record(user)
         return user
     
