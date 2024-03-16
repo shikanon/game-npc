@@ -81,7 +81,6 @@ class ChatRequest(BaseModel):
     npc_name: NPC的名称
     question: 问题，文本格式
     '''
-    id: str
     user_id: str
     npc_id: str
     scene: str
@@ -127,7 +126,7 @@ class NpcUserQueryRequest(BaseModel):
     page: Optional[int] = 0
     limit: Optional[int] = 1
 
-@router.get("/npc/get_npc_users")
+@router.post("/npc/get_npc_users")
 async def get_npc_users(req: NpcUserQueryRequest):
     '''获取NPC信息'''
     filter_dict = {}
@@ -141,19 +140,28 @@ async def get_npc_users(req: NpcUserQueryRequest):
         npc_instances.append(npc_user.get_character_info())
     return response(data=npc_instances)
 
-@router.get("/npc/get_history_dialogue")
-async def get_history_dialogue(npc_id: str, user_id: str):
+class DefaultRequest(BaseModel):
+    '''
+    user_id: 用户 ID
+    npc_id: NPC ID
+    '''
+    user_id: str
+    npc_id: str
+
+@router.post("/npc/get_history_dialogue")
+async def get_history_dialogue(req: DefaultRequest):
+
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
+    npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     try:
         return response(data=npc_instance.get_dialogue_context())
     except KeyError:
         return response(code=400, message="NPC not found")
 
-@router.get("/npc/clear_history_dialogue")
-async def clear_history_dialogue(npc_id: str, user_id: str):
+@router.post("/npc/clear_history_dialogue")
+async def clear_history_dialogue(req: DefaultRequest):
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
+    npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     try:
         npc_instance.re_init(mysql_client)
         return response(message="记忆、好感重置成功!")
@@ -178,20 +186,13 @@ async def create_npc(req: NPCRequest):
     return response(data=npc.to_dict())
 
 class NpcQueryRequest(BaseModel):
-    id: Optional[str] = None
-    name: Optional[str] = None
     order_by: Optional[str] = {"id": False}
     page: Optional[int] = 1
     limit: Optional[int] = 10
 
 @router.post("/npc/query")
 async def query_npc(req: NpcQueryRequest):
-    filter_dict = {}
-    if req.id is not None:
-        filter_dict['id'] = req.id
-    if req.name is not None:
-        filter_dict['name'] = req.name
-    npcs = npc_manager.get_npcs(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
+    npcs = npc_manager.get_npcs(order_by=req.order_by, page=req.page, limit=req.limit)
     return response(data=json.dumps([npc.to_dict() for npc in npcs]))
 
 class ShiftSceneRequest(BaseModel):
@@ -212,18 +213,38 @@ class UserCreateRequest(BaseModel):
     name: str
     sex: Optional[str] = "未知"
     phone: Optional[str] = ""
-    money: Optional[int] = 0
     password: str
 
-@router.post("/user/create")
-async def create_user(req: UserCreateRequest):
+@router.post("/user/register")
+async def user_register(req: UserCreateRequest):
     if req.sex == "" or req.sex is None:
         req.sex = "未知"
-    user = user_manager.set_user(req.name, req.sex, req.phone, req.money, req.password)
+    filter_dict = {}
+    if req.name is not None:
+        filter_dict['name'] = req.name
+    user = user_manager.get_user(filter_dict=filter_dict)
+    if user != None:
+        return response(message='该用户名已注册')
+    user = user_manager.set_user(name=req.name, sex=req.sex, phone=req.phone, money=0, password=req.password)
     if user == None:
-        return response(message=f'user {req.name}, phone {req.phone} 已存在, 请勿重复创建')
+        return response(message=f'user {req.name} 注册失败')
     else:
         return response(data=user.to_dict())
+    
+@router.post("/user/login")
+async def user_login(req: UserCreateRequest):
+    if req.name is None or req.password is None:
+        return response(code=400, message=f'user name or password 不能为空')
+    filter_dict = {}
+    filter_dict['name'] = req.name
+    user = user_manager.get_user(filter_dict=filter_dict)
+    if user == None:
+        return response(code=400, message=f'user {req.name} 不存在, 请先注册')
+    
+    if user.password != req.password:
+        return response(code=400, message=f'user {req.name} 密码输入错误')
+    
+    return response(data=user.to_dict())
     
 class UserRemoveRequest(BaseModel):
     id: str

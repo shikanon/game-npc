@@ -7,7 +7,6 @@
 接口请求参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|------------------|
-| id      | str      | 是 | 无 | ID |
 | user_id | str      | 是 | 无 | 用户ID |
 | npc_id  | str      | 是 | 无 | NPC的ID |
 | scene   | str      | 是 | 无 | 场景 |
@@ -35,7 +34,7 @@ data的格式
 
 ### 获取NPC信息
 接口路径(URL)：/npc/get_npc_users
-请求方式：GET
+请求方式：POST
 
 请求参数 `NpcUserQueryRequest`：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
@@ -58,12 +57,13 @@ data的格式
 
 ### 获取NPC历史对话
 接口路径(URL)：/npc/get_history_dialogue
-请求方式：GET
+请求方式：POST
 
 请求参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------|
-| npc_user_id | str | 是 | 无 | NPC用户ID |
+| npc_id | str | 是 | 无 | NPCID |
+| user_id | str | 是 | 无 | 用户ID |
 
 接口响应数据：
 响应方法 `response(data=npc_instance.get_dialogue_context())`：
@@ -78,12 +78,13 @@ data的格式
 
 ### 重置NPC历史对话
 接口路径(URL)：/npc/clear_history_dialogue
-请求方式：GET
+请求方式：POST
 
 请求参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------|
-| npc_user_id | str | 是 | 无 | NPC用户ID |
+| npc_id | str | 是 | 无 | NPCID |
+| user_id | str | 是 | 无 | 用户ID |
 
 接口响应数据：
 响应方法 `response(message="记忆、好感重置成功!")`：
@@ -129,9 +130,6 @@ data的格式
 请求参数 `NpcQueryRequest`：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|-------------------------------------------------|
-| id | str | 否 | 无 | 要查询的NPC的ID |
-| name | str | 否 | 无 | 要查询的NPC的名字 |
-| order_by | dict | 否 | {"id": False} | 结果排序的字段和顺序 |
 | page | int | 否 | 1 | 请求的页数 |
 | limit | int | 否 | 10 | 每页返回结果的数量 |
 
@@ -153,7 +151,8 @@ data的格式
 请求参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------|
-| npc_user_id | str | 是 | 无 | NPC用户ID |
+| npc_id | str | 是 | 无 | NPCID |
+| user_id | str | 是 | 无 | 用户ID |
 | scene | str | 是 | 无 | 要切换的场景 |
 
 接口响应数据：
@@ -167,22 +166,44 @@ data的格式
 
 ---------------------------------------------------------------------------------------
 
-### 创建用户
-接口路径(URL)：/user/create
+### 用户注册
+接口路径(URL)：/user/register
 请求方式：POST
 
 请求参数 `UserCreateRequest`：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|---------------------------------|
-| name | str | 是 | 无 | 用户的名字 |
+| name | str | 是 | 是 | 用户的名字 |
 | sex | str | 是 | 无 | 用户的性别 |
 | phone | str | 是 | 无 | 用户的电话 |
-| money | int | 是 | 无 | 用户的货币或积分 |
-| password | str | 是 | 无 | 用户的密码 |
+| password | str | 是 | 是 | 用户的密码 |
 
 
 接口响应数据：
-响应方法 `response(data=user.to_dict())` 或 `response(message=f'user {req.name}, phone {req.phone} 已存在, 请勿重复创建')`
+响应方法 `response(message='该用户名已注册')` or `response(message=f'user {req.name} 注册失败')` or `response(data=user.to_dict())`
+返回参数：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|-------------------------------------|
+| code | int | 是 | 无 | 响应状态码，0表示执行成功 |
+| msg | str | 是 | 无 | 返回的消息说明，包括成功创建用户或用户已存在的提示 |
+| data | user | 否 | None | 返回的具体数据内容，是一个包含新创建用户所有信息的字典 |
+
+---------------------------------------------------------------------------------------
+
+### 用户登录
+接口路径(URL)：/user/login
+请求方式：POST
+
+请求参数 `UserCreateRequest`：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|---------------------------------|
+| name | str | 是 | 是 | 用户的名字 |
+| password | str | 是 | 是 | 用户的密码 |
+
+
+接口响应数据：
+响应方法 `response(code=400, message=f'user name or password 不能为空')` 或 `response(code=400, message=f'user {req.name} 不存在, 请先注册')`
+或者 `response(code=400, message=f'user {req.name} 密码输入错误')` 或者 `response(data=user.to_dict())`
 
 返回参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
@@ -290,16 +311,16 @@ class NPC(Base):
     __table_args__ = {'extend_existing': True}
 
     # 表的结构
-    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True) # NPC ID，uuid
-    name = Column(String(64)) # NPC名称
-    short_description = Column(String(255)) # 短描述，主要用于前端展示
-    trait = Column(Text) #  NPC特征，提示词内容
-    prompt_description = Column(Text) # 提示词描述，存储完整提示词模板
-    profile = Column(Text) # 头像图片路径
-    chat_background = Column(Text) # 聊天背景图片路径
-    affinity_level_description = Column(Text) # 亲密度等级行为倾向描述
-    knowledge_id = Column(String(255)) # 知识库的 index id
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now()) # 创建时间
+    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
+    name = Column(String(64))
+    short_description = Column(String(255))
+    trait = Column(Text)
+    prompt_description = Column(Text)
+    profile = Column(Text)
+    chat_background = Column(Text)
+    affinity_level_description = Column(Text)
+    knowledge_id = Column(String(255))
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     created_at = Column(DateTime, default=datetime.now())
 ```
 
@@ -366,29 +387,32 @@ class Scene(Base):
 |       id           |  String(255)  |  是    |uuid.uuid4| 是  |                           |        |                          |
 |      npc_id        |  String(255)  |  否    |  None   | 否   | ForeignKey('npc.id')  | NPC   | npc配置对象，外键      |
 |     user_id        |  String(255)  |  否    |  None   | 否   | ForeignKey('user.id') | User  | 用户对象，外键         |
+|      name         |  String(255)  |  否    |  None   | 否   |                           |         | 场景描述                  |
 |      scene         |  String(255)  |  否    |  None   | 否   |                           |         | 场景描述                  |
 |      score         |  Integer      |  否    |  None   | 否   |                           |         | 好感分数                 |
-| affinity_level     |  Integer      |  否    |  None   | 否   |                           |         | 亲密度等级             |
+|     trait   | Text           |  否    | None   | 否  |    |    | NPC特征，提示词内容 |
+| affinity_level     |  Text      |  否    |  None   | 否   |                           |         | 亲密度等级描述             |
 |   created_at       |    DateTime   |  否    | datetime.now| 否 |                           |         | 创建时间                 |
 
 ORM设计：
 ```python
 class NPCUser(Base):
-        # 表的名字
     __tablename__ = 'npc_user'
     __table_args__ = {'extend_existing': True}
 
     # 表的结构
-    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
+    id = Column(String(255), primary_key=True, unique=True)
     npc_id = Column(String(255), ForeignKey('npc.id'))  # npc配置对象，外键
     # 通过关系关联NPCConfig对象
     npc = relationship('NPC')
     user_id = Column(String(255), ForeignKey('user.id'))  # 用户对象，外键
     # 通过关系关联User对象
     user = relationship('User')
+    name = Column(String(255))  # NPC名称
     scene = Column(String(255))  # 场景描述
+    trait = Column(Text)  # 场景描述
     score = Column(Integer)  # 好感分数
-    affinity_level = Column(Integer)  # 亲密度等级
+    affinity_level = Column(Text)  # 亲密度等级
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
 ```
 

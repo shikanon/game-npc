@@ -98,26 +98,16 @@ class UserManager:
         return users
     
     def get_user(self, filter_dict=None) -> User:
-        users = self.client.select_records(User, filter_dict=filter_dict)
-        if len(users) == 0:
+        user = self.client.select_record(User, filter_dict=filter_dict)
+        if user == None:
             return None
-        print(users)
-        user = users[0]
         return user
     
     def set_user(self, name, sex, phone, money, password) -> User:
-        filter_dict = {'phone': phone}
-        print('phone: ', phone)
-        users = self.client.select_records(User, filter_dict=filter_dict)
-        print('users len: ', len(users))
-        if len(users) == 1:
-            return None
-        else:
-            # 创建新用户
-            user = User(name=name, sex=sex, phone=phone, money=money, password=password)
-            user = self.client.insert_record(user)
-            return user
-           
+        # 创建新用户
+        user = User(name=name, sex=sex, phone=phone, money=money, password=password)
+        user = self.client.insert_record(user)
+        return user
     
     def update_user(self, id, name, sex, phone, money, password) -> User:
         # self._instances[user.id] = user
