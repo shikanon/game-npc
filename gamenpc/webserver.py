@@ -153,20 +153,18 @@ async def get_history_dialogue(req: DefaultRequest):
 
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
-    try:
-        return response(data=npc_instance.get_dialogue_context())
-    except KeyError:
+    if npc_instance == None:
         return response(code=400, message="NPC not found")
+    return response(data=npc_instance.get_dialogue_context())
 
 @router.post("/npc/clear_history_dialogue")
 async def clear_history_dialogue(req: DefaultRequest):
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
-    try:
-        npc_instance.re_init(mysql_client)
-        return response(message="记忆、好感重置成功!")
-    except KeyError:
+    if npc_instance == None:
         return response(code=400, message="NPC not found")
+    npc_instance.re_init(mysql_client)
+    return response(message="记忆、好感重置成功!")
 
 class NPCRequest(BaseModel):
     name: str
@@ -193,7 +191,7 @@ class NpcQueryRequest(BaseModel):
 @router.post("/npc/query")
 async def query_npc(req: NpcQueryRequest):
     npcs = npc_manager.get_npcs(order_by=req.order_by, page=req.page, limit=req.limit)
-    return response(data=json.dumps([npc.to_dict() for npc in npcs]))
+    return response(data=[npc.to_dict() for npc in npcs])
 
 class ShiftSceneRequest(BaseModel):
     npc_id: str
@@ -256,20 +254,15 @@ async def remove_user(req: UserRemoveRequest):
 
 class UserQueryRequest(BaseModel):
     id: Optional[str] = None
-    name: Optional[str] = None
-    order_by: Optional[str] = {"id": False}
-    page: Optional[int] = 1
-    limit: Optional[int] = 10
 
 @router.post("/user/query")
 async def query_user(req: UserQueryRequest):
     filter_dict = {}
-    if req.id is not None:
-        filter_dict['id'] = req.id
-    if req.name is not None:
-        filter_dict['name'] = req.name
-    users = user_manager.get_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
-    return response(data=json.dumps([user.to_dict() for user in users]))
+    if req.id is None:
+        return response(code=400, message=f'id 不能为空')
+    filter_dict['id'] = req.id
+    user = user_manager.get_user(filter_dict=filter_dict)
+    return response(data=user.to_dict())
 
 @router.post("/user/update")
 async def update_user(req: UserCreateRequest):

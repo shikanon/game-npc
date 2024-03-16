@@ -44,13 +44,10 @@ class User(Base):
         }
     
     def get_npc_user(self, npc_id:str, user_id:str, scene:str)->NPCUser:
-        filter_dict = {"id": f'{npc_id}_{user_id}'}
-        npc_users = self.npc_manager.get_npc_users(filter_dict=filter_dict)
-        if npc_users == None or len(npc_users) == 0:
+        npc_user = self.npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
+        if npc_user == None:
             npc = self.npc_manager.get_npc(npc_id)
             npc_user = self.npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, trait=npc.trait, scene=scene)
-        else:
-            npc_user = npc_users[0]
         print('npc_user: ', npc_user.to_dict())
         return npc_user
     

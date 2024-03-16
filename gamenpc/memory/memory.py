@@ -312,15 +312,16 @@ class DialogueMemory:
             'dialogue_pair_count': self.dialogue_pair_count,
         }
     
-    def add_dialogue(self, redis_client: RedisList, role_from, role_to, content, content_type)->None:
+    def add_dialogue(self, redis_client: RedisList, npc_user_id, role_from, role_to, content, content_type)->None:
+        list_name = f'dialogue_{npc_user_id}'
         if len(self.dialogue_context) >= self.context_limit:
             # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
-            redis_client.pop("dialogue")
+            redis_client.pop(list_name)
             dialogue = self.dialogue_context.pop(0)
 
         dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         # 历史对话持久化到db中
-        redis_client.push("dialogue", dialogue)
+        redis_client.push(list_name, dialogue)
         self.dialogue_context.append(dialogue)
         self.dialogue_pair_count = self.dialogue_pair_count + 1
 

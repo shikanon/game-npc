@@ -5,7 +5,7 @@ author: shikanon
 create: 2024/1/21
 """
 import jinja2
-import json, uuid
+import json, uuid, pickle
 from typing import Dict, List
 from datetime import datetime
 from langchain.chat_models.base import BaseChatModel
@@ -196,7 +196,13 @@ class NPCUser(Base):
              dialogue_summarize_num=20,
             dialogue_round=6):
         # db中加载历史对话
-        dialogue_context = redis_client.get_all("dialogue")
+        dialogue_context = []
+        list_name = f'dialogue_{self.id}'
+        dialogue_context_bytes_list = redis_client.get_all(list_name)
+        for dialogue_context_byte in dialogue_context_bytes_list:
+            dialogue = pickle.loads(dialogue_context_byte)
+            dialogue_context.append(dialogue)
+
         affinity_level = AffinityLevel(
             acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
             familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
@@ -242,9 +248,11 @@ class NPCUser(Base):
     
     def set_scene(self, client: MySQLDatabase, scene:str):
         '''变更场景'''
+        filter_dict = {'id': f'{self.npc_id}_{self.user_id}'}
+        npc_user = client.select_record(NPCUser, filter_dict)
+        npc_user.scene = scene
         self.scene = scene
-        condition = f"id='{self.id}'"
-        client.update_record(NPCUser, self, condition)
+        client.update_record(npc_user)
     
     def get_scene(self):
         return self.scene
@@ -333,11 +341,13 @@ class NPCUser(Base):
 
         if content_type == '':
             content_type = 'text'
-        self.dialogue_manager.add_dialogue(redis_client=client, role_from=player_name, role_to=self.name, content=content, content_type=content_type)
+        
+        npc_user_id = f'{self.name}_{player_name}'
+        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=npc_user_id, role_from=player_name, role_to=self.name, content=content, content_type=content_type)
     
         response = self.character_model(messages=all_messages)
         content = response.content
-        self.dialogue_manager.add_dialogue(redis_client=client, role_from=self.name, role_to=player_name, content=content, content_type=content_type)
+        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=npc_user_id, role_from=self.name, role_to=player_name, content=content, content_type=content_type)
 
         return content
 
@@ -381,13 +391,11 @@ class NPCManager:
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
         npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
-        # npc = self._instance_configs.get(npc_id)
         return npcs
     
     def get_npc(self, npc_id) -> List[NPC]:
         filter_dict = {'id': npc_id}
         npcs = self.client.select_record(record_class=NPC, filter_dict=filter_dict)
-        # npc = self._instance_configs.get(npc_id)
         return npcs
     
     def set_npc(self, name: str, trait: str, short_description: str,
@@ -400,6 +408,8 @@ class NPCManager:
     def get_npc_user(self, npc_id: str, user_id: str) -> NPCUser:
         filter_dict = {'id': f'{npc_id}_{user_id}'}
         npc_user = self.client.select_record(record_class=NPCUser, filter_dict=filter_dict)
+        if npc_user == None:
+            return None
         npc_user.init(self.redis_client)
         return npc_user
 
