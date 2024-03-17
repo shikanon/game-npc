@@ -66,14 +66,13 @@ export default defineConfig({
   ],
   mock: false, // 禁用mock数据
   // publicPath: '/path/', // *** 普通环境项目部署到bsGW这种地址的时候，所有打包构建的资源要加一层path ***
-  // publicPath: '/abtestmanager-internal/', // *** 预发布环境项目部署到bsGW这种地址的时候，所有打包构建的资源要加一层path ***
   proxy: {
     // 开启本地代理功能
     '/local': {
       enable: true,
       changeOrigin: true,
       // eslint-disable-next-line @iceworks/best-practices/no-http-url
-      target: 'http://127.0.0.1:8000',
+      target: 'http://192.168.66.108:8888',
       pathRewrite: { '^/local': '/api' },
     },
     '/dev': {
@@ -87,7 +86,7 @@ export default defineConfig({
   routes: [
     {
       path: '/',
-      redirect: '/login',
+      redirect: '/character',
     },
     {
       name: '登录',
@@ -108,16 +107,6 @@ export default defineConfig({
       name: '对话',
       path: '/conversation',
       component: '@/pages/Conversation',
-    },
-    {
-      name: '聊天',
-      path: '/chat',
-      component: '@/pages/Chat',
-    },
-    {
-      name: 'NPC配置',
-      path: '/npc_config',
-      component: '@/pages/NPCConfig',
     },
     {
       name: ' 403',

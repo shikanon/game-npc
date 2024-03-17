@@ -41,7 +41,7 @@ class UserObject:
         self.money = money
         self.npc_manager = npc_manager
         self._npc = {}
-    
+
     def get_npc(self, npc_name:str)->NPC:
         return self.npc_manager.get_npc(npc_name=npc_name)
 
@@ -70,7 +70,7 @@ class ChatRequest(BaseModel):
 class NPCConfigRequest(BaseModel):
     npc_name: str
     trait: str
-    profile_url: str 
+    profile_url: str
 
 def get_npc(req:ChatRequest=Depends) -> NPC:
     try:
@@ -129,7 +129,7 @@ async def shift_scenes(npc_name:str, scene:str):
     '''切换场景'''
     npc_instance = npc_manager.get_npc(npc_name)
     if npc_instance is None:
-        return HTTPException(status_code=404, detail="Invaild value of npc_name, it not Exists")
+        return HTTPException(status_code=404, detail="Invaild question of npc_name, it not Exists")
     npc_instance.set_scene(scene=scene)
     return {"status": "success", "message": "场景转移成功!"}
 

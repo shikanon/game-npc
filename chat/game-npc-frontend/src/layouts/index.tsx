@@ -1,13 +1,12 @@
-import {} from '@/constants';
 import layoutConfig from '@/layouts/layoutConfig';
 // import logoImg from '@/assets/images/logo.png';
-import userImg from '@/assets/images/user.png';
-import shareImg from '@/assets/images/share.png';
 import feedbackImg from '@/assets/images/feedback.png';
+import shareImg from '@/assets/images/share.png';
+import userImg from '@/assets/images/user.png';
 import { ProLayout } from '@ant-design/pro-components';
-import { Outlet, useAccess, useLocation, useModel } from '@umijs/max';
+import { Outlet, history, useAccess, useLocation, useModel } from '@umijs/max';
 import { useMount } from 'ahooks';
-import { App, Col, Image, Modal, Row, Input } from 'antd';
+import { App, Button, Col, Image, Input, Modal, Popover, Row } from 'antd';
 import { useEffect, useState } from 'react';
 import styles from './index.less';
 
@@ -22,7 +21,7 @@ interface IFeedbackItemType {
 export default () => {
   // 初始化的状态数据
   const { initialState } = useModel('@@initialState');
-  const {} = useModel('global');
+  const { setUserInfo } = useModel('user');
 
   // 初始化的用户权限
   const access = useAccess();
@@ -41,8 +40,15 @@ export default () => {
   ]);
 
   useMount(() => {
-    console.log(initialState, 'initialState');
-    console.log(access, 'access');
+    // console.log(initialState, 'initialState');
+    // console.log(access, 'access');
+
+    if (initialState?.user?.userInfo) {
+      setUserInfo(initialState.user.userInfo);
+    } else {
+      // 去登录
+      history.push('/login');
+    }
   });
 
   useEffect(() => {
@@ -50,9 +56,7 @@ export default () => {
     setCurrentPath(pathname);
   }, [pathname]);
 
-  useEffect(() => {
-
-  }, []);
+  useEffect(() => {}, []);
 
   return (
     // 更多配置访问：https://procomponents.ant.design/components/layout#prolayout
@@ -107,13 +111,28 @@ export default () => {
                 style={{ cursor: 'pointer' }}
                 onClick={() => setModalOpen(true)}
               >
-                <Image src={feedbackImg} preview={false} width={32} />
+                <Popover
+                  content={'点进来，把你想要的都告诉我们'}
+                  title=""
+                  trigger="hover"
+                  placement={'bottomRight'}
+                >
+                  <Image src={feedbackImg} preview={false} width={32} />
+                </Popover>
               </Col>
               <Col style={{ margin: '0 30px' }}>
-                <Image src={shareImg} preview={false} width={32} />
+                <Popover content={'一键分享'} title="" trigger="hover">
+                  <Image src={shareImg} preview={false} width={32} />
+                </Popover>
               </Col>
               <Col>
-                <Image src={userImg} preview={false} width={32} />
+                <Popover
+                  content={<Button type={'text'}>退出登录</Button>}
+                  title=""
+                  trigger="hover"
+                >
+                  <Image src={userImg} preview={false} width={32} />
+                </Popover>
               </Col>
             </Row>
           </Col>
@@ -129,34 +148,48 @@ export default () => {
           okText={'提交'}
           width={600}
           onOk={() => setModalOpen(false)}
-          okButtonProps={{ style: { background: 'linear-gradient(to right, #526EF8, #8AB6E8, #C2FFD8)', border: 'none' } }}
+          okButtonProps={{
+            style: {
+              background:
+                'linear-gradient(to right, #526EF8, #8AB6E8, #C2FFD8)',
+              border: 'none',
+            },
+          }}
           onCancel={() => setModalOpen(false)}
         >
-          <Row style={{ marginTop: 30, marginBottom: 10 }} justify={'start'} align={'middle'}>
-            {
-              feedbackList.map((item, index) => {
-                return (
-                  <Col
-                    key={index}
-                    className={styles.feedbackItem}
-                    style={item.selected ? { backgroundColor: '#1677ff', color: '#fff' } : {}}
-                    onClick={() => {
-                      const list = [...feedbackList];
-                      list[index].selected = !list[index].selected;
-                      setFeedbackList(list);
-                    }}
-                  >
-                    {item.label}
-                  </Col>
-                );
-              })
-            }
+          <Row
+            style={{ marginTop: 30, marginBottom: 10 }}
+            justify={'start'}
+            align={'middle'}
+          >
+            {feedbackList.map((item, index) => {
+              return (
+                <Col
+                  key={index}
+                  className={styles.feedbackItem}
+                  style={
+                    item.selected
+                      ? { backgroundColor: '#1677ff', color: '#fff' }
+                      : {}
+                  }
+                  onClick={() => {
+                    const list = [...feedbackList];
+                    list[index].selected = !list[index].selected;
+                    setFeedbackList(list);
+                  }}
+                >
+                  {item.label}
+                </Col>
+              );
+            })}
           </Row>
 
           <Row>
             <TextArea
               style={{ width: '100%', height: 100, padding: 10 }}
-              placeholder={'你想要什么新体验？角色更丰富？聊天内容更劲爆？把你的想法告诉我们吧！'}
+              placeholder={
+                '你想要什么新体验？角色更丰富？聊天内容更劲爆？把你的想法告诉我们吧！'
+              }
             />
           </Row>
         </Modal>

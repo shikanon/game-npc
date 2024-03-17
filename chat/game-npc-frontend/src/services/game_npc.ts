@@ -1,7 +1,100 @@
+import {
+  IClearMyNPCMemoryRequest,
+  IClearMyNPCMemoryResponse,
+  ICreateNPCRequest,
+  ICreateNPCResponse,
+  IGameChatRequest,
+  IGameChatResponse,
+  IGetNPCAllInfoRequest,
+  IGetNPCAllInfoResponse,
+  IGetNPCChatHistoryRequest,
+  IGetNPCChatHistoryResponse,
+  IGetNPCListRequest,
+  IGetNPCListResponse,
+  IMyNPCSceneChangeRequest,
+  IMyNPCSceneChangeResponse,
+  INPCChatRequest,
+  INPCChatResponse,
+} from '@/interfaces/game_npc';
 import { request } from '@umijs/max';
-import { IGameChatRequest, IGameChatResponse, IGetNPCInfoRequest, IGetNPCInfoResponse } from "@/interfaces/game_npc";
 
 export default {
+  /**
+   * 查询NPC角色列表
+   */
+  async GetNPCList(data?: IGetNPCListRequest) {
+    return await request<IGetNPCListResponse>('/npc/query', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * 创建NPC
+   */
+  async CreateNPC(data?: ICreateNPCRequest) {
+    return await request<ICreateNPCResponse>('/npc/create', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * NPC文字聊天
+   */
+  async NPCChat(data?: INPCChatRequest) {
+    return await request<INPCChatResponse>('/npc/chat', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * 查看NPC全部信息
+   */
+  async GetNPCAllInfo(data?: IGetNPCAllInfoRequest) {
+    return await request<IGetNPCAllInfoResponse>('/npc/get_npc_all_info', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * 获取NPC聊天记录
+   */
+  async GetNPCChatHistory(data?: IGetNPCChatHistoryRequest) {
+    return await request<IGetNPCChatHistoryResponse>(
+      '/npc/get_history_dialogue',
+      {
+        method: 'POST',
+        data,
+      },
+    );
+  },
+
+  /**
+   * 清空我的NPC记忆
+   */
+  async ClearMyNPCMemory(data?: IClearMyNPCMemoryRequest) {
+    return await request<IClearMyNPCMemoryResponse>(
+      '/npc/clear_history_dialogue',
+      {
+        method: 'POST',
+        data,
+      },
+    );
+  },
+
+  /**
+   * 我的NPC场景切换
+   */
+  async MyNPCSceneSwitch(data?: IMyNPCSceneChangeRequest) {
+    return await request<IMyNPCSceneChangeResponse>('/npc/shift_scenes', {
+      method: 'POST',
+      data,
+    });
+  },
+
   /**
    * 游戏NPC聊天
    * @constructor
@@ -10,17 +103,6 @@ export default {
     return await request<IGameChatResponse>('/chat', {
       method: 'POST',
       data,
-    });
-  },
-
-  /**
-   * 获取NPC信息
-   * @constructor
-   */
-  async GetNPCInfo(params?: IGetNPCInfoRequest) {
-    return await request<IGetNPCInfoResponse>('/npc-info', {
-      method: 'GET',
-      params,
     });
   },
 };

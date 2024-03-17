@@ -1,17 +1,41 @@
 // 运行时配置
-import { ACCESS_TOKEN_KEY } from '@/constants';
+import { ACCESS_TOKEN_KEY, USER_ID_KEY } from '@/constants';
+import { IUserInfo } from '@/interfaces/user';
+import userService from '@/services/user';
 import { RequestConfig } from '@umijs/max';
-import { message } from 'antd';
 import humps from 'humps';
 
 console.log('环境：', process.env.UMI_ENV);
 
+interface IInitialState {
+  user: {
+    // 用户模型
+    userInfo: IUserInfo | null; // 用户信息
+  };
+}
+
 // 全局初始化数据配置，用于 Layout 用户信息和权限初始化
 // 更多信息见文档：https://umijs.org/docs/max/data-flow
-export async function getInitialState(): Promise<any> {
+export async function getInitialState(): Promise<IInitialState> {
+  const storageUserId = localStorage.getItem(USER_ID_KEY);
+  if (storageUserId) {
+    const userResult = await userService.UserQuery({
+      id: storageUserId || '',
+    });
+    console.log('用户信息：', userResult?.data);
+    if (userResult?.data?.id) {
+      window.localStorage.setItem(USER_ID_KEY, userResult.data.id);
+
+      return {
+        user: {
+          userInfo: userResult.data || null,
+        },
+      };
+    }
+  }
   return {
     user: {
-      userInfo: {},
+      userInfo: null,
     },
   };
 }
@@ -23,8 +47,7 @@ export const request: RequestConfig = {
   baseURL:
     {
       localhost: `/${process.env.UMI_ENV}`,
-      'game-npc.clarkchu.com':
-        'http://game-npc.clarkchu.com/api', // 云开发
+      'game-npc.clarkchu.com': 'http://game-npc.clarkchu.com/api', // 云开发
     }[window.location.hostname] || '/',
   timeout: 120000, // 超时设置
   withCredentials: true,

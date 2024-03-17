@@ -1,19 +1,44 @@
-import { useEffect } from 'react'
-import styles from './index.less';
+import chatTipsImg from '@/assets/images/chat_tips.png';
+import { INPCInfo } from '@/interfaces/game_npc';
+import gameNpcService from '@/services/game_npc';
+import { history } from '@umijs/max';
+import { useMount, useRequest } from 'ahooks';
+import { Col, Image, Row, Typography } from 'antd';
 import { useTheme } from 'antd-style';
-import { Card, Col, Row } from "antd";
-import claracterBg1 from '@/assets/images/character_bg_1.png';
-import claracterBg2 from '@/assets/images/character_bg_2.png';
-import claracterBg3 from '@/assets/images/character_bg_3.png';
+import { useEffect, useState } from 'react';
+import styles from './index.less';
 
-const { Meta } = Card;
+const { Paragraph } = Typography;
 
 const Character = () => {
   const theme = useTheme();
+  const [characterList, setCharacterList] = useState<INPCInfo[]>([]);
 
-  useEffect(() => {
+  // 获取NPC角色列表
+  const { loading: getNPCListLoading, runAsync: getNPCListRequest } =
+    useRequest(gameNpcService.GetNPCList, { manual: true });
 
-  }, [])
+  /**
+   * 获取NPC角色列表
+   */
+  const getNPCList = async () => {
+    const result = await getNPCListRequest({
+      page: 1,
+      limit: 10,
+    });
+    console.log('result', result);
+    if (result?.data?.length) {
+      setCharacterList(result.data);
+    } else {
+      setCharacterList([]);
+    }
+  };
+
+  useMount(() => {
+    getNPCList().then();
+  });
+
+  useEffect(() => {}, []);
 
   return (
     <div
@@ -22,41 +47,48 @@ const Character = () => {
       }}
       className={styles.container}
     >
-      <Row
-        justify={'center'}
-        className={styles.title}
-      >
-        来跟我聊天吧!
+      <Row justify={'center'} className={styles.title}>
+        <Image preview={false} src={chatTipsImg} height={50} />
       </Row>
 
-      <Row gutter={16} justify={'space-evenly'} style={{ marginTop: 30 }}>
-        <Col>
-          <Card
-            hoverable
-            style={{ width: 300 }}
-            cover={<img alt="example" src={claracterBg3} />}
-          >
-            <Meta title="萝莉" description="www.instagram.com" />
-          </Card>
-        </Col>
-        <Col>
-          <Card
-            hoverable
-            style={{ width: 300 }}
-            cover={<img alt="example" src={claracterBg1} />}
-          >
-            <Meta title="御姐" description="www.instagram.com" />
-          </Card>
-        </Col>
-        <Col>
-          <Card
-            hoverable
-            style={{ width: 300 }}
-            cover={<img alt="example" src={claracterBg2} />}
-          >
-            <Meta title="清纯" description="www.instagram.com" />
-          </Card>
-        </Col>
+      <Row justify={'space-between'} style={{ marginTop: 30 }}>
+        {characterList.map((item) => {
+          return (
+            <Col key={item.id} span={8}>
+              <Row justify={'center'}>
+                <div
+                  className={styles.characterItem}
+                  style={{
+                    backgroundImage: `url(${item.chatBackground})`,
+                  }}
+                  onClick={() => {
+                    history.push(`/conversation?characterId=${item.id}`);
+                  }}
+                >
+                  <Col className={styles.characterAttr}>
+                    <Row justify={'center'} className={styles.name}>
+                      {item?.name || '-'}
+                    </Row>
+                    <Row>
+                      <Paragraph
+                        ellipsis={{
+                          rows: 3,
+                          // expandable: true,
+                          // suffix: '更多',
+                          // symbol: <Text style={{ color: '#fff' }}>更多</Text>,
+                          tooltip: true,
+                        }}
+                        className={styles.desc}
+                      >
+                        {item?.shortDescription || '-'}
+                      </Paragraph>
+                    </Row>
+                  </Col>
+                </div>
+              </Row>
+            </Col>
+          );
+        })}
       </Row>
     </div>
   );
