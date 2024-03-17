@@ -45,10 +45,11 @@ class User(Base):
     
     def get_npc_user(self, npc_id:str, user_id:str, scene:str)->NPCUser:
         npc_user = self.npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
+        print('npc_user: ', npc_user)
         if npc_user == None:
             npc = self.npc_manager.get_npc(npc_id)
             npc_user = self.npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, trait=npc.trait, scene=scene)
-        print('npc_user: ', npc_user.to_dict())
+        print('new npc_user: ', npc_user.to_dict())
         return npc_user
     
 @dataclass

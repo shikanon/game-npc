@@ -139,6 +139,7 @@ class DialogueEntry(Base):
         self.role_to = role_to
         self.content = content  # 存储对话内容
         self.content_type = content_type
+        self.created_at = datetime.now()
 
     def to_dict(self):
         return {
@@ -312,17 +313,24 @@ class DialogueMemory:
             'dialogue_pair_count': self.dialogue_pair_count,
         }
     
-    def add_dialogue(self, redis_client: RedisList, npc_user_id, role_from, role_to, content, content_type)->None:
-        list_name = f'dialogue_{npc_user_id}'
-        print('list_name: ', list_name)
+    def check_dialogue(self)-> bool:
+        flag = False
         if len(self.dialogue_context) >= self.context_limit:
             # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
-            redis_client.pop(list_name)
             self.dialogue_context.pop(0)
+            flag = True
+        return flag
+    
+    def add_dialogue(self, role_from, role_to, content, content_type)->DialogueEntry:
+        # list_name = f'dialogue_{npc_user_id}'
+        # print('list_name: ', list_name)
+        # if len(self.dialogue_context) >= self.context_limit:
+        #     # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
+        #     redis_client.pop(list_name)
+        #     self.dialogue_context.pop(0)
 
         dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         # 历史对话持久化到db中
-        redis_client.push(list_name, dialogue)
         self.dialogue_context.append(dialogue)
         print('self.dialogue_context: ', [dialogue.to_dict() for dialogue in self.dialogue_context])
         self.dialogue_pair_count = self.dialogue_pair_count + 1
@@ -335,6 +343,8 @@ class DialogueMemory:
             asyncio.create_task(self.add_summary(recent_dialogues))
             # 重置对话长度
             self.dialogue_pair_count = 0
+
+        return dialogue
 
     def get_recent_dialogue(self, round=6)->List[DialogueEntry]:
         # 返回最新的上下文

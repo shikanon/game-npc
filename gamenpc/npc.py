@@ -159,7 +159,6 @@ class NPCUser(Base):
         )
     
     def to_dict(self):
-        # dialogue_context = self.dialogue_manager.get_all_contexts()
         return {
             'id': self.id,
             'name': self.name,
@@ -169,13 +168,11 @@ class NPCUser(Base):
             'scene': self.scene,
             'trait': self.trait,
             'affinity_level': self.affinity_level,
-            # 'dialogue_context': dialogue_context,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
 
     def get_character_info(self):
-        #  dialogue_context = self.dialogue_manager.get_all_contexts()
          return {
             'id': self.id,
             'name': self.name,
@@ -185,7 +182,6 @@ class NPCUser(Base):
             'scene': self.scene,
             'trait': self.trait,
             'affinity_level': self.affinity_level,
-            # 'dialogue_context': dialogue_context,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
@@ -205,6 +201,7 @@ class NPCUser(Base):
             # 这里将dialogue_context_byte转成dialogue
             dialogue = pickle.loads(dialogue_context_byte)
             dialogue_context.append(dialogue)
+        dialogue_context.reverse()
 
         affinity_level = AffinityLevel(
             acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
@@ -345,12 +342,20 @@ class NPCUser(Base):
         if content_type == '':
             content_type = 'text'
         
-        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=self.id, role_from=player_id, role_to=self.id, content=content, content_type=content_type)
+        list_name = f'dialogue_{self.id}'
+        print('list_name: ', list_name)
+        if self.dialogue_manager.check_dialogue():
+            client.pop(list_name)
+        call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.id, content=content, content_type=content_type)
     
         response = self.character_model(messages=all_messages)
         content = response.content
-        self.dialogue_manager.add_dialogue(redis_client=client, npc_user_id=self.id, role_from=self.id, role_to=player_id, content=content, content_type=content_type)
+        if self.dialogue_manager.check_dialogue():
+            client.pop(list_name)
+        back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.id, role_to=player_id, content=content, content_type=content_type)
 
+        client.push(list_name, call_dialogue)
+        client.push(list_name, back_dialogue)
         return content
 
 @dataclass
@@ -390,6 +395,14 @@ class NPCManager:
     def __init__(self, mysql_client: MySQLDatabase, redis_client: RedisList):
         self.client = mysql_client
         self.redis_client = redis_client
+        self._instances = {}        
+        
+        npc_users = self.client.select_all_records(record_class=NPCUser)
+        for npc_user in npc_users:
+            npc_user.init(self.redis_client)
+            self._instances[npc_user.id] = npc_user
+            print('self.npc_user: ', npc_user.to_dict())
+        print('self._instance: ', self._instances)
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
         npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
@@ -408,20 +421,28 @@ class NPCManager:
         return new_npc
     
     def get_npc_user(self, npc_id: str, user_id: str) -> NPCUser:
-        filter_dict = {'id': f'{npc_id}_{user_id}'}
-        npc_user = self.client.select_record(record_class=NPCUser, filter_dict=filter_dict)
-        if npc_user == None:
-            return None
-        npc_user.init(self.redis_client)
+        npc_user_id = f'{npc_id}_{user_id}'
+        npc_user = self._instances.get(npc_user_id, None)
         return npc_user
 
     def get_npc_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPCUser]:
-        npc_users = self.client.select_records(record_class=NPCUser, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
-        new_npc_users = []
-        for npc_user in npc_users:
-            npc_user.init(self.redis_client)
-            new_npc_users.append(npc_user.to_dict())
-        return new_npc_users
+        npc_users = self._instances.values()
+        npc_user_list = list(npc_users)
+
+        if filter_dict:
+            for attr, value in filter_dict.items():
+                npc_user_list = [npc_user for npc_user in npc_user_list if getattr(npc_user, attr) == value]
+
+        if order_by:
+            for attr, ascending in order_by.items():
+                npc_user_list.sort(key=lambda user: getattr(user, attr), reverse=not ascending)
+
+        start_index = (page - 1) * limit
+        end_index = start_index + limit
+        print(f"start_index: {start_index}, end_index: {end_index}")
+        new_npc_user_list = npc_user_list[start_index:end_index]
+        print('new_npc_user_list: ', new_npc_user_list)
+        return new_npc_user_list
 
     
     def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str) -> NPCUser:
@@ -436,5 +457,6 @@ class NPCManager:
         dialogue_context = []
         npc_user_id = f'{npc_id}_{user_id}'
         new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, trait=trait, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
-        new_npc_user = self.client.insert_record(new_npc_user)
+        self.client.insert_record(new_npc_user)
+        self._instances[npc_user_id] = new_npc_user
         return new_npc_user

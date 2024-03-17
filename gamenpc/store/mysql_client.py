@@ -78,3 +78,9 @@ class MySQLDatabase:
             query = query.limit(limit).offset((page-1)*limit)
         results = query.all()
         return results
+    
+    def select_all_records(self, record_class)->List:
+        session = self.session()
+        query = session.query(record_class)
+        results = query.all()
+        return results

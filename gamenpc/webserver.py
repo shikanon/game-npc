@@ -122,8 +122,8 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
 class NpcUserQueryRequest(BaseModel):
     npc_id: Optional[str] = ""
     user_id: Optional[str] = ""
-    order_by: Optional[str] = "desc"
-    page: Optional[int] = 0
+    order_by: Optional[str] = {"id": False}
+    page: Optional[int] = 1
     limit: Optional[int] = 10
 
 @router.post("/npc/get_npc_users")
@@ -132,6 +132,10 @@ async def get_npc_users(req: NpcUserQueryRequest):
     filter_dict = {}
     if req.npc_id != "" and req.user_id != "":
         filter_dict['id'] = f'{req.npc_id}_{req.user_id}'
+    if req.page <= 0:
+        req.page = 1
+    if req.limit <= 0:
+        req.limit = 10  
     npc_users = npc_manager.get_npc_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
     if npc_users == None:
         return response(code=-1, message="Invaild value of npc_id, it not Exists")
