@@ -158,7 +158,15 @@ class NPCUser(Base):
             top_k=1,
         )
     
-    def to_dict(self):
+    def to_dict(self, npc: NPC):
+        dialogue_context = self.get_dialogue_context()
+        dialogue_context_list = [dialogue.to_dict() for dialogue in dialogue_context]
+
+        short_description = npc.short_description
+        prompt_description = npc.prompt_description
+        profile = npc.profile
+        chat_background = npc.chat_background
+        affinity_level_description = npc.affinity_level_description
         return {
             'id': self.id,
             'name': self.name,
@@ -167,6 +175,12 @@ class NPCUser(Base):
             'score': self.score,
             'scene': self.scene,
             'trait': self.trait,
+            'short_description': short_description,
+            'prompt_description': prompt_description,
+            'profile': profile,
+            'chat_background': chat_background,
+            'affinity_level_description': affinity_level_description,
+            'dialogue_context': dialogue_context_list,
             'affinity_level': self.affinity_level,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
@@ -401,17 +415,16 @@ class NPCManager:
         for npc_user in npc_users:
             npc_user.init(self.redis_client)
             self._instances[npc_user.id] = npc_user
-            print('self.npc_user: ', npc_user.to_dict())
         print('self._instance: ', self._instances)
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
         npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         return npcs
     
-    def get_npc(self, npc_id) -> List[NPC]:
+    def get_npc(self, npc_id) -> NPC:
         filter_dict = {'id': npc_id}
-        npcs = self.client.select_record(record_class=NPC, filter_dict=filter_dict)
-        return npcs
+        npc = self.client.select_record(record_class=NPC, filter_dict=filter_dict)
+        return npc
     
     def set_npc(self, name: str, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:
@@ -443,6 +456,16 @@ class NPCManager:
         new_npc_user_list = npc_user_list[start_index:end_index]
         print('new_npc_user_list: ', new_npc_user_list)
         return new_npc_user_list
+    
+    def get_npc_all_info(self, npc_id: str, user_id: str) -> dict:
+        npc_user_id = f'{npc_id}_{user_id}'
+        npc_user = self._instances.get(npc_user_id, None)
+        if npc_user == None:
+            return None
+        npc = self.get_npc(npc_id)
+        if npc == 1:
+            return None
+        return npc_user.to_dict(npc)
 
     
     def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str) -> NPCUser:

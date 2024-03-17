@@ -39,7 +39,8 @@ data的格式
 请求参数 `NpcUserQueryRequest`：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|-------------------------------------------------|
-| id      | str      | 否 | "" | NPC的ID，不填写或者填写""表示查询所有NPC |
+| user_id | str      | 是 | 无 | 用户ID |
+| npc_id  | str      | 是 | 无 | NPC的ID |
 | order_by| str      | 否 | "desc" | 排序方式，desc表示降序，asc表示升序 |
 | page    | int      | 否 | 0 | 分页查询的页码，从0开始 |
 | limit   | int      | 否 | 1 | 每页的数量 |
@@ -51,8 +52,62 @@ data的格式
 |---------|----------|----------|--------|--------------------------------------------------|
 | code    | int  | 是 | 0 | 响应状态码，0表示执行成功，-1表示查询内容不存在 |
 | msg     | str  | 是 | "执行成功"或“Invaild value of npc_id, it not Exists” | 返回的消息说明 |
-| data    | []user  | 否 | None | 返回的具体数据内容，这里是NPC的详细信息 |
+| data    | []npc_user  | 否 | None | 返回的具体数据内容，这里是NPC的详细信息 |
 
+---------------------------------------------------------------------------------------
+
+### 获取NPC信息
+接口路径(URL)：/npc/get_npc_all_info
+请求方式：POST
+
+请求参数 `NpcUserAllInfoRequest`：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|-------------------------------------------------|
+| user_id | str      | 是 | 无 | 用户ID |
+| npc_id  | str      | 是 | 无 | NPC的ID |
+
+接口响应数据：
+响应方法 `response(data=npc_all_info)`：
+返回参数：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|--------------------------------------------------|
+| code    | int  | 是 | 0 | 响应状态码，0表示执行成功，-1表示查询内容不存在 |
+| msg     | str  | 是 | "执行成功"或“Invaild value of npc_id, it not Exists” | 返回的消息说明 |
+| data    | []info  | 否 | None | 返回的具体数据内容，这里是NPC的详细信息 |
+
+info的格式：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|--------------------------------------------------|
+| id    | int  | 是 | 0 |主键 |
+| npc_id     | str  | 是 | None | npc配置对象，外键 |
+| user_id    | str  | 否 | None | 用户对象，外键 |
+| name    | str  | 是 | 0 | None| npc名称 |
+| scene     | str  | 是 | None| 场景描述 |
+| score    | int  | 否 | None | 好感分数 |
+| trait    | istrnt  | 是 | 0 | NPC特征，提示词内容 |
+| affinity_level_description     | str  | 是 | None| 亲密度等级描述 |
+| short_description    | str  | 否 | None | 短描述 |
+| prompt_description    | str  | 是 | None | 泼墨体 |
+| profile     | str  | 是 | None| 头像 |
+| chat_background    | str  | 否 | None | 聊天背景图 |
+| dialogue_context    | []dialogue  | 否 | None | 聊天上下文 |
+
+ 'id': self.id,
+            'role_from': self.role_from,
+            'role_to': self.role_to,
+            'content': self.content,
+            'content_type': self.content_type,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
+
+dialogue的格式：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|--------------------------------------------------|
+| id    | str  | 是 | 0 |主键 |
+| role_from     | str  | 是 | None | 内容发出对象ID |
+| role_to    | str  | 否 | None | 内容发送对象ID |
+| content    | str  | 是 | 0 | None| 内容 |
+| content_type     | str  | 是 | None| 内容类型 |
+| created_at    | str  | 否 | None | 时间 |
 ---------------------------------------------------------------------------------------
 
 ### 获取NPC历史对话

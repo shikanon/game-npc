@@ -144,6 +144,18 @@ async def get_npc_users(req: NpcUserQueryRequest):
         npc_instances.append(npc_user.get_character_info())
     return response(data=npc_instances)
 
+class NpcUserAllInfoRequest(BaseModel):
+    npc_id: Optional[str] = ""
+    user_id: Optional[str] = ""
+
+@router.post("/npc/get_npc_all_info")
+async def get_npc_users(req: NpcUserAllInfoRequest):
+    '''获取NPC信息''' 
+    npc_all_info = npc_manager.get_npc_all_info(npc_id=req.npc_id, user_id=req.user_id)
+    if npc_all_info == None:
+        return response(code=-1, message="Invaild value of npc_id/user_id, it not Exists")
+    return response(data=npc_all_info)
+
 class DefaultRequest(BaseModel):
     '''
     user_id: 用户 ID
