@@ -23,7 +23,7 @@ interface IFeedbackItemType {
 export default () => {
   // 初始化的状态数据
   const { initialState } = useModel('@@initialState');
-  const { setUserInfo } = useModel('user');
+  const { userInfo, setUserInfo } = useModel('user');
   const { message } = App.useApp();
 
   const { pathname } = useLocation();
@@ -151,7 +151,7 @@ export default () => {
                         history.push('/login');
                       }}
                     >
-                      退出登录
+                      {userInfo?.id ? '退出登录' : '登录'}
                     </Button>
                   }
                   title=""
