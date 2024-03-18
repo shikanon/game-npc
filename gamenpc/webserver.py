@@ -179,7 +179,7 @@ async def clear_history_dialogue(req: DefaultRequest):
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_instance == None:
         return response(code=400, message="NPC not found")
-    npc_instance.re_init(redis_client)
+    npc_instance.re_init(client=redis_client, mysql_client=mysql_client)
     return response(message="记忆、好感重置成功!")
 
 class NPCRequest(BaseModel):
