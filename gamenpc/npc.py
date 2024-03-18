@@ -210,12 +210,15 @@ class NPCUser(Base):
         list_name = f'dialogue_{self.npc_id}_{self.user_id}'
         print('list_name: ', list_name)
         dialogue_context_bytes_list = redis_client.get_all(list_name)
-        print('dialogue_context_bytes_list: ', dialogue_context_bytes_list)
+        # print('dialogue_context_bytes_list: ', dialogue_context_bytes_list)
         for dialogue_context_byte in dialogue_context_bytes_list:
             # 这里将dialogue_context_byte转成dialogue
             dialogue = pickle.loads(dialogue_context_byte)
             dialogue_context.append(dialogue)
         dialogue_context.reverse()
+
+        data = [dialogue.to_dict() for dialogue in dialogue_context]
+        print('dialogue_context: ', data)
 
         affinity_level = AffinityLevel(
             acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
@@ -351,7 +354,7 @@ class NPCUser(Base):
         # 本次消息
         format_message = self.process_message(content)
         all_messages.append(HumanMessage(content=format_message))
-        print(all_messages)
+        # print(all_messages)
 
         if content_type == '':
             content_type = 'text'
@@ -359,15 +362,18 @@ class NPCUser(Base):
         list_name = f'dialogue_{self.id}'
         print('list_name: ', list_name)
         if self.dialogue_manager.check_dialogue():
-            client.pop(list_name)
+            dialogue_1 = client.pop(list_name)
+            print('dialogue_1: ', dialogue_1.to_dict())
         call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.id, content=content, content_type=content_type)
-    
+        print('call_dialogue: ', call_dialogue.to_dict())
+
         response = self.character_model(messages=all_messages)
         content = response.content
         if self.dialogue_manager.check_dialogue():
-            client.pop(list_name)
+            dialogue_2 = client.pop(list_name)
+            print('dialogue_2: ', dialogue_2.to_dict())
         back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.id, role_to=player_id, content=content, content_type=content_type)
-
+        print('back_dialogue: ', back_dialogue.to_dict())
         client.push(list_name, call_dialogue)
         client.push(list_name, back_dialogue)
         return content
@@ -452,9 +458,9 @@ class NPCManager:
 
         start_index = (page - 1) * limit
         end_index = start_index + limit
-        print(f"start_index: {start_index}, end_index: {end_index}")
+        # print(f"start_index: {start_index}, end_index: {end_index}")
         new_npc_user_list = npc_user_list[start_index:end_index]
-        print('new_npc_user_list: ', new_npc_user_list)
+        # print('new_npc_user_list: ', new_npc_user_list)
         return new_npc_user_list
     
     def get_npc_all_info(self, npc_id: str, user_id: str) -> dict:

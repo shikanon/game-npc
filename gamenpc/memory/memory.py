@@ -152,7 +152,7 @@ class DialogueEntry(Base):
         }
     
     def __str__(self) -> str:
-        return "%s: %s"%(self.role, self.content)
+        return "%s: %s"%(self.role_from, self.content)
 
 @dataclass
 class ConverationEntry:

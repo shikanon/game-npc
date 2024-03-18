@@ -14,8 +14,6 @@ class RedisList:
 
     def push(self, name, value):
         valuetes = pickle.dumps(value)
-        print('name: ', str(name))
-        print('valuetes: ', str(valuetes))
         return self.redis_client.lpush(name, valuetes)
 
     def pop(self, name):
