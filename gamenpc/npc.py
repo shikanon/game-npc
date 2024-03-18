@@ -83,8 +83,8 @@ class NPC(Base):
             'chat_background': self.chat_background,
             'affinity_level_description': self.affinity_level_description,
             'knowledge_id': self.knowledge_id,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
-            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
+            # 'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
         }
 
 @dataclass
@@ -158,15 +158,15 @@ class NPCUser(Base):
             top_k=1,
         )
     
-    def to_dict(self, npc: NPC):
+    def to_dict(self):
         dialogue_context = self.get_dialogue_context()
         dialogue_context_list = [dialogue.to_dict() for dialogue in dialogue_context]
 
-        short_description = npc.short_description
-        prompt_description = npc.prompt_description
-        profile = npc.profile
-        chat_background = npc.chat_background
-        affinity_level_description = npc.affinity_level_description
+        # short_description = npc.short_description
+        # prompt_description = npc.prompt_description
+        # profile = npc.profile
+        # chat_background = npc.chat_background
+        # affinity_level_description = npc.affinity_level_description
         return {
             'id': self.id,
             'name': self.name,
@@ -175,11 +175,11 @@ class NPCUser(Base):
             'score': self.score,
             'scene': self.scene,
             'trait': self.trait,
-            'short_description': short_description,
-            'prompt_description': prompt_description,
-            'profile': profile,
-            'chat_background': chat_background,
-            'affinity_level_description': affinity_level_description,
+            # 'short_description': short_description,
+            # 'prompt_description': prompt_description,
+            # 'profile': profile,
+            # 'chat_background': chat_background,
+            # 'affinity_level_description': affinity_level_description,
             'dialogue_context': dialogue_context_list,
             'affinity_level': self.affinity_level,
             'dialogue_round': self.dialogue_round,
@@ -460,12 +460,17 @@ class NPCManager:
     def get_npc_all_info(self, npc_id: str, user_id: str) -> dict:
         npc_user_id = f'{npc_id}_{user_id}'
         npc_user = self._instances.get(npc_user_id, None)
-        if npc_user == None:
-            return None
         npc = self.get_npc(npc_id)
-        if npc == 1:
-            return None
-        return npc_user.to_dict(npc)
+        if npc_user != None and npc != None:
+            dict_1 = npc.to_dict()
+            dict_2 = npc_user.to_dict()
+            merged_dict = {**dict_1, **dict_2}
+            return merged_dict
+        if npc_user == None and npc != None:
+            dict_1 = npc.to_dict()
+            dict_1['scene'] = "宅在家里"
+            return npc.to_dict()
+        return None
 
     
     def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str) -> NPCUser:

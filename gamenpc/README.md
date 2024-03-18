@@ -92,13 +92,6 @@ info的格式：
 | chat_background    | str  | 否 | None | 聊天背景图 |
 | dialogue_context    | []dialogue  | 否 | None | 聊天上下文 |
 
- 'id': self.id,
-            'role_from': self.role_from,
-            'role_to': self.role_to,
-            'content': self.content,
-            'content_type': self.content_type,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
-
 dialogue的格式：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------------------------------------------------|
