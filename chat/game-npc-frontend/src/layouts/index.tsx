@@ -3,10 +3,12 @@ import layoutConfig from '@/layouts/layoutConfig';
 import feedbackImg from '@/assets/images/feedback.png';
 import shareImg from '@/assets/images/share.png';
 import userImg from '@/assets/images/user.png';
+import { USER_ID_KEY } from '@/constants';
 import { ProLayout } from '@ant-design/pro-components';
-import { Outlet, history, useAccess, useLocation, useModel } from '@umijs/max';
+import { Outlet, history, useLocation, useModel } from '@umijs/max';
 import { useMount } from 'ahooks';
 import { App, Button, Col, Image, Input, Modal, Popover, Row } from 'antd';
+import copy from 'copy-to-clipboard';
 import { useEffect, useState } from 'react';
 import styles from './index.less';
 
@@ -22,9 +24,8 @@ export default () => {
   // 初始化的状态数据
   const { initialState } = useModel('@@initialState');
   const { setUserInfo } = useModel('user');
+  const { message } = App.useApp();
 
-  // 初始化的用户权限
-  const access = useAccess();
   const { pathname } = useLocation();
   // 动态path切换
   const [currentPath, setCurrentPath] = useState('/');
@@ -120,18 +121,48 @@ export default () => {
                   <Image src={feedbackImg} preview={false} width={32} />
                 </Popover>
               </Col>
-              <Col style={{ margin: '0 30px' }}>
-                <Popover content={'一键分享'} title="" trigger="hover">
+              <Col style={{ margin: '0 50px' }}>
+                <Popover
+                  content={
+                    <Button
+                      type={'text'}
+                      onClick={() => {
+                        copy(window.location.href);
+
+                        message.info('复制网址成功，快去分享给朋友吧！').then();
+                      }}
+                    >
+                      一键分享
+                    </Button>
+                  }
+                  title=""
+                  trigger="hover"
+                >
                   <Image src={shareImg} preview={false} width={32} />
                 </Popover>
               </Col>
               <Col>
                 <Popover
-                  content={<Button type={'text'}>退出登录</Button>}
+                  content={
+                    <Button
+                      type={'text'}
+                      onClick={() => {
+                        window.localStorage.removeItem(USER_ID_KEY);
+                        history.push('/login');
+                      }}
+                    >
+                      退出登录
+                    </Button>
+                  }
                   title=""
                   trigger="hover"
                 >
-                  <Image src={userImg} preview={false} width={32} />
+                  <Image
+                    src={userImg}
+                    preview={false}
+                    width={32}
+                    style={{ cursor: 'pointer' }}
+                  />
                 </Popover>
               </Col>
             </Row>

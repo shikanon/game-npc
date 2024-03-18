@@ -48,7 +48,12 @@ const Login = () => {
         <div
           style={
             selectedSex === '男'
-              ? { width: 240, height: 240, border: '3px solid #52c41a' }
+              ? {
+                  width: 240,
+                  height: 240,
+                  color: '#DD661B',
+                  border: '3px solid #DD661B',
+                }
               : {}
           }
           onClick={() => setSelectedSex('男')}
@@ -58,7 +63,12 @@ const Login = () => {
         <div
           style={
             selectedSex === '女'
-              ? { width: 240, height: 240, border: '3px solid #52c41a' }
+              ? {
+                  width: 240,
+                  height: 240,
+                  color: '#DD661B',
+                  border: '3px solid #DD661B',
+                }
               : {}
           }
           onClick={() => setSelectedSex('女')}

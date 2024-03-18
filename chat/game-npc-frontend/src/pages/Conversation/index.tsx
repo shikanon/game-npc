@@ -1,16 +1,13 @@
+import leaveImg from '@/assets/images/leave.png';
+import userImg from '@/assets/images/user.png';
 import LoadingDots from '@/components/LoadingDots';
 import { INPCAllInfo } from '@/interfaces/game_npc';
 import gameNpcService from '@/services/game_npc';
 import { getHashParams } from '@/utils';
-import {
-  ClearOutlined,
-  LeftOutlined,
-  SendOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { ClearOutlined, SendOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { useRequest } from 'ahooks';
-import { Avatar, Button, Col, Input, Row, Typography } from 'antd';
+import { App, Avatar, Button, Col, Image, Input, Row, Typography } from 'antd';
 import { useTheme } from 'antd-style';
 import { useEffect, useState } from 'react';
 import styles from './index.less';
@@ -27,6 +24,7 @@ interface IChatItem {
 
 const Conversation = () => {
   const theme = useTheme();
+  const { message } = App.useApp();
   const { userInfo } = useModel('user');
 
   const [npcAllInfo, setNpcAllInfo] = useState<INPCAllInfo | null>(null);
@@ -44,6 +42,10 @@ const Conversation = () => {
     gameNpcService.NPCChat,
     { manual: true },
   );
+
+  // 清除NPC聊天历史
+  const { loading: clearNPCHistoryLoading, runAsync: clearNPCHistoryRequest } =
+    useRequest(gameNpcService.ClearNPCHistory, { manual: true });
 
   /**
    * 滚动到底部
@@ -71,18 +73,21 @@ const Conversation = () => {
       setNpcAllInfo(result.data);
 
       if (result?.data?.dialogueContext?.length) {
-        const chatList =
+        const chatList: IChatItem[] =
           result?.data?.dialogueContext?.map((item) => {
             return {
-              from: item.roleTo.includes(result?.data?.npcId) ? 'user' : 'npc',
+              from: item?.roleTo?.includes(result?.data?.npcId)
+                ? 'user'
+                : 'npc',
               status: 'success',
-              content: item?.content || '',
+              content: item?.content || null,
               contentType: item?.contentType || null,
             };
           }) || [];
         console.log(chatList, '对话列表');
         setChatList(chatList);
 
+        // 滚动到底部
         scrollToBottom();
       }
     }
@@ -122,6 +127,22 @@ const Conversation = () => {
     }
   };
 
+  /**
+   * 清空NPC聊天记录
+   */
+  const clearNPCHistory = async () => {
+    const result = await clearNPCHistoryRequest({
+      userId: userInfo?.id || '',
+      npcId: getHashParams()?.characterId || '',
+    });
+
+    if (result?.code === 0) {
+      setChatList([]);
+    } else {
+      message.warning(result?.msg);
+    }
+  };
+
   useEffect(() => {
     if (userInfo) {
       getNPCAllInfo().then();
@@ -138,9 +159,11 @@ const Conversation = () => {
     >
       <div className={styles.left}>
         <Row>
-          <Button
-            shape={'circle'}
-            icon={<LeftOutlined style={{ color: '#595959' }} />}
+          <Image
+            src={leaveImg}
+            preview={false}
+            width={40}
+            style={{ cursor: 'pointer' }}
             onClick={() => {
               history.push('/character');
             }}
@@ -163,11 +186,7 @@ const Conversation = () => {
                     <Text className={styles.content}>{item.content}</Text>
                   </Col>
                   <Col>
-                    <Avatar
-                      style={{ backgroundColor: '#87d068' }}
-                      icon={<UserOutlined />}
-                      size={32}
-                    />
+                    <Avatar src={userImg} size={32} />
                   </Col>
                 </Row>
               );
@@ -202,10 +221,16 @@ const Conversation = () => {
             <Col className={styles.textArea}>
               <TextArea
                 placeholder={
-                  '相对我说什么，请告诉我～\n按"Enter"键发送，按"Shift+Enter"换行'
+                  '相对我说什么，请告诉我～ 😊'
+                  // 按"Enter"键发送，按"Shift+Enter"换行
                 }
                 value={question}
-                style={{ border: 'none' }}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  textAlign: 'center',
+                }}
                 autoFocus
                 tabIndex={0}
                 maxLength={500}
@@ -230,7 +255,9 @@ const Conversation = () => {
               <Button
                 type={'link'}
                 icon={<SendOutlined />}
-                style={{ color: '#F759AB' }}
+                style={
+                  question === '' ? { color: '#8c8c8c' } : { color: '#F759AB' }
+                }
                 disabled={npcChatLoading}
                 loading={npcChatLoading}
                 onClick={() => {
@@ -241,13 +268,19 @@ const Conversation = () => {
             </Col>
           </Row>
 
-          <Col className={styles.resetChat}>
+          <Col
+            className={styles.resetChat}
+            onClick={() => {
+              clearNPCHistory().then();
+            }}
+          >
             <Row justify={'center'}>
               <Button
                 size={'small'}
                 type={'link'}
                 style={{ color: '#fff' }}
                 icon={<ClearOutlined />}
+                loading={clearNPCHistoryLoading}
               />
             </Row>
             <Row justify={'center'} style={{ color: '#fff', fontSize: 12 }}>

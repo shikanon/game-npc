@@ -1,10 +1,8 @@
 import {
-  IClearMyNPCMemoryRequest,
-  IClearMyNPCMemoryResponse,
+  IClearNPCHistoryRequest,
+  IClearNPCHistoryResponse,
   ICreateNPCRequest,
   ICreateNPCResponse,
-  IGameChatRequest,
-  IGameChatResponse,
   IGetNPCAllInfoRequest,
   IGetNPCAllInfoResponse,
   IGetNPCChatHistoryRequest,
@@ -73,10 +71,10 @@ export default {
   },
 
   /**
-   * 清空我的NPC记忆
+   * 清空NPC聊天记录
    */
-  async ClearMyNPCMemory(data?: IClearMyNPCMemoryRequest) {
-    return await request<IClearMyNPCMemoryResponse>(
+  async ClearNPCHistory(data?: IClearNPCHistoryRequest) {
+    return await request<IClearNPCHistoryResponse>(
       '/npc/clear_history_dialogue',
       {
         method: 'POST',
@@ -90,17 +88,6 @@ export default {
    */
   async MyNPCSceneSwitch(data?: IMyNPCSceneChangeRequest) {
     return await request<IMyNPCSceneChangeResponse>('/npc/shift_scenes', {
-      method: 'POST',
-      data,
-    });
-  },
-
-  /**
-   * 游戏NPC聊天
-   * @constructor
-   */
-  async GameChat(data?: IGameChatRequest) {
-    return await request<IGameChatResponse>('/chat', {
       method: 'POST',
       data,
     });

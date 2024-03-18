@@ -35,18 +35,6 @@ export interface ICreateNPCResponse {
   name: string;
 }
 
-// 游戏NPC相关接口
-export interface IGameChatRequest {
-  question: string;
-  userName?: string;
-  npcName?: string;
-}
-export interface IGameChatResponse {
-  affinityScore?: number;
-  answer?: string;
-  thought?: string;
-}
-
 // NPC文字聊天
 export interface INPCChatRequest {
   userId: string;
@@ -115,13 +103,15 @@ export interface IGetNPCChatHistoryResponse {
   msg: string;
 }
 
-// 清空我的NPC记忆
-export interface IClearMyNPCMemoryRequest {
-  npcUserId: string;
+// 清空NPC历史对话
+export interface IClearNPCHistoryRequest {
   npcId: string;
+  userId: string;
 }
-export interface IClearMyNPCMemoryResponse {
-  name: string;
+export interface IClearNPCHistoryResponse {
+  code: number;
+  data: null;
+  msg: string;
 }
 
 // 我的NPC场景切换
