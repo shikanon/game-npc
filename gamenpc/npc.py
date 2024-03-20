@@ -55,6 +55,7 @@ class NPC(Base):
     profile = Column(Text)
     chat_background = Column(Text)
     affinity_level_description = Column(Text)
+    status = Column(Text)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     created_at = Column(DateTime, default=datetime.now())
@@ -432,6 +433,9 @@ class NPCManager:
         filter_dict = {'id': npc_id}
         npc = self.client.select_record(record_class=NPC, filter_dict=filter_dict)
         return npc
+    
+    def update_npc(self, npc: NPC)->NPC:
+        self.client.update_record(npc)
     
     def set_npc(self, name: str, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:

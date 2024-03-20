@@ -183,20 +183,45 @@ async def clear_history_dialogue(req: DefaultRequest):
     return response(message="记忆、好感重置成功!")
 
 class NPCRequest(BaseModel):
-    name: str
-    trait: str
+    id: Optional[str] = ""
+    name: Optional[str] = ""
+    trait: Optional[str] = ""
     short_description: Optional[str] = ""
-    prompt_description: str
-    profile: str
-    chat_background: str
-    affinity_level_description: str
+    prompt_description: Optional[str] = ""
+    profile: Optional[str] = ""
+    chat_background: Optional[str] = ""
+    affinity_level_description: Optional[str] = ""
+    status: Optional[str] = ""
 
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
-    '''设置NPC性格'''
     npc = npc_manager.set_npc(name=req.name, trait=req.trait, short_description=req.short_description,
                                prompt_description=req.prompt_description, profile=req.profile, 
                                chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
+    return response(data=npc.to_dict())
+
+@router.post("/npc/update")
+async def update_npc(req: NPCRequest):
+    npc = npc_manager.get_npc(npc_id=req.id)
+    if npc == None:
+        return response(code=400, message=f"npc for {req.id} 不存在")
+    if req.name != '':
+        npc.name = req.name
+    if req.trait != '':
+        npc.trait = req.trait
+    if req.short_description != '':
+        npc.short_description = req.short_description
+    if req.prompt_description != '':
+        npc.prompt_description = req.prompt_description
+    if req.profile != '':
+        npc.profile = req.profile
+    if req.chat_background != '':
+        npc.chat_background = req.chat_background
+    if req.affinity_level_description != '':
+        npc.affinity_level_description = req.affinity_level_description
+    if req.status != '':
+        npc.status = req.status
+    npc = npc_manager.update_npc(npc)
     return response(data=npc.to_dict())
 
 class NpcQueryRequest(BaseModel):
