@@ -200,14 +200,28 @@ async def create_npc(req: NPCRequest):
     return response(data=npc.to_dict())
 
 class NpcQueryRequest(BaseModel):
-    order_by: Optional[str] = {"id": False}
+    id: Optional[str] = ""
+    order_by: Optional[str] = {"name": False}
     page: Optional[int] = 1
     limit: Optional[int] = 10
 
 @router.post("/npc/query")
 async def query_npc(req: NpcQueryRequest):
-    npcs = npc_manager.get_npcs(order_by=req.order_by, page=req.page, limit=req.limit)
-    return response(data=[npc.to_dict() for npc in npcs])
+    filter_dict = {}
+    if req.name is not None:
+        filter_dict['id'] = req.id
+    npcs = npc_manager.get_npcs(filter_dict=filter_dict, order_by=req.order_by, page=req.page, limit=req.limit)
+    return response(data={'list': [npc.to_dict() for npc in npcs], 'total': len(npcs)})
+
+class NpcGetRequest(BaseModel):
+    id: Optional[str] = ""
+
+@router.post("/npc/get")
+async def query_npc(req: NpcQueryRequest):
+    if req.id is not None:
+        return 
+    npc = npc_manager.get_npc(npc_id=req.id)
+    return response(data=npc.to_dict())
 
 class ShiftSceneRequest(BaseModel):
     npc_id: str
@@ -310,7 +324,8 @@ async def upload_file(file: UploadFile = File(...)):
     # else:
     #     message = f"文件 '{file.filename}' 已经被保存到'{file_location}'，但没有上传到ObjectTypeStorage(OBS)。"
     message = f"文件 '{file.filename}' 已经被保存到 '{file_location}'"
-    return response(msg=message)
+    url = ''
+    return response(msg=message, data=url)
 
 if __name__ == "__main__":
     # 创建一个全局对象
