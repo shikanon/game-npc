@@ -435,7 +435,10 @@ class NPCManager:
         return npc
     
     def update_npc(self, npc: NPC)->NPC:
-        self.client.update_record(npc)
+        return self.client.update_record(npc)
+
+    def remove_npc(self, npc_id: str):
+        self.client.delete_record_by_id(npc_id)
     
     def set_npc(self, name: str, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:

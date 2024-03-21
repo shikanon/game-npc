@@ -59,22 +59,6 @@ redis_client = RedisList(host=redis_host, port=redis_port, user=redis_user, pass
 npc_manager = NPCManager(mysql_client, redis_client)
 user_manager = UserManager(mysql_client, npc_manager)
 
-# # 新增记录
-# npc = NPC(name="测试", short_description="测试", trait="测试", prompt_description="测试", profile="测试", chat_background="测试", 
-#                  affinity_level_description="测试", knowledge_id="测试", updated_at=datetime.datetime.now())
-# new_npc = db.insert_record(npc)
-
-# # 修改记录
-# new_npc.name = "hahaha"
-# new_npc = db.update_record(new_npc)
-
-# # 查询记录
-# npcs = db.select_records(NPC)
-# print('npc: ', npcs)
-
-# # 新增记录
-# db.delete_record_by_id(NPC, new_npc.id)
-
 class ChatRequest(BaseModel):
     '''
     user_name: 用户名称
@@ -200,6 +184,17 @@ async def create_npc(req: NPCRequest):
                                chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
     return response(data=npc.to_dict())
 
+class NPCRemoveRequest(BaseModel):
+    id: str
+
+@router.post("/npc/remove")
+async def remove_npc(req: NPCRemoveRequest):
+    npc = npc_manager.get_npc(npc_id=req.id)
+    if npc == None:
+        return response(code=400, message=f"npc for {req.id} 不存在")
+    npc_manager.remove_npc(npc)
+    return response(message=f'删除 npc {req.id} 成功')
+
 @router.post("/npc/update")
 async def update_npc(req: NPCRequest):
     npc = npc_manager.get_npc(npc_id=req.id)
@@ -219,6 +214,20 @@ async def update_npc(req: NPCRequest):
         npc.chat_background = req.chat_background
     if req.affinity_level_description != '':
         npc.affinity_level_description = req.affinity_level_description
+    if req.status != '':
+        npc.status = req.status
+    npc = npc_manager.update_npc(npc)
+    return response(data=npc.to_dict())
+
+class NPCUpdateStatusRequest(BaseModel):
+    id: Optional[str] = ""
+    status: Optional[str] = ""
+
+@router.post("/npc/update_status")
+async def update_npc_status(req: NPCUpdateStatusRequest):
+    npc = npc_manager.get_npc(npc_id=req.id)
+    if npc == None:
+        return response(code=400, message=f"npc for {req.id} 不存在")
     if req.status != '':
         npc.status = req.status
     npc = npc_manager.update_npc(npc)
@@ -308,6 +317,9 @@ class UserRemoveRequest(BaseModel):
 
 @router.post("/user/remove")
 async def remove_user(req: UserRemoveRequest):
+    user = user_manager.get_user(npc_id=req.id)
+    if user == None:
+        return response(code=400, message=f"user for {req.id} 不存在")
     user_manager.remove_user(user_id=req.id)
     return response(message=f'删除 user {req.id} 成功')
 
@@ -341,7 +353,7 @@ class UploadFileRequest(BaseModel):
     file: UploadFile = File(...)
     mage_type: int # Unknown = 0, // 未知 Avatar = 1, // 头像 ChatBackground = 2, // 聊天背景
 
-@router.post("/file/upload")
+@router.post("/npc/file_upload")
 # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
 async def upload_file(req: UploadFileRequest):
     file = req.file
