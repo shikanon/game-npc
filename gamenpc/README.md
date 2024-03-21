@@ -224,6 +224,7 @@ data的结构如下：
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
 | affinity_level_description | str | 是 | 无 | NPC的亲和级别描述 |
+| status    | int  | 否 | None | 发布状态，0: Unknown 未知, 1: Save 待发布, 2: Publish 已发布 |
 
 返回参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
@@ -278,7 +279,7 @@ data的结构如下：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|---------------------------------|
 | name | str | 是 | 是 | 用户的名字 |
-| sex | str | 是 | 无 | 用户的性别 |
+| sex | int | 是 | 无 | 用户的性别 |
 | phone | str | 是 | 无 | 用户的电话 |
 | password | str | 是 | 是 | 用户的密码 |
 
@@ -354,7 +355,7 @@ data的结构如下：
 |---------|----------|----------|--------|---------------------------------|
 | id | str | 是 | 是 | 用户的 ID |
 | name | str | 是 | 无 | 用户的名字 |
-| sex | str | 是 | 无 | 用户的性别 |
+| sex | int | 是 | 无 | 用户的性别 |
 | phone | str | 是 | 无 | 用户的电话 |
 | password | str | 是 | 无 | 用户密码 |
 
@@ -364,8 +365,6 @@ data的结构如下：
 | code | int | 是 | 无 | 响应状态码，0表示执行成功 |
 | msg | str | 是 | 无 | 返回的消息说明 |
 | data | user | 否 | None | 返回的具体数据内容，是一个包含用户所有信息的字典 |
-
-
 
 
 # 数据库表结构设计
@@ -385,7 +384,7 @@ data的结构如下：
 | chat_background| Text   |  否    | None   | 否  |    |    | 聊天背景图片路径 |
 | affinity_level_description| Text |  否 | None| 否 |  |  | 亲密度等级行为倾向描述 |
 | knowledge_id  | String(255)  |  否 | None | 否  |    |    | 知识库的 index id |
-| status  | String(255)  |  否 | None | 否  |    |    | 发布状态 |
+| status  | String(255)  |  否 | None | 否  |    |    | 发布状态，0: Unknown 未知, 1: Save 待发布, 2: Publish 已发布 |
 | updated_at | DateTime  |  否    |datetime.now| 否 |    |   | 更新时间 |
 | created_at | DateTime  |  否    |datetime.now| 否 |    |   | 创建时间 |
 
@@ -405,6 +404,7 @@ class NPC(Base):
     profile = Column(Text)
     chat_background = Column(Text)
     affinity_level_description = Column(Text)
+    status = Column(Integer)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     created_at = Column(DateTime, default=datetime.now())
@@ -416,7 +416,7 @@ class NPC(Base):
 |---------|----------------------|--------|--------|------|----|----|-----------|
 | id      | String(255)          |  是    |uuid.uuid4| 是  |    |    | 用户ID，自增id |
 | name    | String(64)           |  否    | None   | 否   |    |    | 用户名称  |
-| sex     | Enum("男", "女", "未知") |  否    | None   | 否   |    |    | 性别：男、女、未知 |
+| sex     | Integer              |  否    | None   | 否   |    |    | 性别：0: 未知, 1: 男, 2: 女 |
 | phone   | String(11)           |  否    | None   | 否   |    |    | 手机号   |
 | money   | Integer              |  否    | None   | 否   |    |    | 用户虚拟积分    |
 | password| String(11)           |  否    | None   | 否   |    |    | 用户密码  |
@@ -470,15 +470,15 @@ class Scene(Base):
 
 |      列名          |    数据类型    |  主键  | 默认值  | 唯一 |         外键          |  关系  |           描述           |
 |-------------------|---------------|--------|--------|------|-----------------------|-------|-------------------------|
-|       id           |  String(255)  |  是    |uuid.uuid4| 是  |                           |        |                          |
-|      npc_id        |  String(255)  |  否    |  None   | 否   | ForeignKey('npc.id')  | NPC   | npc配置对象，外键      |
-|     user_id        |  String(255)  |  否    |  None   | 否   | ForeignKey('user.id') | User  | 用户对象，外键         |
-|      name         |  String(255)  |  否    |  None   | 否   |                           |         | 场景描述                  |
-|      scene         |  String(255)  |  否    |  None   | 否   |                           |         | 场景描述                  |
-|      score         |  Integer      |  否    |  None   | 否   |                           |         | 好感分数                 |
-|     trait   | Text           |  否    | None   | 否  |    |    | NPC特征，提示词内容 |
-| affinity_level     |  Text      |  否    |  None   | 否   |                           |         | 亲密度等级描述             |
-|   created_at       |    DateTime   |  否    | datetime.now| 否 |                           |         | 创建时间                 |
+|       id           |  String(255) |  是    |uuid.uuid4| 是  |                       |         |                      |
+|      npc_id        |  String(255) |  否    |  None   | 否   | ForeignKey('npc.id')  | NPC     | npc配置对象，外键      |
+|     user_id        |  String(255) |  否    |  None   | 否   | ForeignKey('user.id') | User    | 用户对象，外键         |
+|      name          |  String(255) |  否    |  None   | 否   |                       |         | 场景描述              |
+|      scene         |  String(255) |  否    |  None   | 否   |                       |         | 场景描述              |
+|      score         |  Integer     |  否    |  None   | 否   |                       |         | 好感分数              |
+|     trait          |  Text        |  否    |  None   | 否   |                       |         | NPC特征，提示词内容 |
+| affinity_level     |  Text        |  否    |  None   | 否   |                       |         | 亲密度等级描述         |
+|   created_at       |  DateTime    |  否    | datetime.now| 否 |                     |         | 创建时间              |
 
 ORM设计：
 ```python

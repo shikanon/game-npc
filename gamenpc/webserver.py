@@ -235,6 +235,10 @@ async def query_npc(req: NpcQueryRequest):
     filter_dict = {}
     if req.name is not None:
         filter_dict['id'] = req.id
+    if req.page <= 0:
+        req.page = 1
+    if req.limit <= 0:
+        req.limit = 10 
     npcs = npc_manager.get_npcs(filter_dict=filter_dict, order_by=req.order_by, page=req.page, limit=req.limit)
     return response(data={'list': [npc.to_dict() for npc in npcs], 'total': len(npcs)})
 
@@ -333,9 +337,14 @@ async def update_user(req: UserCreateRequest):
         return response(code=400, message=f'user {req.name} 不存在, 请先注册')
     return response(data=user.to_dict())
 
+class UploadFileRequest(BaseModel):
+    file: UploadFile = File(...)
+    mage_type: int # Unknown = 0, // 未知 Avatar = 1, // 头像 ChatBackground = 2, // 聊天背景
+
 @router.post("/file/upload")
 # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(req: UploadFileRequest):
+    file = req.file
     file_location = f"{file_path}/{file.filename}"  
     # 使用 'wb' 模式以二进制写入文件
     with open(file_location, "wb") as f:
