@@ -133,7 +133,7 @@ class NpcUserAllInfoRequest(BaseModel):
     user_id: Optional[str] = ""
 
 @router.post("/npc/get_npc_all_info")
-async def get_npc_users(req: NpcUserAllInfoRequest):
+async def get_npc_all_info(req: NpcUserAllInfoRequest):
     '''获取NPC信息''' 
     npc_all_info = npc_manager.get_npc_all_info(npc_id=req.npc_id, user_id=req.user_id)
     if npc_all_info == None:
@@ -370,7 +370,7 @@ async def upload_file(req: UploadFileRequest):
     # else:
     #     message = f"文件 '{file.filename}' 已经被保存到'{file_location}'，但没有上传到ObjectTypeStorage(OBS)。"
     message = f"文件 '{file.filename}' 已经被保存到 '{file_location}'"
-    url = ''
+    url = 'test'
     return response(msg=message, data=url)
 
 if __name__ == "__main__":
