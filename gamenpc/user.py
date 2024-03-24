@@ -16,7 +16,7 @@ class User(Base):
     # 表的结构
     id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
     name = Column(String(64))
-    sex = Column(Enum("男", "女", "未知"))
+    sex = Column(Integer)
     phone = Column(String(11))
     money = Column(Integer)
     password = Column(String(11))
@@ -93,7 +93,8 @@ class UserManager:
         users = self.client.select_records(User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         return users
     
-    def get_user(self, filter_dict=None) -> User:
+    def get_user(self, user_id) -> User:
+        filter_dict = {'id': user_id}
         user = self.client.select_record(User, filter_dict=filter_dict)
         if user == None:
             return None

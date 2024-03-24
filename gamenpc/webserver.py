@@ -1,6 +1,6 @@
 # coding:utf-8
 import asyncio
-from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -173,9 +173,9 @@ class NPCRequest(BaseModel):
     short_description: Optional[str] = ""
     prompt_description: Optional[str] = ""
     profile: Optional[str] = ""
+    status: Optional[int] = -1
     chat_background: Optional[str] = ""
     affinity_level_description: Optional[str] = ""
-    status: Optional[str] = ""
 
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
@@ -192,7 +192,7 @@ async def remove_npc(req: NPCRemoveRequest):
     npc = npc_manager.get_npc(npc_id=req.id)
     if npc == None:
         return response(code=400, message=f"npc for {req.id} 不存在")
-    npc_manager.remove_npc(npc)
+    npc_manager.remove_npc(npc.id)
     return response(message=f'删除 npc {req.id} 成功')
 
 @router.post("/npc/update")
@@ -214,27 +214,27 @@ async def update_npc(req: NPCRequest):
         npc.chat_background = req.chat_background
     if req.affinity_level_description != '':
         npc.affinity_level_description = req.affinity_level_description
-    if req.status != '':
+    if req.status >= 0:
         npc.status = req.status
     npc = npc_manager.update_npc(npc)
     return response(data=npc.to_dict())
 
 class NPCUpdateStatusRequest(BaseModel):
     id: Optional[str] = ""
-    status: Optional[str] = ""
+    status: Optional[int] = -1
 
 @router.post("/npc/update_status")
 async def update_npc_status(req: NPCUpdateStatusRequest):
     npc = npc_manager.get_npc(npc_id=req.id)
     if npc == None:
         return response(code=400, message=f"npc for {req.id} 不存在")
-    if req.status != '':
+    if req.status != -1:
         npc.status = req.status
     npc = npc_manager.update_npc(npc)
     return response(data=npc.to_dict())
 
 class NpcQueryRequest(BaseModel):
-    id: Optional[str] = ""
+    name: Optional[str] = ""
     order_by: Optional[str] = {"name": False}
     page: Optional[int] = 1
     limit: Optional[int] = 10
@@ -243,7 +243,7 @@ class NpcQueryRequest(BaseModel):
 async def query_npc(req: NpcQueryRequest):
     filter_dict = {}
     if req.name is not None:
-        filter_dict['id'] = req.id
+        filter_dict['name'] = req.name
     if req.page <= 0:
         req.page = 1
     if req.limit <= 0:
@@ -255,8 +255,8 @@ class NpcGetRequest(BaseModel):
     id: Optional[str] = ""
 
 @router.post("/npc/get")
-async def query_npc(req: NpcQueryRequest):
-    if req.id is not None:
+async def query_npc(req: NpcGetRequest):
+    if req.id == "":
         return 
     npc = npc_manager.get_npc(npc_id=req.id)
     return response(data=npc.to_dict())
@@ -277,7 +277,7 @@ async def shift_scenes(req: ShiftSceneRequest):
 
 class UserCreateRequest(BaseModel):
     name: str
-    sex: Optional[str] = "未知"
+    sex: Optional[int] = 0
     phone: Optional[str] = ""
     password: str
 
@@ -317,7 +317,7 @@ class UserRemoveRequest(BaseModel):
 
 @router.post("/user/remove")
 async def remove_user(req: UserRemoveRequest):
-    user = user_manager.get_user(npc_id=req.id)
+    user = user_manager.get_user(user_id=req.id)
     if user == None:
         return response(code=400, message=f"user for {req.id} 不存在")
     user_manager.remove_user(user_id=req.id)
@@ -338,25 +338,26 @@ async def query_user(req: UserQueryRequest):
 class UserCreateRequest(BaseModel):
     id: str
     name: Optional[str] = ""
-    sex: Optional[str] = ""
+    sex: Optional[int] = -1
     phone: Optional[str] = ""
     password: Optional[str] = ""
 
 @router.post("/user/update")
-async def update_user(req: UserCreateRequest):        
+async def update_user(req: UserCreateRequest):  
+    if req.sex == -1:
+        req.sex = 0  
     user = user_manager.update_user(id=req.id, name=req.name, sex=req.sex, phone=req.phone, password=req.password)
     if user == None:
         return response(code=400, message=f'user {req.name} 不存在, 请先注册')
     return response(data=user.to_dict())
 
-class UploadFileRequest(BaseModel):
-    file: UploadFile = File(...)
-    mage_type: int # Unknown = 0, // 未知 Avatar = 1, // 头像 ChatBackground = 2, // 聊天背景
+
+# file: UploadFile = File(...)
+# image_type: int # Unknown = 0, // 未知 Avatar = 1, // 头像 ChatBackground = 2, // 聊天背景
 
 @router.post("/npc/file_upload")
 # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
-async def upload_file(req: UploadFileRequest):
-    file = req.file
+async def upload_file(image_type: int = Form(...), file: UploadFile = File(...)):
     file_location = f"{file_path}/{file.filename}"  
     # 使用 'wb' 模式以二进制写入文件
     with open(file_location, "wb") as f:
@@ -369,9 +370,10 @@ async def upload_file(req: UploadFileRequest):
     #     message = f"文件 '{file.filename}' 已经被保存到 '{file_location}' 和 ObjectTypeStorage(OBS)."
     # else:
     #     message = f"文件 '{file.filename}' 已经被保存到'{file_location}'，但没有上传到ObjectTypeStorage(OBS)。"
-    message = f"文件 '{file.filename}' 已经被保存到 '{file_location}'"
+    print('image_type: ', image_type)
+    message = f"文件 {file.filename} 已经被保存到 {file_location}"
     url = 'test'
-    return response(msg=message, data=url)
+    return response(message=message, data=url)
 
 if __name__ == "__main__":
     # 创建一个全局对象

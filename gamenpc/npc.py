@@ -55,7 +55,7 @@ class NPC(Base):
     profile = Column(Text)
     chat_background = Column(Text)
     affinity_level_description = Column(Text)
-    status = Column(Text)
+    status = Column(Integer)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     created_at = Column(DateTime, default=datetime.now())
@@ -68,6 +68,7 @@ class NPC(Base):
         self.trait = trait
         self.prompt_description = prompt_description
         self.profile = profile
+        self.status = 0
         self.chat_background = chat_background
         self.affinity_level_description = affinity_level_description
         self.knowledge_id = knowledge_id
@@ -81,6 +82,7 @@ class NPC(Base):
             'trait': self.trait,
             'prompt_description': self.prompt_description,
             'profile': self.profile,
+            'status': self.status,
             'chat_background': self.chat_background,
             'affinity_level_description': self.affinity_level_description,
             'knowledge_id': self.knowledge_id,
@@ -438,7 +440,7 @@ class NPCManager:
         return self.client.update_record(npc)
 
     def remove_npc(self, npc_id: str):
-        self.client.delete_record_by_id(npc_id)
+        self.client.delete_record_by_id(NPC, npc_id)
     
     def set_npc(self, name: str, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:
