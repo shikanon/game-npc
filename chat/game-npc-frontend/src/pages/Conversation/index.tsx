@@ -221,7 +221,7 @@ const Conversation = () => {
             <Col className={styles.textArea}>
               <TextArea
                 placeholder={
-                  '相对我说什么，请告诉我～ 😊'
+                  '想对我说什么，请告诉我～ 😊'
                   // 按"Enter"键发送，按"Shift+Enter"换行
                 }
                 value={question}
