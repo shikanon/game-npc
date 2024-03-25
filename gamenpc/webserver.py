@@ -242,7 +242,7 @@ class NpcQueryRequest(BaseModel):
 @router.post("/npc/query")
 async def query_npc(req: NpcQueryRequest):
     filter_dict = {}
-    if req.name is not None:
+    if req.name != "":
         filter_dict['name'] = req.name
     if req.page <= 0:
         req.page = 1
