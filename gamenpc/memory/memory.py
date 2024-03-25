@@ -340,6 +340,7 @@ class DialogueMemory:
             # 异步做总结可以不阻塞对话过程，保证延迟体验
             # 使用list重新生成一个新对象来防止dialogue_context的修改影响recent_dialogues
             recent_dialogues = list(self.dialogue_context[-self.summarize_limit:])
+            print('recent_dialogues list: ', [dialogue.to_dict() for dialogue in recent_dialogues])
             asyncio.create_task(self.add_summary(recent_dialogues))
             # 重置对话长度
             self.dialogue_pair_count = 0
@@ -361,7 +362,7 @@ class DialogueMemory:
     async def add_summary(self, dialogues: List[DialogueEntry]):
         # 异步函数，生成对话总结
         summary = await self.mind.summarize_dialogue2converation(dialogues)
-        print(summary)
+        print('summary: ', summary)
         self.conversation.append(summary)
     
     def get_recent_conversation(self, round=1)->List[ConverationEntry]:

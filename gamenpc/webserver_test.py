@@ -56,7 +56,7 @@ class TestAPI(unittest.TestCase):
     #     response = client.post(f"{base_url}/npc/get_npc_all_info", json=payload)
     #     assert response.status_code == 200 
     #     resp_data = response.json()
-    #     print('resp_data: --------------------------', resp_data)
+    #     print('resp_data: --------------------------', resp_data)c
     #     print('response.status_code: --------------------------', response.status_code)
     #     assert 'code' in resp_data
     #     assert resp_data['code'] == 0 
