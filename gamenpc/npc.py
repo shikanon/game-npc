@@ -51,6 +51,7 @@ class NPC(Base):
     name = Column(String(64))
     short_description = Column(String(255))
     trait = Column(Text)
+    sex = Column(Integer)  # NPC性别
     prompt_description = Column(Text)
     profile = Column(Text)
     chat_background = Column(Text)
@@ -66,6 +67,7 @@ class NPC(Base):
         self.name = name
         self.short_description = short_description
         self.trait = trait
+        self.sex = sex
         self.prompt_description = prompt_description
         self.profile = profile
         self.status = 0
@@ -80,6 +82,7 @@ class NPC(Base):
             'name': self.name,
             'short_description': self.short_description,
             'trait': self.trait,
+            'sex': self.sex,
             'prompt_description': self.prompt_description,
             'profile': self.profile,
             'status': self.status,
@@ -105,6 +108,7 @@ class NPCUser(Base):
     # 通过关系关联User对象
     user = relationship('User')
     name = Column(String(255))  # NPC名称
+    sex = Column(Integer)  # NPC性别
     scene = Column(String(255))  # 场景描述
     trait = Column(Text)  # 场景描述
     score = Column(Integer)  # 好感分数
@@ -120,6 +124,7 @@ class NPCUser(Base):
                  user_id=None,   
                  score=0,  
                  scene=None, 
+                 sex=0, 
                  trait=None, 
                  affinity_level="", 
                  dialogue_context=None,
@@ -133,6 +138,7 @@ class NPCUser(Base):
         self.npc_id = npc_id
         self.user_id = user_id
         self.score = score
+        self.sex = sex
         self.scene = scene
         self.trait = trait
         self.affinity = affinity
@@ -176,6 +182,7 @@ class NPCUser(Base):
             'npc_id': self.npc_id,
             'user_id': self.user_id,
             'score': self.score,
+            'sex': self.sex,
             'scene': self.scene,
             'trait': self.trait,
             # 'short_description': short_description,
@@ -196,6 +203,7 @@ class NPCUser(Base):
             'npc_id': self.npc_id,
             'user_id': self.user_id,
             'score': self.score,
+            'sex': self.sex,
             'scene': self.scene,
             'trait': self.trait,
             'affinity_level': self.affinity_level,
@@ -442,9 +450,9 @@ class NPCManager:
     def remove_npc(self, npc_id: str):
         self.client.delete_record_by_id(NPC, npc_id)
     
-    def set_npc(self, name: str, trait: str, short_description: str,
+    def set_npc(self, name: str, sex: int, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:
-        new_npc= NPC(name=name, trait=trait, short_description=short_description,
+        new_npc= NPC(name=name, sex=sex, trait=trait, short_description=short_description,
                                prompt_description=prompt_description, profile=profile, chat_background=chat_background, affinity_level_description=affinity_level_description)
         new_npc = self.client.insert_record(new_npc)
         return new_npc
@@ -489,7 +497,7 @@ class NPCManager:
         return None
 
     
-    def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str) -> NPCUser:
+    def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str, sex: int) -> NPCUser:
         affinity_level = AffinityLevel(
             acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
             familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
@@ -500,7 +508,7 @@ class NPCManager:
         affinity = AffinityManager(score=0, level=affinity_level)
         dialogue_context = []
         npc_user_id = f'{npc_id}_{user_id}'
-        new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, trait=trait, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
+        new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, sex=sex, trait=trait, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
         self.client.insert_record(new_npc_user)
         self._instances[npc_user_id] = new_npc_user
         return new_npc_user

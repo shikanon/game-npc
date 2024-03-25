@@ -47,7 +47,7 @@ class User(Base):
         npc_user = self.npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
         if npc_user == None:
             npc = self.npc_manager.get_npc(npc_id)
-            npc_user = self.npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, trait=npc.trait, scene=scene)
+            npc_user = self.npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, sex=npc.sex, trait=npc.trait, scene=scene)
         return npc_user
     
 @dataclass
