@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import os, uvicorn, json, uuid
+import os, uvicorn, json, uuid, mimetypes
 
 from gamenpc.utils import logger
 from gamenpc.npc import NPCUser, NPCManager
@@ -363,6 +363,8 @@ async def update_user(req: UserCreateRequest):
 # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
 async def upload_file(image_type: int = Form(...), file: UploadFile = File(...)):
     print('image_type: ', image_type)
+    if is_image_file(file.filename) == False:
+        return response(code=400, message='上传的文件非图片类型')
     if image_type == 0:
         return response(code=400, message='请输入image_type为非0')
     image_type_str = 'unknown'
@@ -375,7 +377,9 @@ async def upload_file(image_type: int = Form(...), file: UploadFile = File(...))
     if not os.path.exists(full_file_path):
       os.makedirs(full_file_path)
 
-    filename = uuid.uuid4()
+    _, extension = os.path.splitext(file.filename)
+    filename = f'{uuid.uuid4()}{extension}'
+    print('extension: ', extension)
     file_location = f"{full_file_path}/{filename}"  
     # 使用 'wb' 模式以二进制写入文件
     with open(file_location, "wb") as f:
@@ -383,8 +387,12 @@ async def upload_file(image_type: int = Form(...), file: UploadFile = File(...))
         content = await file.read()
         f.write(content)
     message = f"文件 {file.filename} 已经被保存到 {file_location}"
-    url = f'{base_file_url}/{filename}'
+    url = f'{base_file_url}/{image_type_str}/{filename}'
     return response(message=message, data=url)
+
+def is_image_file(filename):
+    mimetype, _ = mimetypes.guess_type(filename)
+    return mimetype and mimetype.startswith('image')
 
 if __name__ == "__main__":
     # 创建一个全局对象
