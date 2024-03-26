@@ -151,6 +151,7 @@ dialogue的格式：
 |---------|----------|----------|--------|-------------------------------------------------|
 | name | str | 是 | 无 | NPC的名字 |
 | trait | str | 是 | 无 | NPC的性格特点 |
+| sex | int | 是 | 无 | NPC的性别 |
 | short_description | str | 否 | "" | NPC的简短描述 |
 | prompt_description | str | 是 | 无 | NPC的提示描述 |
 | profile | str | 是 | 无 | NPC的个人资料 |
@@ -219,6 +220,7 @@ data的结构如下：
 |---------|----------|----------|--------|-------------------------------------------------|
 | name | str | 是 | 无 | NPC的名字 |
 | trait | str | 是 | 无 | NPC的性格特点 |
+| sex | int | 是 | 无 | NPC的性别 |
 | short_description | str | 否 | "" | NPC的简短描述 |
 | prompt_description | str | 是 | 无 | NPC的提示描述 |
 | profile | str | 是 | 无 | NPC的个人资料 |
@@ -416,6 +418,7 @@ data的结构如下：
 | name  | String(64)    |  否    | None   | 否  |    |    | NPC名称       |
 | short_description | String(255)| 否 | None | 否 |    |    | 短描述，主要用于前端展示 |
 | trait   | Text           |  否    | None   | 否  |    |    | NPC特征，提示词内容 |
+| sex   | Integer           |  否    | None   | 否  |    |    | NPC性别 |
 | prompt_description | Text  |  否    | None   | 否  |    |    | 提示词描述，存储完整提示词模板 |
 | profile  | Text           |  否    | None   | 否  |    |    | 头像图片路径 |
 | chat_background| Text   |  否    | None   | 否  |    |    | 聊天背景图片路径 |
@@ -437,6 +440,7 @@ class NPC(Base):
     name = Column(String(64))
     short_description = Column(String(255))
     trait = Column(Text)
+    sex = Column(Integer)
     prompt_description = Column(Text)
     profile = Column(Text)
     chat_background = Column(Text)
