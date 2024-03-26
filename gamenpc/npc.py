@@ -61,7 +61,7 @@ class NPC(Base):
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     created_at = Column(DateTime, default=datetime.now())
 
-    def __init__(self, id=None, name=None, short_description=None, trait=None, prompt_description=None, profile=None, chat_background=None, 
+    def __init__(self, id=None, name=None, short_description=None, trait=None, sex=None, prompt_description=None, profile=None, chat_background=None, 
                  affinity_level_description=None, knowledge_id=None, updated_at=None):
         self.id = id
         self.name = name
