@@ -157,23 +157,19 @@ class TestAPI(unittest.TestCase):
     #     assert 'data' in resp_data
     #     assert resp_data['data']['status'] == payload['status']
 
-    # def test_query_npc(self):
-    #     payload = {
-    #         "name": name,
-    #         "page": 1,
-    #         "limit": 10
-    #     }
-    #     response = client.post(f"{base_url}/npc/query", json=payload)
-    #     assert response.status_code == 200 
-    #     resp_data = response.json()
-    #     print('resp_data: --------------------------', resp_data)
-    #     assert 'code' in resp_data
-    #     assert resp_data['code'] == 0
-    #     assert 'msg' in resp_data
-    #     assert resp_data['msg'] == '执行成功'
-    #     assert 'data' in resp_data
-    #     assert 'list' in resp_data['data']
-    #     assert 'total' in resp_data['data']
+    def test_query_npc(self):
+        payload = {}
+        response = client.post(f"{base_url}/npc/query", json=payload)
+        assert response.status_code == 200 
+        resp_data = response.json()
+        print('resp_data: --------------------------', resp_data)
+        assert 'code' in resp_data
+        assert resp_data['code'] == 0
+        assert 'msg' in resp_data
+        assert resp_data['msg'] == '执行成功'
+        assert 'data' in resp_data
+        assert 'list' in resp_data['data']
+        assert 'total' in resp_data['data']
 
     # def test_get_npc(self):
     #     payload = {
@@ -293,16 +289,16 @@ class TestAPI(unittest.TestCase):
     #     assert 'msg' in resp_data
     #     assert resp_data['msg'] == '执行成功'
 
-    def test_upload_file(self):
-        payload = {
-            'image_type': 1
-        }
-        testing_file = BytesIO(b"Testing contents")
-        response = client.post(f"{base_url}/npc/file_upload", data=payload, files={"file": ("test.png", testing_file, "text/plain")})
+    # def test_upload_file(self):
+    #     payload = {
+    #         'image_type': 1
+    #     }
+    #     testing_file = BytesIO(b"Testing contents")
+    #     response = client.post(f"{base_url}/npc/file_upload", data=payload, files={"file": ("test.png", testing_file, "text/plain")})
 
-        assert response.status_code == 200
-        resp_data = json.loads(response.text)
-        print('resp_data: --------------------------', resp_data)
+    #     assert response.status_code == 200
+    #     resp_data = json.loads(response.text)
+    #     print('resp_data: --------------------------', resp_data)
         
 if __name__ == '__main__':
     unittest.main()

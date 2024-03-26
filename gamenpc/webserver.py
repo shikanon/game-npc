@@ -239,7 +239,7 @@ async def update_npc_status(req: NPCUpdateStatusRequest):
 
 class NpcQueryRequest(BaseModel):
     name: Optional[str] = ""
-    order_by: Optional[str] = {"name": False}
+    order_by: Optional[str] = {"updated_at": False}
     page: Optional[int] = 1
     limit: Optional[int] = 10
 
