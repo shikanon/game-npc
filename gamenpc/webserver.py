@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import os, uvicorn, json
+import os, uvicorn, json, uuid
 
 from gamenpc.utils import logger
 from gamenpc.npc import NPCUser, NPCManager
@@ -361,21 +361,16 @@ async def update_user(req: UserCreateRequest):
 @router.post("/npc/file_upload")
 # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
 async def upload_file(image_type: int = Form(...), file: UploadFile = File(...)):
-    file_location = f"{file_path}/{file.filename}"  
+    filename = uuid.uuid4()
+    file_location = f"{file_path}/{filename}"  
     # 使用 'wb' 模式以二进制写入文件
     with open(file_location, "wb") as f:
         # 读取上传的文件数据
         content = await file.read()
         f.write(content)
-    # # 上传文件到OBS
-    # obs_response = obs_client.putFile(bucket_name, file.filename, file_location)
-    # if obs_response.status < 300:
-    #     message = f"文件 '{file.filename}' 已经被保存到 '{file_location}' 和 ObjectTypeStorage(OBS)."
-    # else:
-    #     message = f"文件 '{file.filename}' 已经被保存到'{file_location}'，但没有上传到ObjectTypeStorage(OBS)。"
     print('image_type: ', image_type)
     message = f"文件 {file.filename} 已经被保存到 {file_location}"
-    url = 'test'
+    url = f'http://game-npc.clarkchu.com/images/{filename}'
     return response(message=message, data=url)
 
 if __name__ == "__main__":

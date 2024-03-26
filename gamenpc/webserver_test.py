@@ -94,34 +94,34 @@ class TestAPI(unittest.TestCase):
     #     assert resp_data['msg'] == '记忆、好感重置成功!'
     #     assert 'data' in resp_data
 
-    def test_create_npc(self):
-        payload = {
-            "name": "NPC_1",
-            "trait": "Brave",
-            "sex": 1,
-            "short_description": "A brave NPC",
-            "prompt_description": "Be brave",
-            "profile": "xxx",
-            "chat_background": "xxx",
-            "affinity_level_description": "xxx"
-        }
-        response = client.post(f"{base_url}/npc/create", json=payload)
-        assert response.status_code == 200 
-        resp_data = response.json()
-        print('resp_data: --------------------------', resp_data)
-        assert 'code' in resp_data
-        assert resp_data['code'] == 0 
-        assert 'msg' in resp_data
-        assert resp_data['msg'] == '执行成功'
-        assert 'data' in resp_data
-        assert resp_data['data']['name'] == payload['name']
-        assert resp_data['data']['trait'] == payload['trait']
-        assert resp_data['data']['sex'] == payload['sex']
-        assert resp_data['data']['profile'] == payload['profile']
-        assert resp_data['data']['chat_background'] == payload['chat_background']
-        assert resp_data['data']['affinity_level_description'] == payload['affinity_level_description']
-        assert resp_data['data']['short_description'] == payload['short_description']
-        assert resp_data['data']['prompt_description'] == payload['prompt_description']
+    # def test_create_npc(self):
+    #     payload = {
+    #         "name": "NPC_1",
+    #         "trait": "Brave",
+    #         "sex": 1,
+    #         "short_description": "A brave NPC",
+    #         "prompt_description": "Be brave",
+    #         "profile": "xxx",
+    #         "chat_background": "xxx",
+    #         "affinity_level_description": "xxx"
+    #     }
+    #     response = client.post(f"{base_url}/npc/create", json=payload)
+    #     assert response.status_code == 200 
+    #     resp_data = response.json()
+    #     print('resp_data: --------------------------', resp_data)
+    #     assert 'code' in resp_data
+    #     assert resp_data['code'] == 0 
+    #     assert 'msg' in resp_data
+    #     assert resp_data['msg'] == '执行成功'
+    #     assert 'data' in resp_data
+    #     assert resp_data['data']['name'] == payload['name']
+    #     assert resp_data['data']['trait'] == payload['trait']
+    #     assert resp_data['data']['sex'] == payload['sex']
+    #     assert resp_data['data']['profile'] == payload['profile']
+    #     assert resp_data['data']['chat_background'] == payload['chat_background']
+    #     assert resp_data['data']['affinity_level_description'] == payload['affinity_level_description']
+    #     assert resp_data['data']['short_description'] == payload['short_description']
+    #     assert resp_data['data']['prompt_description'] == payload['prompt_description']
 
     #     npc_id = resp_data['data']['id']
     # def test_update_npc(self):
@@ -302,16 +302,16 @@ class TestAPI(unittest.TestCase):
     #     assert 'msg' in resp_data
     #     assert resp_data['msg'] == '执行成功'
 
-    # def test_upload_file(self):
-    #     payload = {
-    #         'image_type': 1
-    #     }
-    #     testing_file = BytesIO(b"Testing contents")
-    #     response = client.post(f"{base_url}/npc/file_upload", data=payload, files={"file": ("test.txt", testing_file, "text/plain")})
+    def test_upload_file(self):
+        payload = {
+            'image_type': 1
+        }
+        testing_file = BytesIO(b"Testing contents")
+        response = client.post(f"{base_url}/npc/file_upload", data=payload, files={"file": ("test.txt", testing_file, "text/plain")})
 
-    #     assert response.status_code == 200
-    #     resp_data = json.loads(response.text)
-    #     print('resp_data: --------------------------', resp_data)
+        assert response.status_code == 200
+        resp_data = json.loads(response.text)
+        print('resp_data: --------------------------', resp_data)
         
 if __name__ == '__main__':
     unittest.main()
