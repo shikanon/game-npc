@@ -184,7 +184,7 @@ async def create_npc(req: NPCRequest):
     npc = npc_manager.set_npc(name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
                                prompt_description=req.prompt_description, profile=req.profile, 
                                chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
-    return response(data=npc.to_dict())
+    return response(data=npc.id)
 
 class NPCRemoveRequest(BaseModel):
     id: str
