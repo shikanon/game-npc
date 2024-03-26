@@ -332,11 +332,9 @@ class UserQueryRequest(BaseModel):
 
 @router.post("/user/query")
 async def query_user(req: UserQueryRequest):
-    filter_dict = {}
     if req.id is None:
         return response(code=400, message=f'id 不能为空')
-    filter_dict['id'] = req.id
-    user = user_manager.get_user(filter_dict=filter_dict)
+    user = user_manager.get_user(user_id=req.id)
     return response(data=user.to_dict())
 
 class UserCreateRequest(BaseModel):
