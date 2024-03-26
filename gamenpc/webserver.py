@@ -40,6 +40,7 @@ default_npc_name = "西门牛牛"
 # default_npc = npc_manager.create_npc(db, "西门牛牛", trait)
 
 file_path = os.environ.get('FILE_PATH')
+base_file_url = os.environ.get('BASE_FILE_URL')
 
 # 加载环境变量并获取 MySQL 相关配置
 mysql_host = os.environ.get('MYSQL_HOST')
@@ -361,16 +362,28 @@ async def update_user(req: UserCreateRequest):
 @router.post("/npc/file_upload")
 # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
 async def upload_file(image_type: int = Form(...), file: UploadFile = File(...)):
+    print('image_type: ', image_type)
+    if image_type == 0:
+        return response(code=400, message='请输入image_type为非0')
+    image_type_str = 'unknown'
+    if image_type == 1:
+        image_type_str = 'avatar'
+    elif image_type == 2:
+        image_type_str = 'bg'
+
+    full_file_path = f'{file_path}/{image_type_str}'
+    if not os.path.exists(full_file_path):
+      os.makedirs(full_file_path)
+
     filename = uuid.uuid4()
-    file_location = f"{file_path}/{filename}"  
+    file_location = f"{full_file_path}/{filename}"  
     # 使用 'wb' 模式以二进制写入文件
     with open(file_location, "wb") as f:
         # 读取上传的文件数据
         content = await file.read()
         f.write(content)
-    print('image_type: ', image_type)
     message = f"文件 {file.filename} 已经被保存到 {file_location}"
-    url = f'http://game-npc.clarkchu.com/images/{filename}'
+    url = f'{base_file_url}/{filename}'
     return response(message=message, data=url)
 
 if __name__ == "__main__":
