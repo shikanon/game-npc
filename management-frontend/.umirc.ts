@@ -64,7 +64,7 @@ export default defineConfig({
     { name: 'description', content: 'Game-NPC-管理后台' },
   ],
   mock: false, // 禁用mock数据
-  publicPath: '/game-npc/', // *** 普通环境项目部署到bsGW这种地址的时候，所有打包构建的资源要加一层path ***
+  publicPath: '/', // *** 普通环境项目部署到bsGW这种地址的时候，所有打包构建的资源要加一层path ***
   proxy: {
     // 开启本地代理功能
     '/local': {
