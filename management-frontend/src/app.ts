@@ -50,7 +50,7 @@ export const request: RequestConfig = {
     {
       localhost: '/dev',
       'management-game-npc.clarkchu.com.cn':
-        'http://management-game-npc.clarkchu.com.cn/api/', // 云开发
+        'http://game-npc.clarkchu.com.cn/api/', // 云开发
     }[window.location.hostname] || '/',
   timeout: 120000, // 超时设置
   withCredentials: true,
