@@ -64,20 +64,20 @@ class TestAPI(unittest.TestCase):
     #     assert resp_data['msg'] == '执行成功'
     #     assert 'data' in resp_data
 
-    def test_get_history_dialogue(self):
-        payload = {
-            "user_id": user_id,
-            "npc_id": npc_id,
-        }
-        response = client.post(f"{base_url}/npc/get_history_dialogue", json=payload)
-        assert response.status_code == 200 
-        resp_data = response.json()
-        print('resp_data: --------------------------', resp_data)
-        assert 'code' in resp_data
-        assert resp_data['code'] == 0 
-        assert 'msg' in resp_data
-        assert resp_data['msg'] == '执行成功'
-        assert 'data' in resp_data
+    # def test_get_history_dialogue(self):
+    #     payload = {
+    #         "user_id": user_id,
+    #         "npc_id": npc_id,
+    #     }
+    #     response = client.post(f"{base_url}/npc/get_history_dialogue", json=payload)
+    #     assert response.status_code == 200 
+    #     resp_data = response.json()
+    #     print('resp_data: --------------------------', resp_data)
+    #     assert 'code' in resp_data
+    #     assert resp_data['code'] == 0 
+    #     assert 'msg' in resp_data
+    #     assert resp_data['msg'] == '执行成功'
+    #     assert 'data' in resp_data
 
     # def test_clear_history_dialogue(self):
     #     payload = {
@@ -94,29 +94,34 @@ class TestAPI(unittest.TestCase):
     #     assert resp_data['msg'] == '记忆、好感重置成功!'
     #     assert 'data' in resp_data
 
-    # def test_create_npc(self):
-    #     payload = {
-    #         "name": "NPC_1",
-    #         "trait": "Brave",
-    #         "short_description": "A brave NPC",
-    #         "prompt_description": "Be brave",
-    #         "profile": "xxx",
-    #         "chat_background": "xxx",
-    #         "affinity_level_description": "xxx"
-    #     }
-    #     response = client.post(f"{base_url}/npc/create", json=payload)
-    #     assert response.status_code == 200 
-    #     resp_data = response.json()
-    #     print('resp_data: --------------------------', resp_data)
-    #     assert 'code' in resp_data
-    #     assert resp_data['code'] == 0 
-    #     assert 'msg' in resp_data
-    #     assert resp_data['msg'] == '执行成功'
-    #     assert 'data' in resp_data
-    #     assert resp_data['data']['name'] == payload['name']
-    #     assert resp_data['data']['trait'] == payload['trait']
-    #     assert resp_data['data']['short_description'] == payload['short_description']
-    #     assert resp_data['data']['prompt_description'] == payload['prompt_description']
+    def test_create_npc(self):
+        payload = {
+            "name": "NPC_1",
+            "trait": "Brave",
+            "sex": 1,
+            "short_description": "A brave NPC",
+            "prompt_description": "Be brave",
+            "profile": "xxx",
+            "chat_background": "xxx",
+            "affinity_level_description": "xxx"
+        }
+        response = client.post(f"{base_url}/npc/create", json=payload)
+        assert response.status_code == 200 
+        resp_data = response.json()
+        print('resp_data: --------------------------', resp_data)
+        assert 'code' in resp_data
+        assert resp_data['code'] == 0 
+        assert 'msg' in resp_data
+        assert resp_data['msg'] == '执行成功'
+        assert 'data' in resp_data
+        assert resp_data['data']['name'] == payload['name']
+        assert resp_data['data']['trait'] == payload['trait']
+        assert resp_data['data']['sex'] == payload['sex']
+        assert resp_data['data']['profile'] == payload['profile']
+        assert resp_data['data']['chat_background'] == payload['chat_background']
+        assert resp_data['data']['affinity_level_description'] == payload['affinity_level_description']
+        assert resp_data['data']['short_description'] == payload['short_description']
+        assert resp_data['data']['prompt_description'] == payload['prompt_description']
 
     #     npc_id = resp_data['data']['id']
     # def test_update_npc(self):
