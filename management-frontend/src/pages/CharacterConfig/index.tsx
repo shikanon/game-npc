@@ -445,7 +445,7 @@ const Character: React.FC = () => {
         >
           <TextArea
             placeholder="请输入"
-            maxLength={50}
+            maxLength={500}
             style={{ width: 500 }}
             autoSize={{
               minRows: 2,
@@ -461,7 +461,7 @@ const Character: React.FC = () => {
         >
           <TextArea
             placeholder="请输入"
-            maxLength={50}
+            maxLength={1000}
             style={{ width: 500 }}
             autoSize={{
               minRows: 4,

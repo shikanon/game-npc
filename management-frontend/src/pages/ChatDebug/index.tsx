@@ -261,7 +261,7 @@ const ChatDebug = () => {
           >
             <TextArea
               placeholder="请输入"
-              maxLength={50}
+              maxLength={500}
               style={{ width: '100%' }}
               autoSize={{
                 minRows: 4,
@@ -276,7 +276,7 @@ const ChatDebug = () => {
           >
             <TextArea
               placeholder="请输入"
-              maxLength={50}
+              maxLength={1000}
               style={{ width: '100%' }}
               autoSize={{
                 minRows: 5,
