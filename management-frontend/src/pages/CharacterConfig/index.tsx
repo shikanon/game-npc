@@ -195,7 +195,7 @@ const Character: React.FC = () => {
         });
         console.log(result, '更新结果');
         if (result?.code === 0) {
-          history?.push('/');
+          history.push(`/chatDebug?characterId=${result.data}`);
         }
       } else {
         const result = await createNPCRequest({
@@ -205,7 +205,7 @@ const Character: React.FC = () => {
         });
         console.log(result, '创建结果');
         if (result?.code === 0) {
-          history?.push('/');
+          history.push(`/chatDebug?characterId=${result.data}`);
         }
       }
     });
