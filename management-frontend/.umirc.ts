@@ -96,6 +96,12 @@ export default defineConfig({
       component: '@/pages/CharacterConfig',
     },
     {
+      name: '调试NPC',
+      path: '/chatDebug',
+      component: '@/pages/ChatDebug',
+      layout: false,
+    },
+    {
       name: ' 403',
       path: '/403',
       component: '@/pages/403',

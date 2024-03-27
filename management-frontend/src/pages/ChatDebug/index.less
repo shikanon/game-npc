@@ -1,0 +1,113 @@
+.container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  //background-image: url("@/assets/images/login_bg.jpg");
+  background-size: cover;
+  background-position: center center;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  z-index: 100;
+
+  .left {
+    height: 100%;
+    width: 25%;
+    padding: 30px 20px 0 20px;
+    background-color: #f0f0f0;
+
+    .promptDesc {
+      display: flex;
+      justify-items: center;
+      width: 100%;
+      height: 110px;
+      padding: 10px;
+      background-color: #fff;
+      border-radius: 5px;
+      text-align: center;
+    }
+  }
+
+  .chatContainer {
+    height: 100%;
+    width: 50%;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-items: center;
+    align-items: center;
+
+    .chatList {
+      flex: 1;
+      width: 100%;
+      padding: 30px;
+      overflow-y: scroll;
+
+      .npcChatItem {
+        padding: 10px;
+        background: linear-gradient(to right, #F8DA77, #ED6BC9);
+        border-radius: 10px;
+        margin-left: 5px;
+        opacity: 0.8;
+
+        .content {
+          color: #fff;
+        }
+      }
+
+      .userChatItem {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 10px;
+        margin-right: 5px;
+
+        .content {
+          color: #fff;
+        }
+      }
+    }
+
+    .footer {
+      position: relative;
+      width: 100%;
+      display: flex;
+      margin-bottom: 30px;
+      flex-flow: row nowrap;
+      justify-content: center;
+      align-items: center;
+
+      .chatInput {
+        position: relative;
+        width: calc(100% - 200px);
+        margin: 0 100px;
+        padding: 10px 50px 10px 20px;
+        border: 1px solid #d9d9d9;
+        background-color: #fff;
+        border-radius: 40px;
+
+        .textArea {
+          width: calc(100% - 0px);
+        }
+
+        .sendBtn {
+          position: absolute;
+          right: 10px;
+          bottom: 8px;
+        }
+      }
+
+      .resetChat {
+        position: absolute;
+        right: 30px;
+      }
+    }
+  }
+
+  .right {
+    height: 100%;
+    width: 25%;
+    padding: 30px 0 0 30px;
+    background-color: #f0f0f0;
+  }
+}

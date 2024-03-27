@@ -1,4 +1,5 @@
 import {
+  IClearNPCHistoryRequest, IClearNPCHistoryResponse,
   ICreateNPCRequest,
   ICreateNPCResponse,
   IDeleteNPCCharacterRequest,
@@ -103,6 +104,19 @@ export default {
       method: 'POST',
       data,
     });
+  },
+
+  /**
+   * 清空NPC聊天记录
+   */
+  async ClearNPCHistory(data?: IClearNPCHistoryRequest) {
+    return await request<IClearNPCHistoryResponse>(
+      '/npc/clear_history_dialogue',
+      {
+        method: 'POST',
+        data,
+      },
+    );
   },
 
   /**

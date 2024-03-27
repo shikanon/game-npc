@@ -225,7 +225,13 @@ const Character: React.FC = () => {
             </Button>
           ) : null}
 
-          <Button type={'link'} size={'small'}>
+          <Button
+            type={'link'}
+            size={'small'}
+            onClick={() => {
+              history.push(`/chatDebug?characterId=${record.id}`);
+            }}
+          >
             调试
           </Button>
 

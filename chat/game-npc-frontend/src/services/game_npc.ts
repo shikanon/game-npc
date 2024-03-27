@@ -1,8 +1,6 @@
 import {
   IClearNPCHistoryRequest,
   IClearNPCHistoryResponse,
-  ICreateNPCRequest,
-  ICreateNPCResponse,
   IGetNPCAllInfoRequest,
   IGetNPCAllInfoResponse,
   IGetNPCChatHistoryRequest,
@@ -22,16 +20,6 @@ export default {
    */
   async GetNPCList(data?: IGetNPCListRequest) {
     return await request<IGetNPCListResponse>('/npc/query', {
-      method: 'POST',
-      data,
-    });
-  },
-
-  /**
-   * 创建NPC
-   */
-  async CreateNPC(data?: ICreateNPCRequest) {
-    return await request<ICreateNPCResponse>('/npc/create', {
       method: 'POST',
       data,
     });
