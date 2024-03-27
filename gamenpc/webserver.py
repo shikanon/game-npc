@@ -18,12 +18,18 @@ router = APIRouter(prefix="/api")
 
 debuglog = logger.DebugLogger("chat bot web")
 
+origins = [
+    "http://management-game-npc.clarkchu.com",
+    "http://game-npc.clarkchu.com",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Access-Control-Allow-Headers", "Authorization",
+                   "DNT", "User-Agent", "X-Requested-With", 
+                   "If-Modified-Since", "Cache-Control", "Content-Type", "Range"],
 )
 # 创建一个默认测试的NPC
 
