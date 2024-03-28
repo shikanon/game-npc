@@ -165,6 +165,7 @@ class NPCUser(Base):
         self.character_model = doubao.ChatSkylark(
             model="skylark2-pro-character-4k",
             top_k=1,
+            model_version="1.1"
         )
     
     def to_dict(self):
@@ -261,6 +262,7 @@ class NPCUser(Base):
         self.character_model = doubao.ChatSkylark(
             model="skylark2-pro-character-4k",
             top_k=1,
+            model_version="1.1"
         )
         return
     
