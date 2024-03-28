@@ -18,7 +18,10 @@ export interface INPCInfo {
 }
 export interface IGetNPCListResponse {
   code: number;
-  data: INPCInfo[];
+  data: {
+    list: INPCInfo[];
+    total: number;
+  };
   msg: string;
 }
 

@@ -27,8 +27,8 @@ const Character = () => {
       limit: 10,
     });
     console.log('result', result);
-    if (result?.data?.length) {
-      setCharacterList(result.data);
+    if (result?.data?.list.length) {
+      setCharacterList(result.data.list);
     } else {
       setCharacterList([]);
     }
