@@ -93,8 +93,7 @@ class UserManager:
         users = self.client.select_records(User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         return users
     
-    def get_user(self, user_id) -> User:
-        filter_dict = {'id': user_id}
+    def get_user(self, filter_dict) -> User:
         user = self.client.select_record(User, filter_dict=filter_dict)
         if user == None:
             return None

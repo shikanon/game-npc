@@ -227,6 +227,8 @@ async def update_npc(req: NPCRequest):
     if req.status >= 0:
         npc.status = req.status
     npc = npc_manager.update_npc(npc)
+    if npc == None:
+        return response(code=400, message=f"npc for {req.id} 不存在")
     return response(data=npc.to_dict())
 
 class NPCUpdateStatusRequest(BaseModel):
@@ -241,6 +243,8 @@ async def update_npc_status(req: NPCUpdateStatusRequest):
     if req.status != -1:
         npc.status = req.status
     npc = npc_manager.update_npc(npc)
+    if npc == None:
+        return response(code=400, message=f"npc for {req.id} 不存在")
     return response(data=npc.to_dict())
 
 class NpcQueryRequest(BaseModel):
@@ -269,6 +273,8 @@ async def query_npc(req: NpcGetRequest):
     if req.id == "":
         return 
     npc = npc_manager.get_npc(npc_id=req.id)
+    if npc == None:
+        return response(code=400, message=f"npc for {req.id} 不存在")
     return response(data=npc.to_dict())
 
 class ShiftSceneRequest(BaseModel):
@@ -327,7 +333,8 @@ class UserRemoveRequest(BaseModel):
 
 @router.post("/user/remove")
 async def remove_user(req: UserRemoveRequest):
-    user = user_manager.get_user(user_id=req.id)
+    filter_dict = {'id': req.id}
+    user = user_manager.get_user(filter_dict=filter_dict)
     if user == None:
         return response(code=400, message=f"user for {req.id} 不存在")
     user_manager.remove_user(user_id=req.id)
@@ -340,7 +347,10 @@ class UserQueryRequest(BaseModel):
 async def query_user(req: UserQueryRequest):
     if req.id is None:
         return response(code=400, message=f'id 不能为空')
-    user = user_manager.get_user(user_id=req.id)
+    filter_dict = {'id': req.id}
+    user = user_manager.get_user(filter_dict=filter_dict)
+    if user == None:
+        return response(code=400, message=f'user记录为空')
     return response(data=user.to_dict())
 
 class UserCreateRequest(BaseModel):
