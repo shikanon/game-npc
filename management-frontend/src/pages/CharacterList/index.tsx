@@ -255,7 +255,7 @@ const Character: React.FC = () => {
             cancelText="取消"
             cancelButtonProps={{ loading: deleteNPCLoading }}
           >
-            <Button type={'link'} size={'small'} danger>
+            <Button type={'link'} size={'small'} danger loading={deleteNPCLoading}>
               删除
             </Button>
           </Popconfirm>

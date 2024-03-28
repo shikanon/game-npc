@@ -194,8 +194,8 @@ const Character: React.FC = () => {
           chatBackground: chatBgSrc.current,
         });
         console.log(result, '更新结果');
-        if (result?.code === 0) {
-          history.push(`/chatDebug?characterId=${result.data}`);
+        if (result?.code === 0 && result?.data) {
+          history.push(`/chatDebug?characterId=${result.data.id}`);
         }
       } else {
         const result = await createNPCRequest({
