@@ -1,9 +1,16 @@
+// NPC角色性别枚举
+export enum UserSexEnum {
+  UserSexEnum_Unknown = 0, // 未知
+  UserSexEnum_Male = 1, // 男
+  UserSexEnum_Female = 2, // 女
+}
+
 // 用户注册
 export interface IUserRegisterRequest {
   name: string;
   password: string;
   phone?: string;
-  sex?: string;
+  sex?: UserSexEnum;
 }
 // 用户信息
 export interface IUserInfo {
@@ -13,7 +20,7 @@ export interface IUserInfo {
   name: string;
   password: string;
   phone: string;
-  sex: string;
+  sex: UserSexEnum;
 }
 export interface IUserRegisterResponse {
   code: number;
@@ -51,7 +58,7 @@ export interface IUpdateUserInfoRequest {
   id: string;
   name?: string;
   password?: string;
-  sex?: string;
+  sex?: UserSexEnum;
   phone?: string;
   money?: number;
 }

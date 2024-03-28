@@ -6,11 +6,12 @@ import { Button, Image, Row } from 'antd';
 import { useTheme } from 'antd-style';
 import { useEffect, useState } from 'react';
 import styles from './index.less';
+import { UserSexEnum } from "@/interfaces/user";
 
 const Login = () => {
   const theme = useTheme();
   const { userInfo } = useModel('user');
-  const [selectedSex, setSelectedSex] = useState<string>('未知');
+  const [selectedSex, setSelectedSex] = useState<UserSexEnum>(UserSexEnum.UserSexEnum_Unknown);
 
   // 注册请求
   const { loading: updateUserInfoLoading, runAsync: updateUserInfoRequest } =
@@ -47,7 +48,7 @@ const Login = () => {
       <div className={styles.selectedSex}>
         <div
           style={
-            selectedSex === '男'
+            selectedSex === UserSexEnum.UserSexEnum_Male
               ? {
                   width: 240,
                   height: 240,
@@ -56,13 +57,13 @@ const Login = () => {
                 }
               : {}
           }
-          onClick={() => setSelectedSex('男')}
+          onClick={() => setSelectedSex(UserSexEnum.UserSexEnum_Male)}
         >
           男
         </div>
         <div
           style={
-            selectedSex === '女'
+            selectedSex === UserSexEnum.UserSexEnum_Female
               ? {
                   width: 240,
                   height: 240,
@@ -71,7 +72,7 @@ const Login = () => {
                 }
               : {}
           }
-          onClick={() => setSelectedSex('女')}
+          onClick={() => setSelectedSex(UserSexEnum.UserSexEnum_Female)}
         >
           女
         </div>
