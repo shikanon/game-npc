@@ -447,7 +447,29 @@ class NPCManager:
         return npc
     
     def update_npc(self, npc: NPC)->NPC:
-        return self.client.update_record(npc)
+        new_npc = self.client.update_record(npc)
+        print('update npc: ', new_npc.to_dict())
+        filter_dict = {'npc_id': npc.id}
+        npc_user_list = self.client.select_records(record_class=NPCUser, filter_dict=filter_dict)
+        print('npc_user list len: ', len(npc_user_list))
+        for npc_user in npc_user_list:
+            print('npc_user id', npc_user.id)
+            print('npc_user npc id', npc_user.npc_id)
+            print('npc_user user id', npc_user.user_id)
+            npc_user_id = npc_user.id
+            old_npc_user = self._instances.get(npc_user_id, None)
+            old_npc_user.name = new_npc.name
+            old_npc_user.sex = new_npc.sex
+            old_npc_user.trait = new_npc.trait
+            self._instances[npc_user_id] = old_npc_user
+            print('update npc and update cache npc_user: ', old_npc_user.to_dict())
+
+            npc_user.name = new_npc.name
+            npc_user.sex = new_npc.sex
+            npc_user.trait = new_npc.trait
+            db_npc_user = self.client.update_record(npc_user)
+            print('update npc and update db npc_user: ', db_npc_user)
+        return new_npc
 
     def remove_npc(self, npc_id: str):
         self.client.delete_record_by_id(NPC, npc_id)
@@ -490,7 +512,7 @@ class NPCManager:
         if npc_user != None and npc != None:
             dict_1 = npc.to_dict()
             dict_2 = npc_user.to_dict()
-            merged_dict = {**dict_1, **dict_2}
+            merged_dict = {**dict_2, **dict_1}
             return merged_dict
         if npc_user == None and npc != None:
             dict_1 = npc.to_dict()
