@@ -1,3 +1,10 @@
+// NPC角色状态枚举
+export enum NPCCharacterStatusEnum {
+  NPCCharacterStatusEnum_Unknown = 0, // 未知
+  NPCCharacterStatusEnum_Save = 1, // 待发布
+  NPCCharacterStatusEnum_Publish = 2, // 已发布
+}
+
 // 获取NPC角色列表
 export interface IGetNPCListRequest {
   limit?: number;
@@ -8,6 +15,7 @@ export interface INPCInfo {
   name: string;
   shortDescription: string;
   trait: string;
+  status: NPCCharacterStatusEnum;
   promptDescription: string;
   profile: string;
   chatBackground: string;

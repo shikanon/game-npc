@@ -31,7 +31,7 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
 
   const [form] = Form.useForm();
 
-  const { setUserInfo } = useModel('user');
+  const { setUserInfo, setOpenSexModal } = useModel('user');
   // 登录模式
   const [loginType, setLoginType] = useState<'login' | 'register'>('login');
 
@@ -70,8 +70,8 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
           // 进入角色页面
           onChange(true);
 
-          // 注册成功，设置用户性别
-          history.push('/set_user');
+          // 打开设置性别弹窗
+          setOpenSexModal(true);
         } else {
           message.warning(result?.msg);
         }

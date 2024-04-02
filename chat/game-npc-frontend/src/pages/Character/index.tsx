@@ -1,7 +1,7 @@
 import chatTipsImg from '@/assets/images/chat_tips.png';
-import { INPCInfo } from '@/interfaces/game_npc';
+import { INPCInfo, NPCCharacterStatusEnum } from '@/interfaces/game_npc';
 import gameNpcService from '@/services/game_npc';
-import { history } from '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import { useMount, useRequest } from 'ahooks';
 import { Col, Image, Row, Typography } from 'antd';
 import { useTheme } from 'antd-style';
@@ -12,6 +12,8 @@ const { Paragraph } = Typography;
 
 const Character = () => {
   const theme = useTheme();
+  const { userInfo, setOpenLoginModal } = useModel('user');
+
   const [characterList, setCharacterList] = useState<INPCInfo[]>([]);
 
   // 获取NPC角色列表
@@ -28,7 +30,9 @@ const Character = () => {
     });
     console.log('result', result);
     if (result?.data?.list.length) {
-      setCharacterList(result.data.list);
+      // 过滤已发布的NPC
+      const publishList = result.data.list.filter((item) => item.status === NPCCharacterStatusEnum.NPCCharacterStatusEnum_Publish) || [];
+      setCharacterList(publishList);
     } else {
       setCharacterList([]);
     }
@@ -69,7 +73,12 @@ const Character = () => {
                       backgroundImage: `url(${item?.chatBackground})`,
                     }}
                     onClick={() => {
-                      history.push(`/conversation?characterId=${item.id}`);
+                      // 判断是否登录
+                      if (userInfo?.id) {
+                        history.push(`/conversation?characterId=${item.id}`);
+                      } else {
+                        setOpenLoginModal(true);
+                      }
                     }}
                   >
                     <Col className={styles.characterAttr}>
@@ -81,6 +90,7 @@ const Character = () => {
                           <Row>
                             <Paragraph
                               className={styles.desc}
+                              ellipsis={{ rows: 3, expandable: false, symbol: '...' }}
                             >
                               {item?.shortDescription || '-'}
                             </Paragraph>

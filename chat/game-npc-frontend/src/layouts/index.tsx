@@ -6,13 +6,14 @@ import shareImg from '@/assets/images/share.png';
 import userImg from '@/assets/images/user.png';
 import { USER_ID_KEY } from '@/constants';
 import { ProLayout } from '@ant-design/pro-components';
-import { Outlet, history, useLocation, useModel } from '@umijs/max';
+import { Outlet, useLocation, useModel } from '@umijs/max';
 import { useMount } from 'ahooks';
 import { App, Button, Col, ConfigProvider, Image, Input, Modal, Popover, Row } from 'antd';
 import copy from 'copy-to-clipboard';
 import { useEffect, useState } from 'react';
 import styles from './index.less';
 import LoginModal from "@/components/LoginModal";
+import SexModal from "@/components/SexModal";
 
 const { TextArea } = Input;
 
@@ -25,7 +26,7 @@ interface IFeedbackItemType {
 export default () => {
   // 初始化的状态数据
   const { initialState } = useModel('@@initialState');
-  const { userInfo, setUserInfo } = useModel('user');
+  const { userInfo, setUserInfo, openLoginModal, setOpenLoginModal, openSexModal, setOpenSexModal } = useModel('user');
   const { message } = App.useApp();
 
   const { pathname } = useLocation();
@@ -41,7 +42,6 @@ export default () => {
     { label: '用户体验不佳', value: '4', selected: false },
     { label: '情感表达过于机械', value: '5', selected: false },
   ]);
-  const [openLoginModal, setOpenLoginModal] = useState(false);
 
   useMount(() => {
     // console.log(initialState, 'initialState');
@@ -120,9 +120,6 @@ export default () => {
             <Col className={styles.productName}>
               <Row justify={'start'} align={'middle'}>
                 <Col>
-                  <Image src={logoImg} preview={false} height={30} />
-                </Col>
-                <Col style={{ marginLeft: 3 }}>
                   <Image src={brandImg} preview={false} height={24} />
                 </Col>
               </Row>
@@ -255,6 +252,13 @@ export default () => {
             open={openLoginModal}
             onChange={() => {
               setOpenLoginModal(false);
+            }}
+          />
+
+          <SexModal
+            open={openSexModal}
+            onChange={() => {
+              setOpenSexModal(false);
             }}
           />
         </App>
