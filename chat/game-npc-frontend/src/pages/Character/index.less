@@ -3,37 +3,38 @@
   height: 100vh;
   width: 100vw;
 
-  .background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    flex-flow: row nowrap;
-    width: 100vw;
-    height: 100vh;
-
-    div {
-      width: 33.3%;
-      height: 100vh;
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center center;
-      filter: blur(10px);
-      z-index: 10;
-
-      &:first-child {
-        background-image: url('@/assets/images/character_bg_1.png');
-      }
-
-      &:nth-child(2) {
-        background-image: url('@/assets/images/character_bg_2.png');
-      }
-
-      &:last-child {
-        background-image: url('@/assets/images/character_bg_3.png');
-      }
-    }
-  }
+  //.background {
+  //  position: absolute;
+  //  top: 0;
+  //  left: 0;
+  //  display: flex;
+  //  flex-flow: row nowrap;
+  //  width: 100vw;
+  //  height: 100vh;
+  //
+  //  div {
+  //    width: 33.3%;
+  //    height: 100vh;
+  //    background-color: #000;
+  //    background-size: cover;
+  //    background-repeat: no-repeat;
+  //    background-position: center center;
+  //    filter: blur(10px);
+  //    z-index: 10;
+  //
+  //    &:first-child {
+  //      background-image: url('@/assets/images/character_bg_1.png');
+  //    }
+  //
+  //    &:nth-child(2) {
+  //      background-image: url('@/assets/images/character_bg_2.png');
+  //    }
+  //
+  //    &:last-child {
+  //      background-image: url('@/assets/images/character_bg_3.png');
+  //    }
+  //  }
+  //}
 
   .characterContainer {
     position: absolute;
@@ -41,8 +42,9 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    padding-top: 80px;
+    padding: 30px 30px 10px;
     z-index: 100;
+    background-color: #262626;
 
     .title {
       font-size: 40px;
@@ -54,6 +56,7 @@
       position: relative;
       width: 300px;
       height: 400px;
+      margin-bottom: 15px;
       border-radius: 20px;
       background-size: cover;
       background-repeat: no-repeat;
@@ -71,14 +74,15 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        height: auto;
-        padding: 10px 10px 0;
+        height: 100px;
+        overflow-y: scroll;
+        padding: 10px 15px 0 10px;
         text-align: center;
         background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 1));
         border-bottom-left-radius: 20px;
         border-bottom-right-radius: 20px;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        color: #fff;
+        //box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        //color: #fff;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         transform-origin: center bottom;
 

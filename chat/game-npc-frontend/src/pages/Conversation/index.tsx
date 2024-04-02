@@ -138,6 +138,8 @@ const Conversation = () => {
 
     if (result?.code === 0) {
       setChatList([]);
+
+      message.success('重置对话成功');
     } else {
       message.warning(result?.msg);
     }
@@ -154,6 +156,9 @@ const Conversation = () => {
       style={{
         backgroundColor: theme.colorBgLayout,
         backgroundImage: `url(${npcAllInfo?.chatBackground || ''})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
       className={styles.container}
     >
@@ -170,7 +175,16 @@ const Conversation = () => {
           />
         </Row>
       </div>
-      <div className={styles.chatContainer}>
+      <div
+        className={styles.chatContainer}
+        style={{
+          backgroundColor: theme.colorBgLayout,
+          backgroundImage: `url(${npcAllInfo?.chatBackground || ''})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
         <div id="chatListScroll" className={styles.chatList}>
           {chatList.map((item, index) => {
             if (item.from === 'user') {

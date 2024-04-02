@@ -47,21 +47,21 @@ const Character = () => {
       }}
       className={styles.container}
     >
-      <div className={styles.background}>
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
+      {/*<div className={styles.background}>*/}
+      {/*  <div></div>*/}
+      {/*  <div></div>*/}
+      {/*  <div></div>*/}
+      {/*</div>*/}
 
       <div className={styles.characterContainer}>
-        <Row justify={'center'} className={styles.title}>
-          <Image preview={false} src={chatTipsImg} height={50} />
-        </Row>
+        {/*<Row justify={'center'} className={styles.title}>*/}
+        {/*  <Image preview={false} src={chatTipsImg} height={50} />*/}
+        {/*</Row>*/}
 
-        <Row style={{ marginTop: 30 }}>
+        <Row gutter={36} style={{ marginTop: 40 }} wrap={true}>
           {characterList.map((item) => {
             return (
-              <Col key={item.id} span={8}>
+              <Col key={item.id}>
                 <Row justify={'center'}>
                   <div
                     className={styles.characterItem}
@@ -76,20 +76,17 @@ const Character = () => {
                       <Row justify={'center'} className={styles.name}>
                         {item?.name || '-'}
                       </Row>
-                      <Row>
-                        <Paragraph
-                          ellipsis={{
-                            rows: 3,
-                            // expandable: true,
-                            // suffix: '更多',
-                            // symbol: <Text style={{ color: '#fff' }}>更多</Text>,
-                            tooltip: true,
-                          }}
-                          className={styles.desc}
-                        >
-                          {item?.shortDescription || '-'}
-                        </Paragraph>
-                      </Row>
+                      {
+                        item?.shortDescription ? (
+                          <Row>
+                            <Paragraph
+                              className={styles.desc}
+                            >
+                              {item?.shortDescription || '-'}
+                            </Paragraph>
+                          </Row>
+                        ) : null
+                      }
                     </Col>
                   </div>
                 </Row>

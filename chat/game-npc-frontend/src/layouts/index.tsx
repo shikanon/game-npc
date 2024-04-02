@@ -1,5 +1,6 @@
 import layoutConfig from '@/layouts/layoutConfig';
-// import logoImg from '@/assets/images/logo.png';
+import logoImg from '@/assets/images/logo.png';
+import brandImg from '@/assets/images/brand.png';
 import feedbackImg from '@/assets/images/feedback.png';
 import shareImg from '@/assets/images/share.png';
 import userImg from '@/assets/images/user.png';
@@ -7,10 +8,11 @@ import { USER_ID_KEY } from '@/constants';
 import { ProLayout } from '@ant-design/pro-components';
 import { Outlet, history, useLocation, useModel } from '@umijs/max';
 import { useMount } from 'ahooks';
-import { App, Button, Col, Image, Input, Modal, Popover, Row } from 'antd';
+import { App, Button, Col, ConfigProvider, Image, Input, Modal, Popover, Row } from 'antd';
 import copy from 'copy-to-clipboard';
 import { useEffect, useState } from 'react';
 import styles from './index.less';
+import LoginModal from "@/components/LoginModal";
 
 const { TextArea } = Input;
 
@@ -39,6 +41,7 @@ export default () => {
     { label: '用户体验不佳', value: '4', selected: false },
     { label: '情感表达过于机械', value: '5', selected: false },
   ]);
+  const [openLoginModal, setOpenLoginModal] = useState(false);
 
   useMount(() => {
     // console.log(initialState, 'initialState');
@@ -48,7 +51,7 @@ export default () => {
       setUserInfo(initialState.user.userInfo);
     } else {
       // 去登录
-      history.push('/login');
+      // history.push('/login');
     }
   });
 
@@ -103,128 +106,159 @@ export default () => {
       headerContentRender={() => null}
       menuFooterRender={() => null}
     >
-      <App style={{ position: 'relative' }}>
-        <Row className={styles.nav} justify={'space-between'} align={'middle'}>
-          <Col className={styles.productName}>LoveTalk AI爱语</Col>
-          <Col>
-            <Row justify={'end'} align={'middle'}>
-              <Col
-                style={{ cursor: 'pointer' }}
-                onClick={() => setModalOpen(true)}
-              >
-                <Popover
-                  content={'点进来，把你想要的都告诉我们'}
-                  title=""
-                  trigger="hover"
-                  placement={'bottomRight'}
-                >
-                  <Image src={feedbackImg} preview={false} width={32} />
-                </Popover>
-              </Col>
-              <Col style={{ margin: '0 50px' }}>
-                <Popover
-                  content={
-                    <Button
-                      type={'text'}
-                      onClick={() => {
-                        copy(window.location.href);
-
-                        message.info('复制网址成功，快去分享给朋友吧！').then();
-                      }}
-                    >
-                      一键分享
-                    </Button>
-                  }
-                  title=""
-                  trigger="hover"
-                >
-                  <Image src={shareImg} preview={false} width={32} />
-                </Popover>
-              </Col>
-              <Col>
-                <Popover
-                  content={
-                    <Button
-                      type={'text'}
-                      onClick={() => {
-                        window.localStorage.removeItem(USER_ID_KEY);
-                        history.push('/login');
-                      }}
-                    >
-                      {userInfo?.id ? '退出登录' : '登录'}
-                    </Button>
-                  }
-                  title=""
-                  trigger="hover"
-                >
-                  <Image
-                    src={userImg}
-                    preview={false}
-                    width={32}
-                    style={{ cursor: 'pointer' }}
-                  />
-                </Popover>
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-
-        <Outlet />
-
-        <Modal
-          title="你有什么想法，请务必告诉我们"
-          centered
-          destroyOnClose
-          open={modalOpen}
-          okText={'提交'}
-          width={600}
-          onOk={() => setModalOpen(false)}
-          okButtonProps={{
-            style: {
-              background:
-                'linear-gradient(to right, #526EF8, #8AB6E8, #C2FFD8)',
-              border: 'none',
+      <ConfigProvider
+        theme={{
+          components: {
+            Modal: {
+              contentBg: '#262626',
             },
-          }}
-          onCancel={() => setModalOpen(false)}
-        >
-          <Row
-            style={{ marginTop: 30, marginBottom: 10 }}
-            justify={'start'}
-            align={'middle'}
-          >
-            {feedbackList.map((item, index) => {
-              return (
-                <Col
-                  key={index}
-                  className={styles.feedbackItem}
-                  style={
-                    item.selected
-                      ? { backgroundColor: '#1677ff', color: '#fff' }
-                      : {}
-                  }
-                  onClick={() => {
-                    const list = [...feedbackList];
-                    list[index].selected = !list[index].selected;
-                    setFeedbackList(list);
-                  }}
-                >
-                  {item.label}
+          },
+        }}
+      >
+        <App style={{ position: 'relative' }}>
+          <Row className={styles.nav} justify={'space-between'} align={'middle'}>
+            <Col className={styles.productName}>
+              <Row justify={'start'} align={'middle'}>
+                <Col>
+                  <Image src={logoImg} preview={false} height={30} />
                 </Col>
-              );
-            })}
+                <Col style={{ marginLeft: 3 }}>
+                  <Image src={brandImg} preview={false} height={24} />
+                </Col>
+              </Row>
+            </Col>
+            <Col>
+              <Row justify={'end'} align={'middle'}>
+                <Col
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setModalOpen(true)}
+                >
+                  <Popover
+                    content={'点进来，把你想要的都告诉我们'}
+                    title=""
+                    trigger="hover"
+                    placement={'bottomRight'}
+                  >
+                    <Image src={feedbackImg} preview={false} width={32} />
+                  </Popover>
+                </Col>
+                <Col style={{ margin: '0 50px' }}>
+                  <Popover
+                    content={
+                      <Button
+                        type={'text'}
+                        onClick={() => {
+                          copy(window.location.href);
+
+                          message.info('复制网址成功，快去分享给朋友吧！').then();
+                        }}
+                      >
+                        一键分享
+                      </Button>
+                    }
+                    title=""
+                    trigger="hover"
+                  >
+                    <Image src={shareImg} preview={false} width={32} />
+                  </Popover>
+                </Col>
+                <Col>
+                  <Popover
+                    content={
+                      <Button
+                        type={'text'}
+                        onClick={() => {
+                          if (userInfo?.id) {
+                            window.localStorage.removeItem(USER_ID_KEY);
+                            setUserInfo(null);
+                            message.success('退出登录成功').then();
+                          } else {
+                            setOpenLoginModal(true);
+                          }
+                        }}
+                      >
+                        {userInfo?.id ? '退出登录' : '登录'}
+                      </Button>
+                    }
+                    title=""
+                    trigger="hover"
+                  >
+                    <Image
+                      src={userImg}
+                      preview={false}
+                      width={32}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </Popover>
+                </Col>
+              </Row>
+            </Col>
           </Row>
 
-          <Row>
-            <TextArea
-              style={{ width: '100%', height: 100, padding: 10 }}
-              placeholder={
-                '你想要什么新体验？角色更丰富？聊天内容更劲爆？把你的想法告诉我们吧！'
-              }
-            />
-          </Row>
-        </Modal>
-      </App>
+          <Outlet />
+
+          <Modal
+            title="你有什么想法，请务必告诉我们"
+            centered
+            destroyOnClose
+            open={modalOpen}
+            okText={'提交'}
+            width={600}
+            onOk={() => setModalOpen(false)}
+            okButtonProps={{
+              style: {
+                background:
+                  'linear-gradient(to right, #526EF8, #8AB6E8, #C2FFD8)',
+                border: 'none',
+              },
+            }}
+            onCancel={() => setModalOpen(false)}
+          >
+            <Row
+              style={{ marginTop: 30, marginBottom: 10 }}
+              justify={'start'}
+              align={'middle'}
+            >
+              {feedbackList.map((item, index) => {
+                return (
+                  <Col
+                    key={index}
+                    className={styles.feedbackItem}
+                    style={
+                      item.selected
+                        ? { backgroundColor: '#1677ff', color: '#fff' }
+                        : {}
+                    }
+                    onClick={() => {
+                      const list = [...feedbackList];
+                      list[index].selected = !list[index].selected;
+                      setFeedbackList(list);
+                    }}
+                  >
+                    {item.label}
+                  </Col>
+                );
+              })}
+            </Row>
+
+            <Row>
+              <TextArea
+                style={{ width: '100%', height: 100, padding: 10 }}
+                placeholder={
+                  '你想要什么新体验？角色更丰富？聊天内容更劲爆？把你的想法告诉我们吧！'
+                }
+              />
+            </Row>
+          </Modal>
+
+          <LoginModal
+            open={openLoginModal}
+            onChange={() => {
+              setOpenLoginModal(false);
+            }}
+          />
+        </App>
+      </ConfigProvider>
     </ProLayout>
   );
 };

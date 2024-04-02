@@ -46,6 +46,7 @@ export default defineConfig({
   },
   esbuildMinifyIIFE: true, // 修复 esbuild 压缩器自动引入的全局变量导致的命名冲突问题
   favicons: [
+    'http://game-npc.clarkchu.com/favicon.png',
     // 此时将指向 `/favicon.png` ，确保你的项目含有 `public/favicon.png`
     '/favicon.png',
   ], // 配置页面icon
@@ -88,11 +89,11 @@ export default defineConfig({
       path: '/',
       redirect: '/character',
     },
-    {
-      name: '登录',
-      path: '/login',
-      component: '@/pages/Login',
-    },
+    // {
+    //   name: '登录',
+    //   path: '/login',
+    //   component: '@/pages/Login',
+    // },
     {
       name: '设置用户',
       path: '/set_user',
