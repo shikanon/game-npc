@@ -93,7 +93,7 @@ export default () => {
         },
       }}
       title="NPC管理系统"
-      logo={<Image src={logo} width={48} preview={false} />}
+      logo={<Image src={logo} width={32} preview={false} />}
       menu={{
         locale: false, // 是否使用国际化
         defaultOpenAll: true, // 默认展开所有菜单

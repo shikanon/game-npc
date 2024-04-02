@@ -20,8 +20,9 @@ import {
 import { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 import styles from './index.less';
+import { UserOutlined } from "@ant-design/icons";
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
 const Character: React.FC = () => {
   const [form] = Form.useForm();
@@ -124,7 +125,11 @@ const Character: React.FC = () => {
       dataIndex: 'profile',
       width: 80,
       render: (text) => {
-        return <Avatar src={text || ''} size={'large'} />;
+        if (text === '') {
+          return <Avatar icon={<UserOutlined />} size={'large'} />;
+        } else {
+          return <Avatar src={text || ''} size={'large'} />;
+        }
       },
     },
     {
@@ -156,7 +161,7 @@ const Character: React.FC = () => {
         } else if (
           text === NPCCharacterStatusEnum.NPCCharacterStatusEnum_Save
         ) {
-          return <Tag color="geekblue">已保存</Tag>;
+          return <Tag color="geekblue">未发布</Tag>;
         } else if (
           text === NPCCharacterStatusEnum.NPCCharacterStatusEnum_Publish
         ) {
@@ -192,7 +197,7 @@ const Character: React.FC = () => {
       render: (text, record: INPCInfo) => (
         <Space size={'small'}>
           {record?.status ===
-          NPCCharacterStatusEnum.NPCCharacterStatusEnum_Save ? (
+          NPCCharacterStatusEnum.NPCCharacterStatusEnum_Save || record?.status === NPCCharacterStatusEnum.NPCCharacterStatusEnum_Unknown ? (
             <Button
               type={'link'}
               size={'small'}

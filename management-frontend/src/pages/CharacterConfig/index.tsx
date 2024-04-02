@@ -212,40 +212,6 @@ const Character: React.FC = () => {
   };
 
   /**
-   * 保存角色
-   */
-  const save = async () => {
-    form.validateFields().then(async (values) => {
-      console.log(values);
-
-      if (getHashParams()?.id) {
-        const result = await updateNPCRequest({
-          ...values,
-          id: getHashParams()?.id,
-          profile: avatarSrc.current,
-          chatBackground: chatBgSrc.current,
-        });
-        console.log(result, '更新结果');
-
-        if (result?.code === 0) {
-          history?.push('/');
-        }
-      } else {
-        const result = await createNPCRequest({
-          ...values,
-          profile: avatarSrc.current,
-          chatBackground: chatBgSrc.current,
-        });
-        console.log(result, '创建结果');
-
-        if (result?.code === 0) {
-          history?.push('/');
-        }
-      }
-    });
-  };
-
-  /**
    * 创建并发布
    */
   const saveAndPublish = async () => {
@@ -287,6 +253,42 @@ const Character: React.FC = () => {
           if (result?.code === 0) {
             history?.push('/');
           }
+        }
+      }
+    });
+  };
+
+  /**
+   * 保存角色
+   */
+  const save = async () => {
+    form.validateFields().then(async (values) => {
+      console.log(values);
+
+      if (getHashParams()?.id) {
+        const result = await updateNPCRequest({
+          ...values,
+          id: getHashParams()?.id,
+          profile: avatarSrc.current,
+          chatBackground: chatBgSrc.current,
+        });
+        console.log(result, '更新结果');
+
+        if (result?.code === 0) {
+          // history?.push('/');
+          message.success('保存成功');
+        }
+      } else {
+        const result = await createNPCRequest({
+          ...values,
+          profile: avatarSrc.current,
+          chatBackground: chatBgSrc.current,
+        });
+        console.log(result, '创建结果');
+
+        if (result?.code === 0) {
+          // history?.push('/');
+          message.success('保存成功');
         }
       }
     });
@@ -461,7 +463,7 @@ const Character: React.FC = () => {
         >
           <TextArea
             placeholder="请输入"
-            maxLength={1000}
+            maxLength={10000}
             style={{ width: 500 }}
             autoSize={{
               minRows: 4,

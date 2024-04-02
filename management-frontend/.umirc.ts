@@ -44,9 +44,9 @@ export default defineConfig({
   esbuildMinifyIIFE: true, // 修复 esbuild 压缩器自动引入的全局变量导致的命名冲突问题
   favicons: [
     // 完整地址
-    // 'https://zt-admin-dev.skyengine.net.cn/abtestmanager/favicon.png',
+    'http://management-game-npc.clarkchu.com/favicon.png',
     // 此时将指向 `/favicon.png` ，确保你的项目含有 `public/favicon.png`
-    '/game-npc/favicon.png',
+    '/favicon.png',
   ], // 配置页面icon
   hash: true, // 开启 hash 模式，让 build 之后的产物包含 hash 后缀
   history: {

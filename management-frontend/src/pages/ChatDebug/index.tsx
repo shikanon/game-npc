@@ -3,7 +3,7 @@ import LoadingDots from '@/components/LoadingDots';
 import { INPCAllInfo, INPCInfo, NPCCharacterSexEnum } from '@/interfaces/game_npc';
 import gameNpcService from '@/services/game_npc';
 import { getHashParams } from '@/utils';
-import { ClearOutlined, SendOutlined } from '@ant-design/icons';
+import { ClearOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
 import { useMount, useRequest } from 'ahooks';
 import { App, Avatar, Button, Col, Form, Image, Input, Radio, Row, Typography } from 'antd';
 import React, { useState } from 'react';
@@ -161,6 +161,7 @@ const ChatDebug = () => {
 
     if (result?.code === 0) {
       setChatList([]);
+      message.success('重置对话成功');
     } else {
       message.warning(result?.msg);
     }
@@ -231,7 +232,7 @@ const ChatDebug = () => {
         <Form
           form={form}
           layout="vertical"
-          style={{ marginTop: 30}}
+          style={{ marginTop: 20}}
           initialValues={{}}
         >
           <Form.Item label="角色名称" name="name">
@@ -264,8 +265,8 @@ const ChatDebug = () => {
               maxLength={500}
               style={{ width: '100%' }}
               autoSize={{
-                minRows: 4,
-                maxRows: 6,
+                minRows: 3,
+                maxRows: 4,
               }}
             />
           </Form.Item>
@@ -279,8 +280,8 @@ const ChatDebug = () => {
               maxLength={1000}
               style={{ width: '100%' }}
               autoSize={{
-                minRows: 5,
-                maxRows: 8,
+                minRows: 8,
+                maxRows: 10,
               }}
             />
           </Form.Item>
@@ -402,12 +403,12 @@ const ChatDebug = () => {
               <Button
                 size={'small'}
                 type={'link'}
-                style={{ color: '#fff' }}
+                // style={{ color: '#fff' }}
                 icon={<ClearOutlined />}
                 loading={clearNPCHistoryLoading}
               />
             </Row>
-            <Row justify={'center'} style={{ color: '#fff', fontSize: 12 }}>
+            <Row justify={'center'} style={{ fontSize: 12 }}>
               重置对话
             </Row>
           </Col>
@@ -416,7 +417,13 @@ const ChatDebug = () => {
       <div className={styles.right}>
         <Row justify={'start'} align={'bottom'}>
           <Col>
-            <Avatar src={npcAllInfo?.profile || ''} size={48} />
+            {
+              npcAllInfo?.profile ? (
+                <Avatar src={npcAllInfo?.profile || ''} size={48} />
+              ) : (
+                <Avatar icon={<UserOutlined />} size={48} />
+              )
+            }
           </Col>
           <Col style={{ marginLeft: 5 }}>{npcAllInfo?.name || '-'}</Col>
         </Row>
