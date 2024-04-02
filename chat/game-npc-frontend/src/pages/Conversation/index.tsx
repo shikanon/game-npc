@@ -292,12 +292,12 @@ const Conversation = () => {
               <Button
                 size={'small'}
                 type={'link'}
-                style={{ color: '#fff' }}
+                // style={{ color: '#fff' }}
                 icon={<ClearOutlined />}
                 loading={clearNPCHistoryLoading}
               />
             </Row>
-            <Row justify={'center'} style={{ color: '#fff', fontSize: 12 }}>
+            <Row justify={'center'} style={{ fontSize: 12 }}>
               重置对话
             </Row>
           </Col>
