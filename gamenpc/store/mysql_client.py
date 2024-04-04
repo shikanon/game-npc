@@ -48,21 +48,6 @@ class MySQLDatabase:
             record = session.query(record_class).filter_by(**filter_dict).first()
             return record
     
-    # def delete_records(self, record_class, filter_dict):
-    #     session = self.session()
-    #     records = session.query(record_class).filter_by(**filter_dict)
-    #     deleted_records_count = records.delete(synchronize_session=False)
-    #     session.commit()
-    #     return deleted_records_count
-
-    # def select_records(self, record_class, filter_dict=None)->List:
-    #     session = self.session()
-    #     if filter_dict == None:
-    #         result = session.query(record_class).all()
-    #     else:
-    #         result = session.query(record_class).filter_by(**filter_dict).all()
-    #     return result
-    
     def select_records(self, record_class, order_by=None, filter_dict=None, page=1, limit=10)->List:
         with self.session() as session:
             query = session.query(record_class)
@@ -87,3 +72,5 @@ class MySQLDatabase:
             query = session.query(record_class)
             results = query.all()
             return results
+        
+

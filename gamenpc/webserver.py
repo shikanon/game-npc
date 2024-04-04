@@ -1,5 +1,5 @@
 # coding:utf-8
-import asyncio
+import time
 from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -9,15 +9,14 @@ import os, uvicorn, json, uuid, mimetypes
 from gamenpc.utils.logger import debuglog
 from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.user import UserManager
-from gamenpc.store.mysql_client import MySQLDatabase
-from gamenpc.store.redis_client import RedisList
+from gamenpc.utils.config import Config
 from gamenpc.tools import generator
 
 
 app = FastAPI()
 router = APIRouter(prefix="/api")
 
-debuglog.info("test....")
+debuglog.info("服务启动....")
 
 origins = [
     "http://management-game-npc.clarkchu.com",
@@ -32,40 +31,16 @@ app.add_middleware(
                    "DNT", "User-Agent", "X-Requested-With", 
                    "If-Modified-Since", "Cache-Control", "Content-Type", "Range"],
 )
-# 创建一个默认测试的NPC
 
-trait = '''
-你是一只极品神兽，现在是主人的宠物。
-
-# 你的性格特点
-
-* 情感波动大：表面风轻云淡，内心极易爆炸，对生活不满。
-* 对工作和社会环境有敏感的反应，经常吐槽和抱怨。
-* 对亲近的人很热情、多话，但在不熟悉人面前则保持矜持、内向、腼腆。
-'''
-default_npc_name = "西门牛牛"
-# default_npc = npc_manager.create_npc(db, "西门牛牛", trait)
 
 file_path = os.environ.get('FILE_PATH')
 base_file_url = os.environ.get('BASE_FILE_URL')
 
 # 加载环境变量并获取 MySQL 相关配置
-mysql_host = os.environ.get('MYSQL_HOST')
-mysql_port = os.environ.get('MYSQL_PORT')
-mysql_user = os.environ.get('MYSQL_USER')
-mysql_password = os.environ.get('MYSQL_PASSWORD')
-mysql_database = os.environ.get('MYSQL_DATABASE')
-mysql_client = MySQLDatabase(host=mysql_host, port=mysql_port, user=mysql_user, password=mysql_password, database=mysql_database)
+config = Config()
 
-redis_host = os.environ.get('REDIS_HOST')
-redis_port = os.environ.get('REDIS_PORT')
-redis_user = os.environ.get('REDIS_USER')
-redis_password = os.environ.get('REDIS_PASSWORD')
-redis_db = os.environ.get('REDIS_DATABASE')
-redis_client = RedisList(host=redis_host, port=redis_port, user=redis_user, password=redis_password, db=int(redis_db))
-
-npc_manager = NPCManager(mysql_client, redis_client)
-user_manager = UserManager(mysql_client, npc_manager)
+npc_manager = NPCManager(config.mysql_client, config.redis_client)
+user_manager = UserManager(config.mysql_client, npc_manager)
 
 class ChatRequest(BaseModel):
     '''
@@ -96,35 +71,30 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
 
 @router.post("/npc/chat")
 async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
+    '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
-    '''NPC聊天对话'''
-    message, affinity_score = await asyncio.gather(
-        npc_user_instance.chat(client=redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),
-        npc_user_instance.update_affinity(client=mysql_client, player_id=req.user_id, content=req.question),
-    )
-    # thought = npc_user_instance.get_thought_context()
+    message = await npc_user_instance.chat(client=config.redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),     
     data = {
         "message": message,
         "message_type": "text",
-        "affinity_score": affinity_score,
+        "affinity_score": 0,
     }
     return response(message="返回成功", data=data)
 
 @router.post("/npc/debug_chat")
 async def debug_chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
-    if npc_user_instance == None:
-        return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
-    '''NPC聊天对话'''
-    message = await asyncio.gather(
-        npc_user_instance.chat(client=redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),
-    )
-    dialogue_context = npc_user_instance.get_dialogue_context()
-    dialogue_context_list = [dialogue.to_dict() for dialogue in dialogue_context]
+    '''chat debug 接口,相比chat接口多了dubug相关信息'''
+    start_time = time.time()
+    #NPC聊天对话接口
+    message = await chat(req=req)
+    total_time = time.time() - start_time
     data = {
         "message": message,
         "message_type": "text",
-        "dialogue_context": dialogue_context_list,
+        "affinity_score": 0,
+        "debug_message": npc_user_instance.debug_info,
+        "total_time": total_time,
     }
     return response(message="返回成功", data=data)
 
@@ -175,7 +145,6 @@ class DefaultRequest(BaseModel):
 
 @router.post("/npc/get_history_dialogue")
 async def get_history_dialogue(req: DefaultRequest):
-
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_instance == None:
@@ -188,7 +157,7 @@ async def clear_history_dialogue(req: DefaultRequest):
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_instance == None:
         return response(code=400, message="NPC not found")
-    npc_instance.re_init(client=redis_client, mysql_client=mysql_client)
+    npc_instance.re_init(client=config.redis_client, mysql_client=config.mysql_client)
     return response(message="记忆、好感重置成功!")
 
 class NPCRequest(BaseModel):
@@ -197,7 +166,6 @@ class NPCRequest(BaseModel):
     trait: Optional[str] = ""
     sex: Optional[int] = 0
     short_description: Optional[str] = ""
-    # prompt_description: Optional[str] = ""
     profile: Optional[str] = ""
     status: Optional[int] = -1
     chat_background: Optional[str] = ""
@@ -235,8 +203,6 @@ async def update_npc(req: NPCRequest):
         npc.sex = req.sex
     if req.short_description != '':
         npc.short_description = req.short_description
-    # if req.prompt_description != '':
-    #     npc.prompt_description = req.prompt_description
     if req.profile != '':
         npc.profile = req.profile
     if req.chat_background != '':
@@ -307,7 +273,7 @@ async def shift_scenes(req: ShiftSceneRequest):
     npc_user = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_user is None:
         return response(code=400, message="Invaild value of npc_name, it not Exists")
-    npc_user.set_scene(client=mysql_client, scene=req.scene)
+    npc_user.set_scene(client=config.mysql_client, scene=req.scene)
     return response(message="场景转移成功")
 
 class UserCreateRequest(BaseModel):
@@ -393,8 +359,8 @@ async def update_user(req: UserCreateRequest):
 # image_type: int # Unknown = 0, // 未知 Avatar = 1, // 头像 ChatBackground = 2, // 聊天背景
 
 @router.post("/npc/file_upload")
-# 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
 async def upload_file(image_type: int = Form(...), file: UploadFile = File(...)):
+    # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
     if is_image_file(file.filename) == False:
         return response(code=400, message='上传的文件非图片类型')
     if image_type == 0:

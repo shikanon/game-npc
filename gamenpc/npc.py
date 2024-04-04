@@ -169,6 +169,7 @@ class NPCUser(Base):
             top_k=1,
             model_version="1.1"
         )
+        self.debug_info = {}
     
     def to_dict(self):
         dialogue_context = self.get_dialogue_context()
@@ -377,6 +378,7 @@ class NPCUser(Base):
         call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.id, content=content, content_type=content_type)
         debuglog.info(f'chat: call_dialogue === {call_dialogue.to_dict()}')
 
+        self.debug_info["模型输入"] = all_messages
         response = self.character_model(messages=all_messages)
         content = response.content
         if self.dialogue_manager.check_dialogue():
