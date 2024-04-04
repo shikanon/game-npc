@@ -29,6 +29,35 @@ data的格式
 
 ---------------------------------------------------------------------------------------
 
+### NPC聊天调试接口
+接口路径(URL)：/npc/debug_chat
+请求方式：POST
+
+接口请求参数：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|------------------|
+| user_id | str      | 是 | 无 | 用户ID |
+| npc_id  | str      | 是 | 无 | NPC的ID |
+| scene   | str      | 是 | 无 | 场景 |
+| question| str      | 是 | 无 | 用户问题 |
+| content_type | str | 是 | 无 | 内容类型 |
+
+返回参数：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|------------------|
+| code    | int  | 是 | 0 | 响应状态码，0表示执行成功 |
+| msg     | str  | 是 | "执行成功" | 返回的消息说明 |
+| data    | data  | 否 | None | 返回的具体数据内容 |
+
+data的格式
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|-----|
+| message | str | 是 | 无 | 存储具体的消息内容 |
+| message_type | str | 是 | "text" | 消息类型，此处为文本 |
+| dialogue_context | str | 是 | 无 | 聊天上下文：[]dialogue |
+
+---------------------------------------------------------------------------------------
+
 ### 获取用户的聊天对象NPC信息
 接口路径(URL)：/npc/get_npc_users
 请求方式：POST
@@ -153,7 +182,7 @@ dialogue的格式：
 | trait | str | 是 | 无 | NPC的性格特点 |
 | sex | int | 是 | 无 | NPC的性别 |
 | short_description | str | 否 | "" | NPC的简短描述 |
-| prompt_description | str | 是 | 无 | NPC的提示描述 |
+<!-- | prompt_description | str | 是 | 无 | NPC的提示描述 | -->
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
 | affinity_level_description | str | 是 | 无 | NPC的亲和级别描述 |
@@ -222,7 +251,7 @@ data的结构如下：
 | trait | str | 是 | 无 | NPC的性格特点 |
 | sex | int | 是 | 无 | NPC的性别 |
 | short_description | str | 否 | "" | NPC的简短描述 |
-| prompt_description | str | 是 | 无 | NPC的提示描述 |
+<!-- | prompt_description | str | 是 | 无 | NPC的提示描述 | -->
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
 | affinity_level_description | str | 是 | 无 | NPC的亲和级别描述 |

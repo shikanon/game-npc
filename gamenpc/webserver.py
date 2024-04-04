@@ -197,16 +197,17 @@ class NPCRequest(BaseModel):
     trait: Optional[str] = ""
     sex: Optional[int] = 0
     short_description: Optional[str] = ""
-    prompt_description: Optional[str] = ""
+    # prompt_description: Optional[str] = ""
     profile: Optional[str] = ""
     status: Optional[int] = -1
     chat_background: Optional[str] = ""
     affinity_level_description: Optional[str] = ""
 
+# prompt_description=req.prompt_description
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
     npc = npc_manager.set_npc(name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
-                               prompt_description=req.prompt_description, profile=req.profile, 
+                               profile=req.profile, 
                                chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
     return response(data=npc.id)
 
@@ -234,8 +235,8 @@ async def update_npc(req: NPCRequest):
         npc.sex = req.sex
     if req.short_description != '':
         npc.short_description = req.short_description
-    if req.prompt_description != '':
-        npc.prompt_description = req.prompt_description
+    # if req.prompt_description != '':
+    #     npc.prompt_description = req.prompt_description
     if req.profile != '':
         npc.profile = req.profile
     if req.chat_background != '':
