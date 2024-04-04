@@ -179,10 +179,10 @@ dialogue的格式：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|-------------------------------------------------|
 | name | str | 是 | 无 | NPC的名字 |
-| trait | str | 是 | 无 | NPC的性格特点 |
 | sex | int | 是 | 无 | NPC的性别 |
+| trait | str | 是 | 无 | NPC的角色描述 |
 | short_description | str | 否 | "" | NPC的简短描述 |
-<!-- | prompt_description | str | 是 | 无 | NPC的提示描述 | -->
+<!-- | prompt_description | str | 是 | 无 | NPC的prompt详情 | -->
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
 | affinity_level_description | str | 是 | 无 | NPC的亲和级别描述 |
@@ -248,8 +248,8 @@ data的结构如下：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|-------------------------------------------------|
 | name | str | 是 | 无 | NPC的名字 |
-| trait | str | 是 | 无 | NPC的性格特点 |
 | sex | int | 是 | 无 | NPC的性别 |
+| trait | str | 是 | 无 | NPC的角色描述 |
 | short_description | str | 否 | "" | NPC的简短描述 |
 <!-- | prompt_description | str | 是 | 无 | NPC的提示描述 | -->
 | profile | str | 是 | 无 | NPC的个人资料 |
