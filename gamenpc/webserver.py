@@ -1,6 +1,6 @@
 # coding:utf-8
 import asyncio
-from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile, Form
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -11,6 +11,7 @@ from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.user import UserManager
 from gamenpc.store.mysql_client import MySQLDatabase
 from gamenpc.store.redis_client import RedisList
+from gamenpc.tools import generator
 
 
 app = FastAPI()
@@ -407,6 +408,11 @@ async def upload_file(image_type: int = Form(...), file: UploadFile = File(...))
 def is_image_file(filename):
     mimetype, _ = mimetypes.guess_type(filename)
     return mimetype and mimetype.startswith('image')
+
+@app.get("/tools/generator_npc_trait", response_class=Response)
+async def generator_npc_trait(npc_name: str, npc_sex: int, npc_short_description: str):
+    npc_trait = generator.generator_npc_trait(npc_name, npc_sex, npc_short_description)
+    return response(code=0, message="执行成功", data=npc_trait)
 
 if __name__ == "__main__":
     # 创建一个全局对象
