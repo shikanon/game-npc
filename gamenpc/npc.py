@@ -379,13 +379,13 @@ class NPCUser(Base):
         debuglog.info(f'chat: call_dialogue === {call_dialogue.to_dict()}')
 
         self.debug_info["模型输入"] = all_messages
+        debuglog.info(f'chat输入: \n === {all_messages}')
         response = self.character_model(messages=all_messages)
         content = response.content
         if self.dialogue_manager.check_dialogue():
             client.pop(list_name)
 
         back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.id, role_to=player_id, content=content, content_type=content_type)
-        debuglog.info(f'chat: back_dialogue === {back_dialogue.to_dict()}')
         client.push(list_name, call_dialogue)
         client.push(list_name, back_dialogue)
         return content
