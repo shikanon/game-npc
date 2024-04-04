@@ -6,8 +6,8 @@ import requests
 
 base_url = "http://127.0.0.1:8888/api"
 client = requests.Session()
-npc_id = ""
-user_id = ""
+npc_id = "b251a8e5-3b9d-4a17-b76c-b6d3c0d0b3ee"
+user_id = "066f2c2e-3b88-4626-a6d3-713a30a481ef"
 name = "NPC_2"
 class TestAPI(unittest.TestCase):
     # def test_chat(self):
@@ -29,6 +29,26 @@ class TestAPI(unittest.TestCase):
     #     assert 'message' in resp_data['data']
     #     assert 'message_type' in resp_data['data']
     #     assert 'affinity_score' in resp_data['data']
+
+    def test_chat(self):
+        payload = {
+            "user_id": user_id,
+            "npc_id": npc_id,
+            "scene": "battlefield",
+            "question": "好了嘛，知道了，但是你不能这么对我啊",
+            "content_type": "text",   
+        }
+        response = client.post(f"{base_url}/npc/debug_chat", json=payload)
+        resp_data = response.json()
+        print('resp_data: --------------------------', resp_data)
+        assert 'code' in resp_data
+        assert resp_data['code'] == 0
+        assert 'msg' in resp_data
+        assert resp_data['msg'] == '返回成功'
+        assert 'data' in resp_data
+        assert 'message' in resp_data['data']
+        assert 'message_type' in resp_data['data']
+        assert 'dialogue_context' in resp_data['data']
 
     # def test_get_npc_users(self):
     #     payload = {
@@ -157,19 +177,19 @@ class TestAPI(unittest.TestCase):
     #     assert 'data' in resp_data
     #     assert resp_data['data']['status'] == payload['status']
 
-    def test_query_npc(self):
-        payload = {}
-        response = client.post(f"{base_url}/npc/query", json=payload)
-        assert response.status_code == 200 
-        resp_data = response.json()
-        print('resp_data: --------------------------', resp_data)
-        assert 'code' in resp_data
-        assert resp_data['code'] == 0
-        assert 'msg' in resp_data
-        assert resp_data['msg'] == '执行成功'
-        assert 'data' in resp_data
-        assert 'list' in resp_data['data']
-        assert 'total' in resp_data['data']
+    # def test_query_npc(self):
+    #     payload = {}
+    #     response = client.post(f"{base_url}/npc/query", json=payload)
+    #     assert response.status_code == 200 
+    #     resp_data = response.json()
+    #     print('resp_data: --------------------------', resp_data)
+    #     assert 'code' in resp_data
+    #     assert resp_data['code'] == 0
+    #     assert 'msg' in resp_data
+    #     assert resp_data['msg'] == '执行成功'
+    #     assert 'data' in resp_data
+    #     assert 'list' in resp_data['data']
+    #     assert 'total' in resp_data['data']
 
     # def test_get_npc(self):
     #     payload = {

@@ -2,9 +2,11 @@ from typing import List
 from sqlalchemy import create_engine, desc, text
 from sqlalchemy.orm import sessionmaker
 from urllib.parse import quote_plus
+from gamenpc.utils.logger import debuglog
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
+# debuglog = DebugLogger("mysql")
 
 class MySQLDatabase:
     def __init__(self, host:str, port:str, user:str, password:str, database:str):
@@ -32,7 +34,7 @@ class MySQLDatabase:
                 session.delete(record)
                 session.commit()
             else:
-                print("没有找到对应id的记录, 无法删除")
+                debuglog.info("没有找到对应id的记录, 无法删除")
 
     def update_record(self, record)->any:
         with self.session() as session:

@@ -1,15 +1,12 @@
 import redis
 import pickle
-import os
-# from urllib.parse import quote_plus
+from gamenpc.utils.logger import debuglog
+
+# debuglog = DebugLogger("redis")
 
 class RedisList:
     def __init__(self, host='localhost', port=6379, user="root", password='', db=0):
-        print('host: ', host)
-        print('port: ', port)
-        print('user: ', user)
-        print('password: ', password)
-        print('db: ', db)
+        debuglog.info(f'redis init: host = {host}, port = {port}, user = {user}, password = {password}, db = {db}')
         self.redis_client = redis.Redis(host=host, port=port, username=user, password=password, db=db)
 
     def push(self, name, value):

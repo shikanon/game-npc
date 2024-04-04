@@ -11,12 +11,15 @@ from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessageProm
 from gamenpc.store.mysql_client import Base
 from gamenpc.store.redis_client import RedisList
 import uuid
+from gamenpc.utils.logger import debuglog
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from dataclasses import dataclass
+
+# debuglog = DebugLogger("memory")
 
 summarize_dialogue_template = """
 # 角色
@@ -322,17 +325,10 @@ class DialogueMemory:
         return flag
     
     def add_dialogue(self, role_from, role_to, content, content_type)->DialogueEntry:
-        # list_name = f'dialogue_{npc_user_id}'
-        # print('list_name: ', list_name)
-        # if len(self.dialogue_context) >= self.context_limit:
-        #     # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
-        #     redis_client.pop(list_name)
-        #     self.dialogue_context.pop(0)
-
         dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         # 历史对话持久化到db中
         self.dialogue_context.append(dialogue)
-        print('self.dialogue_context: ', [dialogue.to_dict() for dialogue in self.dialogue_context])
+        debuglog.info(f'add_dialogue: dialogue_context ===== {[dialogue.to_dict() for dialogue in self.dialogue_context]}')
         self.dialogue_pair_count = self.dialogue_pair_count + 1
 
         # 如果新增会话大于阈值，对会话内容进行总结
@@ -340,7 +336,7 @@ class DialogueMemory:
             # 异步做总结可以不阻塞对话过程，保证延迟体验
             # 使用list重新生成一个新对象来防止dialogue_context的修改影响recent_dialogues
             recent_dialogues = list(self.dialogue_context[-self.summarize_limit:])
-            print('recent_dialogues list: ', [dialogue.to_dict() for dialogue in recent_dialogues])
+            debuglog.info(f'add_dialogue: recent_dialogues list === {[dialogue.to_dict() for dialogue in recent_dialogues]}')
             asyncio.create_task(self.add_summary(recent_dialogues))
             # 重置对话长度
             self.dialogue_pair_count = 0
@@ -362,7 +358,7 @@ class DialogueMemory:
     async def add_summary(self, dialogues: List[DialogueEntry]):
         # 异步函数，生成对话总结
         summary = await self.mind.summarize_dialogue2converation(dialogues)
-        print('summary: ', summary)
+        debuglog.info(f'add_summary: summary === {summary}')
         self.conversation.append(summary)
     
     def get_recent_conversation(self, round=1)->List[ConverationEntry]:

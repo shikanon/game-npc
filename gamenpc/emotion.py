@@ -5,10 +5,13 @@ author: shikanon
 create: 2024/1/21
 """
 import json
+from gamenpc.utils.logger import debuglog
 from typing import Dict, List
 from langchain.schema import SystemMessage, HumanMessage
 
 from gamenpc.model import doubao
+
+# debuglog = DebugLogger("emotion")
 
 class AffinityLevel:
     '''好感等级：
@@ -119,7 +122,7 @@ class AffinityManager:
         affinity_level = self.affinity_level.get_level(self.score)
         affinity_analysis = f"""你任务是分析{npc}对{target}的好感变化，当前好感是：\n{affinity_level}\n，下面是他们的对话:\n{history_dialogues}\n现在{target}对{npc}说: "{dialogue_content}"，{npc}对{target}的好感度是增加还是减少，增加调用IncreaseAffinity函数，减少调用DecreaseAffinity"""
         all_messages = [SystemMessage(content=self.system_prompt),HumanMessage(content=affinity_analysis)]
-        print(all_messages)
+        debuglog.info(f'calculate_affinity: all_messages === {all_messages}')
         result = self.model(messages=all_messages)
         if "function_call" in result.additional_kwargs:
             fn_name = result.additional_kwargs["function_call"]["name"]
@@ -131,7 +134,7 @@ class AffinityManager:
             if fn_name == "DecreaseAffinity":
                 self.decrease_affinity(amount)
         else:
-            print("好感无变化.\n%s"%result.content)
+            debuglog.info("好感无变化.\n%s"%result.content)
     
     def __str__(self):
         """返回好感度的字符串表示"""

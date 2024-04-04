@@ -6,6 +6,7 @@ create: 2024/1/8
 """
 import json
 import os
+from gamenpc.utils.logger import DebugLogger
 from fastapi import FastAPI, File, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -22,7 +23,7 @@ from gamenpc.memory import knowledge
 
 # web 应用服务
 app = FastAPI()
-debuglog = logger.DebugLogger("chat bot web")
+debuglog = DebugLogger("chat bot web")
 
 app.add_middleware(
     CORSMiddleware,
@@ -113,7 +114,7 @@ def get_knowledge_content(req: QuestionRequest):
     else:
         kg_db.init_db("knowledge")
     similar_content = kg_db.query(context_question)
-    debuglog.debug(similar_content)
+    debuglog.info(f'get_knowledge_content: similar_content === {similar_content}')
     return similar_content
 
 # 知识问答接口
@@ -136,7 +137,7 @@ async def ask_question(req: QuestionRequest):
     knowledge_prompt = HumanMessagePromptTemplate.from_template(
                 template=character_prompt_template,
             ).format(knowledge=query_result, question=req.question)
-    debuglog.debug(knowledge_prompt)
+    debuglog.info(f'ask_question: knowledge_prompt === {knowledge_prompt}')
     messages.append(knowledge_prompt)
     # 将上下文拼接后访问大模型
     result = chat(messages)
@@ -144,13 +145,11 @@ async def ask_question(req: QuestionRequest):
         fn_name = result.additional_kwargs["function_call"]["name"]
         fn_params = result.additional_kwargs["function_call"]["arguments"]
         params = json.loads(fn_params)
-        print(fn_name)
-        print(params)
         answer = globals()[fn_name](**params) + result.content
     else:
         answer = result.content
-    debuglog.debug(messages)
-    debuglog.debug(answer)
+    debuglog.info(f'ask_question: messages === {messages}')
+    debuglog.info(f'ask_question: answer === {answer}')
     return {"question": req.question, "answer": answer, "history": req.history_messages, "context": messages}
 
 # 知识问答接口
@@ -173,10 +172,11 @@ async def ask_question_sse(req: QuestionRequest):
     knowledge_prompt = HumanMessagePromptTemplate.from_template(
                 template=character_prompt_template,
             ).format(knowledge=query_result, question=req.question)
-    debuglog.debug(knowledge_prompt)
     messages.append(knowledge_prompt)
     # 将上下文拼接后访问大模型
     result = chat.astream(messages)
+    debuglog.info(f'ask_question_sse: messages === {messages}')
+    debuglog.info(f'ask_question_sse: result === {result}')
     return StreamingResponse(chat.astream(messages), media_type="text/event-stream")
 
 
@@ -229,8 +229,9 @@ async def upload_file(file: UploadFile = File(...)):
     parsed_content = "这是解析后的内容示例。"
     content = await file.read()
     kg_unit = content.decode('utf-8').split("/n")
-    debuglog.debug(len(kg_unit))
     kg_db.bulk_insert(kg_unit)
+    debuglog.info(f'upload_file: kg_unit === {kg_unit}')
+    debuglog.info(f'upload_file: kg_unit len === {len(kg_unit)}')
     return {"filename": file.filename, "content": kg_unit}
 
 # 知识问答Debug接口
@@ -258,11 +259,11 @@ async def websocket_endpoint(websocket: WebSocket):
         hunman_ask_data = await websocket.receive_text()
         messages = history
         messages.append(HumanMessage(content=hunman_ask_data))
-        print(messages)
-        print(hunman_ask_data)
+        debuglog.info(f'websocket_endpoint: messages === {messages}')
+        debuglog.info(f'websocket_endpoint: hunman_ask_data === {hunman_ask_data}')
         answer = ""
         async for chunk in chat.astream(hunman_ask_data):
-            print(chunk)
+            debuglog.info(f'websocket_endpoint: chunk === {chunk}')
             if chunk.content == '':
                 continue
             await websocket.send_text(chunk.content)

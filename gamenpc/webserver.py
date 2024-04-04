@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 import os, uvicorn, json, uuid, mimetypes
 
-from gamenpc.utils import logger
+from gamenpc.utils.logger import debuglog
 from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.user import UserManager
 from gamenpc.store.mysql_client import MySQLDatabase
@@ -17,7 +17,7 @@ from gamenpc.tools import generator
 app = FastAPI()
 router = APIRouter(prefix="/api")
 
-debuglog = logger.DebugLogger("chat bot web")
+debuglog.info("test....")
 
 origins = [
     "http://management-game-npc.clarkchu.com",
@@ -108,6 +108,23 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
         "message": message,
         "message_type": "text",
         "affinity_score": affinity_score,
+    }
+    return response(message="返回成功", data=data)
+
+@router.post("/npc/debug_chat")
+async def debug_chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
+    if npc_user_instance == None:
+        return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
+    '''NPC聊天对话'''
+    message = await asyncio.gather(
+        npc_user_instance.chat(client=redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),
+    )
+    dialogue_context = npc_user_instance.get_dialogue_context()
+    dialogue_context_list = [dialogue.to_dict() for dialogue in dialogue_context]
+    data = {
+        "message": message,
+        "message_type": "text",
+        "dialogue_context": dialogue_context_list,
     }
     return response(message="返回成功", data=data)
 
@@ -377,7 +394,6 @@ async def update_user(req: UserCreateRequest):
 @router.post("/npc/file_upload")
 # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
 async def upload_file(image_type: int = Form(...), file: UploadFile = File(...)):
-    print('image_type: ', image_type)
     if is_image_file(file.filename) == False:
         return response(code=400, message='上传的文件非图片类型')
     if image_type == 0:
@@ -394,7 +410,6 @@ async def upload_file(image_type: int = Form(...), file: UploadFile = File(...))
 
     _, extension = os.path.splitext(file.filename)
     filename = f'{uuid.uuid4()}{extension}'
-    print('extension: ', extension)
     file_location = f"{full_file_path}/{filename}"  
     # 使用 'wb' 模式以二进制写入文件
     with open(file_location, "wb") as f:

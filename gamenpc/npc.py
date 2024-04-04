@@ -17,11 +17,13 @@ from gamenpc.model import doubao
 from gamenpc.emotion import AffinityManager, AffinityLevel
 from gamenpc.store.mysql_client import MySQLDatabase, Base
 from gamenpc.store.redis_client import RedisList
+from gamenpc.utils.logger import debuglog
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from dataclasses import dataclass
 
+# debuglog = DebugLogger("npc")
 
 DEFAULT_ROLE_TEMPLATE = '''你的名字叫{{name}}。
 {{scene}}
@@ -220,18 +222,13 @@ class NPCUser(Base):
         # db中加载历史对话
         dialogue_context = []
         list_name = f'dialogue_{self.npc_id}_{self.user_id}'
-        print('list_name: ', list_name)
         dialogue_context_bytes_list = redis_client.get_all(list_name)
-        # print('dialogue_context_bytes_list: ', dialogue_context_bytes_list)
+
         for dialogue_context_byte in dialogue_context_bytes_list:
             # 这里将dialogue_context_byte转成dialogue
             dialogue = pickle.loads(dialogue_context_byte)
             dialogue_context.append(dialogue)
         dialogue_context.reverse()
-
-        data = [dialogue.to_dict() for dialogue in dialogue_context]
-        print('dialogue_context: ', data)
-
         affinity_level = AffinityLevel(
             acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
             familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
@@ -368,26 +365,25 @@ class NPCUser(Base):
         # 本次消息
         format_message = self.process_message(content)
         all_messages.append(HumanMessage(content=format_message))
-        # print(all_messages)
+        debuglog.info(f'chat: all_messages === {all_messages}')
 
         if content_type == '':
             content_type = 'text'
         
         list_name = f'dialogue_{self.id}'
-        print('list_name: ', list_name)
         if self.dialogue_manager.check_dialogue():
-            dialogue_1 = client.pop(list_name)
-            print('dialogue_1: ', dialogue_1.to_dict())
+            client.pop(list_name)
+
         call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.id, content=content, content_type=content_type)
-        print('call_dialogue: ', call_dialogue.to_dict())
+        debuglog.info(f'chat: call_dialogue === {call_dialogue.to_dict()}')
 
         response = self.character_model(messages=all_messages)
         content = response.content
         if self.dialogue_manager.check_dialogue():
-            dialogue_2 = client.pop(list_name)
-            print('dialogue_2: ', dialogue_2.to_dict())
+            client.pop(list_name)
+
         back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.id, role_to=player_id, content=content, content_type=content_type)
-        print('back_dialogue: ', back_dialogue.to_dict())
+        debuglog.info(f'chat: back_dialogue === {back_dialogue.to_dict()}')
         client.push(list_name, call_dialogue)
         client.push(list_name, back_dialogue)
         return content
@@ -433,9 +429,17 @@ class NPCManager:
         
         npc_users = self.client.select_all_records(record_class=NPCUser)
         for npc_user in npc_users:
-            npc_user.init(self.redis_client)
-            self._instances[npc_user.id] = npc_user
-        print('self._instance: ', self._instances)
+            new_npc_user = NPCUser(id=npc_user.id, 
+                                   name=npc_user.name, 
+                                   npc_id=npc_user.npc_id, 
+                                   user_id=npc_user.user_id, 
+                                   sex=npc_user.sex, 
+                                   score=npc_user.score,
+                                   trait=npc_user.trait, 
+                                   scene=npc_user.scene)
+            new_npc_user.init(redis_client=redis_client)
+            debuglog.info(f'npc_user init: new npc_user === {new_npc_user.to_dict()}')
+            self._instances[npc_user.id] = new_npc_user
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
         npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
@@ -448,27 +452,24 @@ class NPCManager:
     
     def update_npc(self, npc: NPC)->NPC:
         new_npc = self.client.update_record(npc)
-        print('update npc: ', new_npc.to_dict())
+        debuglog.info(f'update_npc: new npc === {new_npc.to_dict()}')
         filter_dict = {'npc_id': npc.id}
         npc_user_list = self.client.select_records(record_class=NPCUser, filter_dict=filter_dict)
-        print('npc_user list len: ', len(npc_user_list))
+        debuglog.info(f'update_npc: npc_user list len === {len(npc_user_list)}')
         for npc_user in npc_user_list:
-            print('npc_user id', npc_user.id)
-            print('npc_user npc id', npc_user.npc_id)
-            print('npc_user user id', npc_user.user_id)
             npc_user_id = npc_user.id
             old_npc_user = self._instances.get(npc_user_id, None)
             old_npc_user.name = new_npc.name
             old_npc_user.sex = new_npc.sex
             old_npc_user.trait = new_npc.trait
             self._instances[npc_user_id] = old_npc_user
-            print('update npc and update cache npc_user: ', old_npc_user.to_dict())
+            debuglog.info(f'update_npc: update npc and update cache npc_user = {old_npc_user.to_dict()}')
 
             npc_user.name = new_npc.name
             npc_user.sex = new_npc.sex
             npc_user.trait = new_npc.trait
             db_npc_user = self.client.update_record(npc_user)
-            print('update npc and update db npc_user: ', db_npc_user)
+            debuglog.info(f'update_npc: update npc and update db npc_user = {db_npc_user}')
         return new_npc
 
     def remove_npc(self, npc_id: str):
@@ -500,9 +501,7 @@ class NPCManager:
 
         start_index = (page - 1) * limit
         end_index = start_index + limit
-        # print(f"start_index: {start_index}, end_index: {end_index}")
         new_npc_user_list = npc_user_list[start_index:end_index]
-        # print('new_npc_user_list: ', new_npc_user_list)
         return new_npc_user_list
     
     def get_npc_all_info(self, npc_id: str, user_id: str) -> dict:

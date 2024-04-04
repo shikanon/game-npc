@@ -20,6 +20,7 @@ class User(Base):
     phone = Column(String(11))
     money = Column(Integer)
     password = Column(String(11))
+    is_super = Column(Integer)
     created_at = Column(DateTime, default=datetime.now())
 
     def __init__(self, id=None, name=None, sex=None, phone=None, money=None, password=None, npc_manager=NPCManager):
