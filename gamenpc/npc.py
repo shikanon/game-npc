@@ -26,18 +26,17 @@ from dataclasses import dataclass
 # debuglog = DebugLogger("npc")
 
 DEFAULT_ROLE_TEMPLATE = '''你的名字叫{{name}}。
-{{scene}}
 {{trait}}
+{{scene}}
 {{affinity}}
 
 # 对话规则
 
-* 与游戏无关的请勿回答；
 * 不要谈及政治和宗教话题；
 * 不能暴露自己是AI或扮演游戏；
 * 回答使用简体中文；回复尽量简洁；
 * 回答内容不要使用双引号；
-* 适当地引出新的话题；
+* 适当地引出新的话题来增加互动性；
 
 {{event}}
 '''
@@ -231,10 +230,10 @@ class NPCUser(Base):
             dialogue_context.append(dialogue)
         dialogue_context.reverse()
         affinity_level = AffinityLevel(
-            acquaintance="你们刚刚认识，彼此之间还不太熟悉，在他面前你的表现是「谨慎、好奇、试探」。",
-            familiar="你们经过长时间交流，已经相互有深度的了解，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、真诚、调侃」。",
+            acquaintance="你们刚刚认识不久，虽然互有好感，但彼此之间还不太熟悉，在他面前你的表现是「害羞、好奇、试探」。",
+            familiar="你们经过长时间交流，已经相互有深度的了解，并相互暧昧，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、挑逗、调侃」。",
             friend="你们是亲密朋友关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「关爱、感激、深情、溺爱」。",
-            soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间理解和和谐到了几乎完美的境界，你们互信互依。",
+            soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间心有灵犀，和谐到了几乎完美的境界，你们互信互依。",
             adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
         )
         self.affinity = AffinityManager(score=self.score,level=affinity_level)
@@ -286,7 +285,7 @@ class NPCUser(Base):
         return self.scene
     
     def re_init(self, client: RedisList, mysql_client: MySQLDatabase,)->None:
-        self.affinity.set_score(0)
+        self.affinity.set_score(60)
         self.event = None
         self.dialogue_manager.clear(client, self.id)
         mysql_client.update_record(self)
@@ -438,7 +437,8 @@ class NPCManager:
                                    sex=npc_user.sex, 
                                    score=npc_user.score,
                                    trait=npc_user.trait, 
-                                   scene=npc_user.scene)
+                                   scene=npc_user.scene,
+                                   )
             new_npc_user.init(redis_client=redis_client)
             debuglog.info(f'npc_user init: new npc_user === {new_npc_user.to_dict()}')
             self._instances[npc_user.id] = new_npc_user
