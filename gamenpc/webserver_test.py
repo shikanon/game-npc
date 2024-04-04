@@ -17,8 +17,8 @@ async def test_debug_chat():
     npcs = npc_manager.get_npcs()
     npc = npcs[0]
     mock_request = {
-        'user_id': user.id,
-        'npc_id': npc.id,
+        'user_id': str(user.id),
+        'npc_id': str(npc.id),
         'question': '你好呀',
         'scene': '在家中',
         'content_type': 'text'
