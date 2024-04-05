@@ -22,3 +22,9 @@ class RedisList:
     def delete(self, name):
         return self.redis_client.delete(name)
     
+    def set_key_expire(self, key, expire):
+        self.redis_client.set(key, "", ex=expire)
+    
+    def get_key(self, key):
+        return self.redis_client.get(key)
+    

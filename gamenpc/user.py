@@ -1,11 +1,15 @@
+import uuid
+import os
+
 from sqlalchemy import Column, String, Integer, DateTime, Enum, Text
 from sqlalchemy.dialects.postgresql import UUID
-from gamenpc.npc import NPCUser, NPCManager
-from gamenpc.store.mysql_client import MySQLDatabase, Base
 from typing import List
-import uuid
 from datetime import datetime
 from dataclasses import dataclass
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadData
+
+from gamenpc.npc import NPCUser, NPCManager
+from gamenpc.store.mysql_client import MySQLDatabase, Base
 
 @dataclass
 class User(Base):
@@ -89,6 +93,10 @@ class UserManager:
     def __init__(self, client: MySQLDatabase, npc_manager: NPCManager):
         self.client = client
         self.npc_manager = npc_manager
+        self.expire_time = 60 * 60 * 24 * 30 # 过期时间为30天
+        self.secret_key = os.environ.get('SECRET_KEY')
+        if self.secret_key is None:
+            self.secret_key = "this-your-default-secret-key"
 
     def get_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[User]:
         users = self.client.select_records(record_class=User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
@@ -124,4 +132,30 @@ class UserManager:
     
     def remove_user(self, user_id: str):
         self.client.delete_record_by_id(User, user_id)
-        
+
+
+    # 生成token
+    def generate_token(self, username: str, password: str) -> str:
+        s = Serializer(self.secret_key, expires_in=self.expire_time)
+        token = s.dumps({"username": username, "password": password}).decode()
+        self.client.set_key_expire(token, self.expire_time)
+        return token
+    
+    # 解析token
+    def decode_token(self, token:str) -> str:
+        s = Serializer(self.secret_key)
+        try:
+            data = s.loads(token)
+            username = data['username']
+            return username
+        except BadData:
+            return ""
+
+    # 验证token
+    def verify_token(self, token: str)-> bool:
+        username = self.decode_token(token)
+        if username == "":
+            return False
+        if not self.client.get(token):
+            return False
+        return True
