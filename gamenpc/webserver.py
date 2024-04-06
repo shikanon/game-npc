@@ -175,7 +175,7 @@ class NPCRequest(BaseModel):
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
     npc = npc_manager.set_npc(name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
-                               profile=req.profile, 
+                               profile=req.profile, prompt_description="",
                                chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
     return response(data=npc.id)
 
