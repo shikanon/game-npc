@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from typing import List
 from datetime import datetime
 from dataclasses import dataclass
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadData
+from itsdangerous import JSONWebSignatureSerializer as Serializer, BadData
 
 from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.store.mysql_client import MySQLDatabase, Base
