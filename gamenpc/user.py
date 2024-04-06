@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from typing import List
 from datetime import datetime
 from dataclasses import dataclass
-from itsdangerous import JSONWebSignatureSerializer as Serializer, BadData
+from itsdangerous import TimedSerializer, BadData
 
 from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.store.mysql_client import MySQLDatabase, Base
@@ -136,14 +136,14 @@ class UserManager:
 
     # 生成token
     def generate_token(self, username: str, password: str) -> str:
-        s = Serializer(self.secret_key, expires_in=self.expire_time)
+        s = TimedSerializer(self.secret_key, expires_in=self.expire_time)
         token = s.dumps({"username": username, "password": password}).decode()
         self.client.set_key_expire(token, self.expire_time)
         return token
     
     # 解析token
     def decode_token(self, token:str) -> str:
-        s = Serializer(self.secret_key)
+        s = TimedSerializer(self.secret_key)
         try:
             data = s.loads(token)
             username = data['username']
