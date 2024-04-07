@@ -396,7 +396,7 @@ class GenNPCTraitRequest(BaseModel):
     npc_sex: Optional[str] = "女"
     npc_short_description: str
 
-@router.post("/tools/generator_npc_trait", response_class=Response)
+@router.post("/tools/generator_npc_trait")
 async def generator_npc_trait(req: GenNPCTraitRequest):
     npc_trait = generator.generator_npc_trait(req.npc_name, req.npc_sex, req.npc_short_description)
     return response(code=0, message="执行成功", data=npc_trait)
