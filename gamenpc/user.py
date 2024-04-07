@@ -44,7 +44,7 @@ class User(Base):
             'sex': self.sex,
             'phone': self.phone,
             'money': self.money,
-            'password': self.password,
+            # 'password': self.password,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
         }
     
