@@ -425,11 +425,11 @@ class Scene(Base):
 
 class NPCManager:
     def __init__(self, mysql_client: MySQLDatabase, redis_client: RedisList):
-        self.client = mysql_client
+        self.mysql_client = mysql_client
         self.redis_client = redis_client
         self._instances = {}        
         
-        npc_users = self.client.select_all_records(record_class=NPCUser)
+        npc_users = self.mysql_client.select_all_records(record_class=NPCUser)
         for npc_user in npc_users:
             new_npc_user = NPCUser(id=npc_user.id, 
                                    name=npc_user.name, 
@@ -445,19 +445,19 @@ class NPCManager:
             self._instances[npc_user.id] = new_npc_user
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
-        npcs = self.client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
+        npcs = self.mysql_client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         return npcs
     
     def get_npc(self, npc_id) -> NPC:
         filter_dict = {'id': npc_id}
-        npc = self.client.select_record(record_class=NPC, filter_dict=filter_dict)
+        npc = self.mysql_client.select_record(record_class=NPC, filter_dict=filter_dict)
         return npc
     
     def update_npc(self, npc: NPC)->NPC:
-        new_npc = self.client.update_record(npc)
+        new_npc = self.mysql_client.update_record(npc)
         debuglog.info(f'update_npc: new npc === {new_npc.to_dict()}')
         filter_dict = {'npc_id': npc.id}
-        npc_user_list = self.client.select_records(record_class=NPCUser, filter_dict=filter_dict)
+        npc_user_list = self.mysql_client.select_records(record_class=NPCUser, filter_dict=filter_dict)
         debuglog.info(f'update_npc: npc_user list len === {len(npc_user_list)}')
         for npc_user in npc_user_list:
             npc_user_id = npc_user.id
@@ -471,18 +471,18 @@ class NPCManager:
             npc_user.name = new_npc.name
             npc_user.sex = new_npc.sex
             npc_user.trait = new_npc.trait
-            db_npc_user = self.client.update_record(npc_user)
+            db_npc_user = self.mysql_client.update_record(npc_user)
             debuglog.info(f'update_npc: update npc and update db npc_user = {db_npc_user}')
         return new_npc
 
     def remove_npc(self, npc_id: str):
-        self.client.delete_record_by_id(NPC, npc_id)
+        self.mysql_client.delete_record_by_id(NPC, npc_id)
     
     def set_npc(self, name: str, sex: int, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:
         new_npc= NPC(name=name, sex=sex, trait=trait, short_description=short_description,
                                prompt_description=prompt_description, profile=profile, chat_background=chat_background, affinity_level_description=affinity_level_description)
-        new_npc = self.client.insert_record(new_npc)
+        new_npc = self.mysql_client.insert_record(new_npc)
         return new_npc
     
     def get_npc_user(self, npc_id: str, user_id: str) -> NPCUser:
@@ -535,6 +535,6 @@ class NPCManager:
         dialogue_context = []
         npc_user_id = f'{npc_id}_{user_id}'
         new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, sex=sex, trait=trait, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
-        self.client.insert_record(new_npc_user)
+        self.mysql_client.insert_record(new_npc_user)
         self._instances[npc_user_id] = new_npc_user
         return new_npc_user

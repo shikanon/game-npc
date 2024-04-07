@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import os, uvicorn, json, uuid, mimetypes
+import os, uvicorn, uuid, mimetypes
 
 from gamenpc.utils.logger import debuglog
 from gamenpc.npc import NPCUser, NPCManager
@@ -39,8 +39,8 @@ base_file_url = os.environ.get('BASE_FILE_URL')
 # 加载环境变量并获取 MySQL 相关配置
 config = Config()
 
-npc_manager = NPCManager(config.mysql_client, config.redis_client)
-user_manager = UserManager(config.mysql_client, npc_manager)
+npc_manager = NPCManager(mysql_client=config.mysql_client, redis_client=config.redis_client)
+user_manager = UserManager(mysql_client=config.mysql_client)
 
 class ChatRequest(BaseModel):
     '''
@@ -63,8 +63,13 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
         user = user_manager.get_user(filter_dict=filter_dict)
         if user == None:
             return None
-        user.npc_manager = npc_manager
-        npc_user = user.get_npc_user(npc_id=req.npc_id, user_id=req.user_id, scene=req.scene)
+        npc_id=req.npc_id
+        user_id=req.user_id
+        scene=req.scene
+        npc_user = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
+        if npc_user == None:
+            npc = npc_manager.get_npc(npc_id)
+            npc_user = npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, sex=npc.sex, trait=npc.trait, scene=scene)
         return npc_user
     except KeyError:
         return None
@@ -87,11 +92,12 @@ async def debug_chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     '''chat debug 接口,相比chat接口多了dubug相关信息'''
     start_time = time.time()
     #NPC聊天对话接口
-    response = await chat(req=req, npc_user_instance=npc_user_instance)
+    chat_response = await chat(req=req, npc_user_instance=npc_user_instance)
     total_time = time.time() - start_time
-    response["debug_message"] =  npc_user_instance.debug_info
-    response["total_time"] =  total_time
-    return response(message="返回成功", data=response)
+    data = chat_response['data']
+    data["debug_message"] =  npc_user_instance.debug_info
+    data["total_time"] =  total_time
+    return response(message="返回成功", data=data)
 
 class NpcUserQueryRequest(BaseModel):
     npc_id: Optional[str] = ""

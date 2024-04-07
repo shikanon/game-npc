@@ -27,14 +27,13 @@ class User(Base):
     is_super = Column(Integer)
     created_at = Column(DateTime, default=datetime.now())
 
-    def __init__(self, id=None, name=None, sex=None, phone=None, money=None, password=None, npc_manager=NPCManager):
+    def __init__(self, id=None, name=None, sex=None, phone=None, money=None, password=None):
         self.id = id
         self.name = name
         self.sex = sex
         self.phone = phone
         self.money = money
         self.password = password
-        self.npc_manager = npc_manager
         self._npc = {}
     
     def to_dict(self):
@@ -44,16 +43,8 @@ class User(Base):
             'sex': self.sex,
             'phone': self.phone,
             'money': self.money,
-            'password': self.password,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
         }
-    
-    def get_npc_user(self, npc_id:str, user_id:str, scene:str)->NPCUser:
-        npc_user = self.npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
-        if npc_user == None:
-            npc = self.npc_manager.get_npc(npc_id)
-            npc_user = self.npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, sex=npc.sex, trait=npc.trait, scene=scene)
-        return npc_user
     
 @dataclass
 class UserOpinion(Base):
@@ -90,20 +81,19 @@ class UserOpinion(Base):
         return labels_str
 
 class UserManager:
-    def __init__(self, client: MySQLDatabase, npc_manager: NPCManager):
-        self.client = client
-        self.npc_manager = npc_manager
+    def __init__(self, mysql_client: MySQLDatabase):
+        self.mysql_client = mysql_client
         self.expire_time = 60 * 60 * 24 * 30 # 过期时间为30天
         self.secret_key = os.environ.get('SECRET_KEY')
         if self.secret_key is None:
             self.secret_key = "this-your-default-secret-key"
 
     def get_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[User]:
-        users = self.client.select_records(record_class=User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
+        users = self.mysql_client.select_records(record_class=User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         return users
     
     def get_user(self, filter_dict) -> User:
-        user = self.client.select_record(User, filter_dict=filter_dict)
+        user = self.mysql_client.select_record(record_class=User, filter_dict=filter_dict)
         if user == None:
             return None
         return user
@@ -111,12 +101,12 @@ class UserManager:
     def set_user(self, name, sex, phone, money, password) -> User:
         # 创建新用户
         user = User(name=name, sex=sex, phone=phone, money=money, password=password)
-        user = self.client.insert_record(user)
+        user = self.mysql_client.insert_record(user)
         return user
     
     def update_user(self, id, name, sex, phone, password) -> User:
         filter_dict = {'id': id}
-        user = self.client.select_record(User, filter_dict=filter_dict)
+        user = self.mysql_client.select_record(record_class=User, filter_dict=filter_dict)
         if user == None:
             return None
         if name != "":
@@ -127,18 +117,17 @@ class UserManager:
             user.phone = phone
         if password != "": 
             user.password = password
-        user = self.client.update_record(user)
+        user = self.mysql_client.update_record(user)
         return user
     
     def remove_user(self, user_id: str):
-        self.client.delete_record_by_id(User, user_id)
-
+        self.mysql_client.delete_record_by_id(record_class=User, id=user_id)
 
     # 生成token
     def generate_token(self, username: str, password: str) -> str:
         s = TimedSerializer(self.secret_key, expires_in=self.expire_time)
         token = s.dumps({"username": username, "password": password}).decode()
-        self.client.set_key_expire(token, self.expire_time)
+        self.mysql_client.set_key_expire(token, self.expire_time)
         return token
     
     # 解析token
@@ -156,6 +145,6 @@ class UserManager:
         username = self.decode_token(token)
         if username == "":
             return False
-        if not self.client.get(token):
+        if not self.mysql_client.get(token):
             return False
         return True
