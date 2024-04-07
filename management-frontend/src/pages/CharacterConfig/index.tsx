@@ -7,7 +7,7 @@ import {
 import npcService from '@/services/game_npc';
 import { getHashParams } from '@/utils';
 import { PlusOutlined } from '@ant-design/icons';
-import { history } from '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import { useMount, useRequest } from 'ahooks';
 import {
   App,
@@ -31,6 +31,7 @@ import { RcFile } from 'antd/es/upload';
 import React, { useEffect, useRef, useState } from 'react';
 import styles from './index.less';
 import ImgCrop from 'antd-img-crop';
+import PromptModal from "@/components/PromptModal";
 
 const { TextArea } = Input;
 const { Paragraph, Text } = Typography;
@@ -48,6 +49,7 @@ const getBase64 = (file: FileType): Promise<string> =>
 const Character: React.FC = () => {
   const { message } = App.useApp();
   const [form] = Form.useForm();
+  const { openPromptModal, setOpenPromptModal } = useModel('user');
 
   const [npcInfo, setNpcInfo] = useState<INPCInfo | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -458,7 +460,19 @@ const Character: React.FC = () => {
           extra={
             <>
               （仅用于C端显示）
-              <Button type={'link'}>根据简短描述生成角色描述</Button>
+              <Button
+                type={'link'}
+                size={'small'}
+                onClick={() => {
+                  if (form.getFieldValue(['shortDescription']) !== '') {
+                    setOpenPromptModal(true);
+                  } else {
+                    message.warning('请先输入简短描述').then();
+                  }
+                }}
+              >
+                根据简短描述生成角色描述
+              </Button>
             </>
           }
         >
@@ -494,7 +508,7 @@ const Character: React.FC = () => {
         <Row>
           <Button type={'link'}>查看完整Prompt描述</Button>
         </Row>
-        <div className={styles.promptDesc}>暂无内容</div>
+        <div className={styles.promptDesc}>{npcInfo?.promptDescription || '-'}</div>
       </Col>
 
       <Modal
@@ -505,6 +519,15 @@ const Character: React.FC = () => {
       >
         <img alt="example" style={{ width: '100%' }} src={previewImage} />
       </Modal>
+
+      <PromptModal
+        open={openPromptModal}
+        shortDescription={form.getFieldValue('shortDescription') || ''}
+        npcInfo={npcInfo}
+        onChange={(prompt) => {
+          form.setFieldValue('trait', prompt);
+        }}
+      />
     </div>
   );
 };

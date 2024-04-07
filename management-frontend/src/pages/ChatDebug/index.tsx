@@ -11,11 +11,11 @@ import styles from './index.less';
 import npcService from "@/services/game_npc";
 import { useModel } from "@umijs/max";
 import { USER_ID_KEY } from "@/constants";
-import { IUserInfo } from '@/interfaces/user';
 import userService from "@/services/user";
+import PromptModal from "@/components/PromptModal";
 
 const { TextArea } = Input;
-const { Paragraph, Text } = Typography;
+const { Text } = Typography;
 
 interface IChatItem {
   from: 'npc' | 'user';
@@ -27,7 +27,8 @@ interface IChatItem {
 const ChatDebug = () => {
   const { message } = App.useApp();
   const [form] = Form.useForm();
-  const { userInfo, setUserInfo } = useModel('user');
+  const { userInfo, setUserInfo, openPromptModal, setOpenPromptModal } = useModel('user');
+
 
   const [npcConfig, setNpcConfig] = useState<INPCInfo | null>(null);
   const [npcAllInfo, setNpcAllInfo] = useState<INPCAllInfo | null>(null);
@@ -49,7 +50,7 @@ const ChatDebug = () => {
   } = useRequest(gameNpcService.GetNPCAllInfo, { manual: true });
 
   // NPC聊天
-  const { loading: npcChatLoading, runAsync: npcChatRequest } = useRequest(
+  const { loading: npcDebugChatLoading, runAsync: npcDebugChatRequest } = useRequest(
     gameNpcService.NPCChat,
     { manual: true },
   );
@@ -134,7 +135,7 @@ const ChatDebug = () => {
 
     scrollToBottom();
 
-    const result = await npcChatRequest({
+    const result = await npcDebugChatRequest({
       question: question,
       userId: userInfo?.id || '',
       npcId: getHashParams()?.characterId || '',
@@ -278,7 +279,19 @@ const ChatDebug = () => {
             extra={
               <>
                 （仅用于C端显示）
-                <Button type={'link'}>根据简短描述生成角色描述</Button>
+                <Button
+                  type={'link'}
+                  size={'small'}
+                  onClick={() => {
+                    if (form.getFieldValue(['shortDescription']) !== '') {
+                      setOpenPromptModal(true);
+                    } else {
+                      message.warning('请先输入简短描述').then();
+                    }
+                  }}
+                >
+                  根据简短描述生成角色描述
+                </Button>
               </>
             }
           >
@@ -313,7 +326,7 @@ const ChatDebug = () => {
           <Row>
             <Button type={'link'}>查看完整Prompt描述</Button>
           </Row>
-          <div className={styles.promptDesc}>暂无内容</div>
+          <div className={styles.promptDesc}>{npcConfig?.promptDescription || '-'}</div>
         </Col>
       </div>
 
@@ -391,7 +404,7 @@ const ChatDebug = () => {
                     event.preventDefault();
 
                     // 发送聊天
-                    if (!npcChatLoading) {
+                    if (!npcDebugChatLoading) {
                       sendNPCChat().then();
                     }
                   }
@@ -405,8 +418,8 @@ const ChatDebug = () => {
                 style={
                   question === '' ? { color: '#8c8c8c' } : { color: '#F759AB' }
                 }
-                disabled={npcChatLoading}
-                loading={npcChatLoading}
+                disabled={npcDebugChatLoading}
+                loading={npcDebugChatLoading}
                 onClick={() => {
                   // 发送聊天
                   sendNPCChat().then();
@@ -454,6 +467,15 @@ const ChatDebug = () => {
           <Image src={npcAllInfo?.chatBackground || ''} />
         </Row>
       </div>
+
+      <PromptModal
+        open={openPromptModal}
+        shortDescription={form.getFieldValue('shortDescription') || ''}
+        npcInfo={npcConfig}
+        onChange={(prompt) => {
+          form.setFieldValue('trait', prompt);
+        }}
+      />
     </div>
   );
 };

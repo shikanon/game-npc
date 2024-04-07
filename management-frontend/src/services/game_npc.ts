@@ -5,7 +5,7 @@ import {
   IDeleteNPCCharacterRequest,
   IDeleteNPCCharacterResponse,
   IFileUploadRequest,
-  IFileUploadResponse,
+  IFileUploadResponse, IGeneratorNpcTraitRequest, IGeneratorNpcTraitResponse,
   IGetNPCAllInfoRequest,
   IGetNPCAllInfoResponse,
   IGetNPCCharacterInfoRequest,
@@ -17,7 +17,7 @@ import {
   IMyNPCSceneChangeRequest,
   IMyNPCSceneChangeResponse,
   INPCChatRequest,
-  INPCChatResponse,
+  INPCChatResponse, INPCDebugChatRequest, INPCDebugChatResponse,
   IUpdateNPCCharacterRequest,
   IUpdateNPCCharacterResponse,
   IUpdateNPCStatusRequest,
@@ -91,6 +91,26 @@ export default {
    */
   async NPCChat(data?: INPCChatRequest) {
     return await request<INPCChatResponse>('/npc/chat', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * NPC文字调试聊天
+   */
+  async NPCDebugChat(data?: INPCDebugChatRequest) {
+    return await request<INPCDebugChatResponse>('/npc/debug_chat', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * 生成NPC角色描述
+   */
+  async GeneratorNpcTrait(data?: IGeneratorNpcTraitRequest) {
+    return await request<IGeneratorNpcTraitResponse>('/tools/generator_npc_trait', {
       method: 'POST',
       data,
     });

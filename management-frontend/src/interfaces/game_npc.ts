@@ -151,6 +151,37 @@ export interface INPCChatResponse {
   msg: string;
 }
 
+// NPC文字聊天
+export interface INPCDebugChatRequest {
+  userId: string;
+  npcId: string;
+  scene: string;
+  question: string;
+  contentType: string;
+}
+export interface INPCDebugMessage {
+  message: string;
+  messageType: string;
+  debugMessage: string;
+  totalTime: number;
+}
+export interface INPCDebugChatResponse {
+  code: number;
+  data: INPCDebugMessage;
+  msg: string;
+}
+
+export interface IGeneratorNpcTraitRequest {
+  npcName: string;
+  npcSex: string;
+  npcShortDescription: string;
+}
+export interface IGeneratorNpcTraitResponse {
+  code: number;
+  data: string | null;
+  msg: string;
+}
+
 // 查看NPC信息
 export interface IGetNPCAllInfoRequest {
   userId: string;
