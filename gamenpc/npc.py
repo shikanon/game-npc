@@ -408,8 +408,8 @@ class NPCManager:
                                    trait=npc_user.trait, 
                                    scene=npc_user.scene,
                                    )
-            new_npc_user.init(redis_client=redis_client)
-            debuglog.info(f'npc_user init: new npc_user === {new_npc_user.to_dict()}')
+            new_npc_user.load_from_db(redis_client=redis_client)
+            debuglog.info(f'npc_user load_from_db: new npc_user === {new_npc_user.to_dict()}')
             self._instances[npc_user.id] = new_npc_user
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
