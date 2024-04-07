@@ -450,8 +450,8 @@ data的结构如下：
 | data | user | 否 | None | 返回的具体数据内容，是一个包含用户所有信息的字典 |
 
 ### 生成角色描述
-接口路径(URL)：/api/tools/generator_npc_trait
-请求方式：GET
+- 接口路径(URL)：/api/tools/generator_npc_trait
+- 请求方式：POST
 
 请求参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |

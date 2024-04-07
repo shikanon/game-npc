@@ -391,9 +391,14 @@ def is_image_file(filename):
     mimetype, _ = mimetypes.guess_type(filename)
     return mimetype and mimetype.startswith('image')
 
-@router.get("/tools/generator_npc_trait", response_class=Response)
-async def generator_npc_trait(npc_name: str, npc_sex: str, npc_short_description: str):
-    npc_trait = generator.generator_npc_trait(npc_name, npc_sex, npc_short_description)
+class GenNPCTraitRequest(BaseModel):
+    npc_name: str
+    npc_sex: Optional[str] = "女"
+    npc_short_description: str
+
+@router.post("/tools/generator_npc_trait", response_class=Response)
+async def generator_npc_trait(req: GenNPCTraitRequest):
+    npc_trait = generator.generator_npc_trait(req.npc_name, req.npc_sex, req.npc_short_description)
     return response(code=0, message="执行成功", data=npc_trait)
 
 if __name__ == "__main__":
