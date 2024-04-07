@@ -130,7 +130,7 @@ class NPCUser(Base):
                  trait=None, 
                  affinity_level="", 
                  dialogue_context=None,
-                 affinity=AffinityManager, 
+                 affinity=None, 
                  role_template_filename=None,
                  dialogue_summarize_num=20,
                  dialogue_round=20,
@@ -396,6 +396,14 @@ class NPCManager:
         self.mysql_client = mysql_client
         self.redis_client = redis_client
         self._instances = {}        
+        self.affinity_level = AffinityLevel(
+            acquaintance="你们刚刚认识不久，虽然互有好感，但彼此之间还不太熟悉，在他面前你的表现是「害羞、好奇、试探」。",
+            familiar="你们经过长时间交流，已经相互有深度的了解，并相互暧昧，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、挑逗、调侃」。",
+            friend="你们已经是亲密关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「主动、渴望、黏人、撒娇」。",
+            soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间心有灵犀，和谐到了几乎完美的境界，你们互信互依。",
+            adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
+        )
+        self.affinity = AffinityManager(score=60, level=self.affinity_level)
         
         npc_users = self.mysql_client.select_all_records(record_class=NPCUser)
         for npc_user in npc_users:
@@ -407,6 +415,7 @@ class NPCManager:
                                    score=npc_user.score,
                                    trait=npc_user.trait, 
                                    scene=npc_user.scene,
+                                   affinity=self.affinity,
                                    )
             new_npc_user.load_from_db(redis_client=redis_client)
             debuglog.info(f'npc_user load_from_db: new npc_user === {new_npc_user.to_dict()}')
@@ -492,17 +501,9 @@ class NPCManager:
 
     
     def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str, sex: int) -> NPCUser:
-        affinity_level = AffinityLevel(
-            acquaintance="你们刚刚认识不久，虽然互有好感，但彼此之间还不太熟悉，在他面前你的表现是「害羞、好奇、试探」。",
-            familiar="你们经过长时间交流，已经相互有深度的了解，并相互暧昧，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、挑逗、调侃」。",
-            friend="你们已经是亲密关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「主动、渴望、黏人、撒娇」。",
-            soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间心有灵犀，和谐到了几乎完美的境界，你们互信互依。",
-            adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
-        )
-        affinity = AffinityManager(score=60, level=affinity_level)
         dialogue_context = []
         npc_user_id = f'{npc_id}_{user_id}'
-        new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, sex=sex, trait=trait, scene=scene, affinity=affinity, dialogue_context=dialogue_context)
+        new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, sex=sex, trait=trait, scene=scene, affinity=self.affinity, dialogue_context=dialogue_context)
         self.mysql_client.insert_record(new_npc_user)
         self._instances[npc_user_id] = new_npc_user
         return new_npc_user
