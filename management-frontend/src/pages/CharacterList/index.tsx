@@ -1,7 +1,7 @@
 import { PageParams } from '@/interfaces/common';
 import { INPCInfo, NPCCharacterStatusEnum } from '@/interfaces/game_npc';
 import npcService from '@/services/game_npc';
-import { history } from '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import { useMount, useRequest } from 'ahooks';
 import {
   Avatar,
@@ -22,10 +22,11 @@ import { useState } from 'react';
 import styles from './index.less';
 import { UserOutlined } from "@ant-design/icons";
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 const Character: React.FC = () => {
   const [form] = Form.useForm();
+  const { userInfo, setOpenLoginModal } = useModel('user');
 
   const [npcList, setNpcList] = useState<INPCInfo[]>([]);
   const [searchParams, setSearchParams] = useState<any | null>(null); // 搜索框筛选参数
@@ -73,6 +74,11 @@ const Character: React.FC = () => {
     id: string | null,
     status: NPCCharacterStatusEnum,
   ) => {
+    if (!userInfo?.id) {
+      setOpenLoginModal(true);
+      return false;
+    }
+
     const result = await updateNPCStatusRequest({
       id: id,
       status: status,
@@ -91,6 +97,11 @@ const Character: React.FC = () => {
    * @param id
    */
   const deleteNPC = async (id: string) => {
+    if (!userInfo?.id) {
+      setOpenLoginModal(true);
+      return false;
+    }
+
     const result = await deleteNPCRequest({ id });
     console.log(result, '删除结果');
     if (result.code === 0) {
@@ -175,17 +186,17 @@ const Character: React.FC = () => {
       width: 180,
       render: (text) => (
         <Text style={{ width: 200 }} ellipsis={{ tooltip: text }}>
-          {text}
+          {text || '-'}
         </Text>
       ),
     },
     {
       title: '角色描述',
-      dataIndex: 'promptDescription',
+      dataIndex: 'trait',
       width: 180,
       render: (text) => (
         <Text style={{ width: 200 }} ellipsis={{ tooltip: text }}>
-          {text}
+          {text || '-'}
         </Text>
       ),
     },
@@ -234,7 +245,11 @@ const Character: React.FC = () => {
             type={'link'}
             size={'small'}
             onClick={() => {
-              history.push(`/chatDebug?characterId=${record.id}`);
+              if (userInfo?.id) {
+                history.push(`/chatDebug?characterId=${record.id}`);
+              } else {
+                setOpenLoginModal(true);
+              }
             }}
           >
             调试
@@ -244,7 +259,11 @@ const Character: React.FC = () => {
             type={'link'}
             size={'small'}
             onClick={() => {
-              history.push(`/characterConfig?id=${record.id}`);
+              if (userInfo?.id) {
+                history.push(`/characterConfig?id=${record.id}`);
+              } else {
+                setOpenLoginModal(true);
+              }
             }}
           >
             修改
@@ -309,7 +328,11 @@ const Character: React.FC = () => {
             type={'primary'}
             style={{ backgroundColor: '#F759AB' }}
             onClick={() => {
-              history.push('/characterConfig');
+              if (userInfo?.id) {
+                history.push('/characterConfig');
+              } else {
+                setOpenLoginModal(true);
+              }
             }}
           >
             创建角色

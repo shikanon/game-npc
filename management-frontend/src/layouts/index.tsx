@@ -1,14 +1,14 @@
 import logo from '@/assets/images/logo.png';
-import {} from '@/constants';
+import { USER_ID_KEY } from '@/constants';
 import layoutConfig from '@/layouts/layoutConfig';
-import { LogoutOutlined } from '@ant-design/icons';
+import { LoginOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { ProLayout } from '@ant-design/pro-components';
 import { Outlet, history, useAccess, useLocation, useModel } from '@umijs/max';
 import { useMount } from 'ahooks';
 import {
   App,
   Avatar,
-  Col,
+  Col, ConfigProvider,
   Divider,
   Dropdown,
   Image,
@@ -17,12 +17,14 @@ import {
 } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import styles from './index.less';
+import LoginModal from "@/components/LoginModal";
 
 const { Text } = Typography;
 
 export default () => {
   // 初始化的状态数据
   const { initialState } = useModel('@@initialState');
+  const { userInfo, setUserInfo, openLoginModal, setOpenLoginModal } = useModel('user');
 
   // 初始化的用户权限
   const access = useAccess();
@@ -37,6 +39,10 @@ export default () => {
   useMount(() => {
     console.log(initialState, 'initialState');
     console.log(access, 'access');
+
+    if (initialState?.user?.userInfo) {
+      setUserInfo(initialState.user.userInfo);
+    }
   });
 
   useEffect(() => {
@@ -49,6 +55,12 @@ export default () => {
    */
   const onMenuClick = async () => {
     // 退出登录 注释掉，因为这个接口没有实现
+    if (userInfo?.id) {
+      setUserInfo(null);
+      window.localStorage.removeItem(USER_ID_KEY);
+    } {
+      setOpenLoginModal(true);
+    }
   };
 
   // 用户抽屉菜单
@@ -56,8 +68,8 @@ export default () => {
     items: [
       {
         key: 'logout',
-        label: '退出登录',
-        icon: <LogoutOutlined />,
+        label: userInfo?.id ? '退出登录' : '立即登录',
+        icon: userInfo?.id ? <LogoutOutlined /> : <LoginOutlined />,
         onClick: onMenuClick,
         className: styles.menu,
       },
@@ -152,14 +164,18 @@ export default () => {
           {/*头像昵称*/}
           <Row>
             <Dropdown autoAdjustOverflow menu={menu}>
-              <Row justify="start" align="middle">
+              <Row justify="start" align="middle" style={{ cursor: 'pointer' }}>
                 <Col style={{ marginLeft: 8 }}>
-                  <Avatar className={styles.avatar} src={null} alt="avatar">
-                    --
-                  </Avatar>
+                  <Avatar
+                    className={styles.avatar}
+                    style={userInfo?.id ? {} : { backgroundColor: '#8c8c8c' }}
+                    src={null}
+                    alt="avatar"
+                    icon={<UserOutlined />}
+                  />
                 </Col>
                 <Col style={{ marginLeft: 10 }}>
-                  <Text>{'--'}</Text>
+                  <Text>{userInfo?.name || '--'}</Text>
                 </Col>
               </Row>
             </Dropdown>
@@ -167,9 +183,26 @@ export default () => {
         </Col>
       )}
     >
-      <App>
-        <Outlet />
-      </App>
+      <ConfigProvider
+        theme={{
+          components: {
+            Modal: {
+              contentBg: '#262626',
+            },
+          },
+        }}
+      >
+        <App>
+          <Outlet />
+
+          <LoginModal
+            open={openLoginModal}
+            onChange={() => {
+              setOpenLoginModal(false);
+            }}
+          />
+        </App>
+      </ConfigProvider>
     </ProLayout>
   );
 };

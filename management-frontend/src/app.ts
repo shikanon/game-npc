@@ -2,44 +2,41 @@
 import { RequestConfig } from '@umijs/max';
 import { message } from 'antd';
 import humps from 'humps';
+import { USER_ID_KEY } from "@/constants";
+import { IUserInfo } from '@/interfaces/user';
+import userService from '@/services/user';
 
-interface RequestPayloadType {
-  code?: string | null; // 灵犀平台获取到的code
+interface IInitialState {
+  user: {
+    // 用户模型
+    userInfo: IUserInfo | null; // 用户信息
+  };
 }
 
 // 全局初始化数据配置，用于 Layout 用户信息和权限初始化
 // 更多信息见文档：https://umijs.org/docs/max/data-flow
-export async function getInitialState(): Promise<any> {
-  const hash = window.location.hash; // "#/auth?code=519a4907dd3746259dc560681615a6b1"
+export async function getInitialState(): Promise<IInitialState> {
+  const storageUserId = localStorage.getItem(USER_ID_KEY);
+  if (storageUserId) {
+    const userResult = await userService.UserQuery({
+      id: storageUserId || '',
+    });
+    console.log('用户信息：', userResult?.data);
+    if (userResult?.data?.id) {
+      window.localStorage.setItem(USER_ID_KEY, userResult.data.id);
 
-  // 获取hash路由中的url参数
-  const search = hash.split('?')[1]; // "code=519a4907dd3746259dc560681615a6b1"
-  const searchParams = new URLSearchParams(search);
-  const requestPayload: RequestPayloadType = {};
-  for (const [key, value] of searchParams.entries()) {
-    // @ts-ignore
-    requestPayload[key] = value;
+      return {
+        user: {
+          userInfo: userResult.data || null,
+        },
+      };
+    }
   }
-
-  // 获取hash路由的path
-  const routePath = hash.substring(1).split('?')[0];
-  // console.log(routePath, 'routePath');
-
-  // console.log(requestPayload.code, 'requestPayload.code');
-
-  if (requestPayload?.code && routePath === '/auth') {
-    return {
-      user: {
-        userInfo: null,
-      },
-    };
-  } else {
-    return {
-      user: {
-        userInfo: null,
-      },
-    };
-  }
+  return {
+    user: {
+      userInfo: null,
+    },
+  };
 }
 
 // 全局初始化请求配置配置

@@ -6,9 +6,13 @@ import { getHashParams } from '@/utils';
 import { ClearOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
 import { useMount, useRequest } from 'ahooks';
 import { App, Avatar, Button, Col, Form, Image, Input, Radio, Row, Typography } from 'antd';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './index.less';
 import npcService from "@/services/game_npc";
+import { useModel } from "@umijs/max";
+import { USER_ID_KEY } from "@/constants";
+import { IUserInfo } from '@/interfaces/user';
+import userService from "@/services/user";
 
 const { TextArea } = Input;
 const { Paragraph, Text } = Typography;
@@ -23,6 +27,7 @@ interface IChatItem {
 const ChatDebug = () => {
   const { message } = App.useApp();
   const [form] = Form.useForm();
+  const { userInfo, setUserInfo } = useModel('user');
 
   const [npcConfig, setNpcConfig] = useState<INPCInfo | null>(null);
   const [npcAllInfo, setNpcAllInfo] = useState<INPCAllInfo | null>(null);
@@ -77,7 +82,7 @@ const ChatDebug = () => {
         name: result.data.name,
         sex: result.data.sex,
         shortDescription: result.data.shortDescription,
-        promptDescription: result.data.promptDescription,
+        trait: result.data.trait,
       });
     }
   };
@@ -88,7 +93,7 @@ const ChatDebug = () => {
   const getNPCAllInfo = async () => {
     const result = await getNPCAllInfoRequest({
       npcId: getHashParams()?.characterId || '',
-      userId: 'ace460f7-e6df-4b0c-8961-cfad6ab836b8',
+      userId: userInfo?.id || '',
     });
     console.log(result, '当前NPC全部信息');
 
@@ -131,7 +136,7 @@ const ChatDebug = () => {
 
     const result = await npcChatRequest({
       question: question,
-      userId: 'ace460f7-e6df-4b0c-8961-cfad6ab836b8',
+      userId: userInfo?.id || '',
       npcId: getHashParams()?.characterId || '',
       scene: npcAllInfo?.scene || '',
       contentType: 'text',
@@ -155,7 +160,7 @@ const ChatDebug = () => {
    */
   const clearNPCHistory = async () => {
     const result = await clearNPCHistoryRequest({
-      userId: 'ace460f7-e6df-4b0c-8961-cfad6ab836b8',
+      userId: userInfo?.id || '',
       npcId: getHashParams()?.characterId || '',
     });
 
@@ -191,10 +196,27 @@ const ChatDebug = () => {
     });
   };
 
-  useMount(() => {
-      getNPCInfo().then();
-      getNPCAllInfo().then();
+  useMount(async () => {
+    const storageUserId = localStorage.getItem(USER_ID_KEY);
+    if (storageUserId) {
+      const userResult = await userService.UserQuery({
+        id: storageUserId || '',
+      });
+      console.log('用户信息：', userResult?.data);
+      if (userResult?.data?.id) {
+        window.localStorage.setItem(USER_ID_KEY, userResult.data.id);
+        setUserInfo(userResult.data || null);
+      }
+    }
+
+    getNPCInfo().then();
   });
+
+  useEffect(() => {
+    if (userInfo?.id) {
+      getNPCAllInfo().then();
+    }
+  }, [userInfo]);
 
   return (
     <div
@@ -272,7 +294,7 @@ const ChatDebug = () => {
           </Form.Item>
           <Form.Item
             label="角色描述"
-            name="promptDescription"
+            name="trait"
             extra={<>（参与角色大模型调优）</>}
           >
             <TextArea

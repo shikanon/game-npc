@@ -94,7 +94,7 @@ const Character: React.FC = () => {
         name: result.data.name,
         sex: result.data.sex,
         shortDescription: result.data.shortDescription,
-        promptDescription: result.data.promptDescription,
+        trait: result.data.trait,
       });
     }
   };
@@ -457,7 +457,7 @@ const Character: React.FC = () => {
         </Form.Item>
         <Form.Item
           label="角色描述"
-          name="promptDescription"
+          name="trait"
           style={{ paddingLeft: 10 }}
           extra={<>（参与角色大模型调优）</>}
         >
