@@ -90,16 +90,11 @@ async def debug_chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     '''chat debug 接口,相比chat接口多了dubug相关信息'''
     start_time = time.time()
     #NPC聊天对话接口
-    message = await chat(req=req)
+    response = await chat(req=req, npc_user_instance=npc_user_instance)
     total_time = time.time() - start_time
-    data = {
-        "message": message,
-        "message_type": "text",
-        "affinity_score": 0,
-        "debug_message": npc_user_instance.debug_info,
-        "total_time": total_time,
-    }
-    return response(message="返回成功", data=data)
+    response["debug_message"] =  npc_user_instance.debug_info
+    response["total_time"] =  total_time
+    return response(message="返回成功", data=response)
 
 class NpcUserQueryRequest(BaseModel):
     npc_id: Optional[str] = ""
@@ -394,9 +389,14 @@ def is_image_file(filename):
     mimetype, _ = mimetypes.guess_type(filename)
     return mimetype and mimetype.startswith('image')
 
-@app.get("/tools/generator_npc_trait", response_class=Response)
-async def generator_npc_trait(npc_name: str, npc_sex: int, npc_short_description: str):
-    npc_trait = generator.generator_npc_trait(npc_name, npc_sex, npc_short_description)
+class GenNPCTraitRequest(BaseModel):
+    npc_name: str
+    npc_sex: Optional[str] = "女"
+    npc_short_description: str
+
+@router.post("/tools/generator_npc_trait")
+async def generator_npc_trait(req: GenNPCTraitRequest):
+    npc_trait = generator.generator_npc_trait(req.npc_name, req.npc_sex, req.npc_short_description)
     return response(code=0, message="执行成功", data=npc_trait)
 
 if __name__ == "__main__":
