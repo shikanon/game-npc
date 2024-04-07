@@ -254,7 +254,7 @@ class NPCUser(Base):
         return self.scene
     
     def re_init(self, client: RedisList, mysql_client: MySQLDatabase,)->None:
-        self.affinity.set_score(60)
+        self.affinity.set_score(score=60)
         self.event = None
         self.dialogue_manager.clear(client, self.id)
         mysql_client.update_record(self)
