@@ -147,6 +147,7 @@ class NPCUser(Base):
         self.affinity_level = affinity_level
         self.event = None
         self.dialogue_round = dialogue_round
+        self.dialogue_summarize_num = dialogue_summarize_num
         #加载角色模板
         if role_template_filename == None:
             file_content = DEFAULT_ROLE_TEMPLATE
@@ -162,7 +163,7 @@ class NPCUser(Base):
             top_k=1,
         )
         self.thoughts = Mind(model=model, character=trait)
-        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.thoughts, summarize_limit=dialogue_summarize_num)
+        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.thoughts, summarize_limit=self.dialogue_summarize_num)
         # character model
         self.character_model = doubao.ChatSkylark(
             model="skylark2-pro-character-4k",
@@ -215,11 +216,9 @@ class NPCUser(Base):
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
     
-    def init(self, 
-             redis_client: RedisList, 
-             role_template_filename=None,
-             dialogue_summarize_num=20,
-            dialogue_round=6):
+    def load_from_db(self, 
+             redis_client: RedisList
+             ):
         # db中加载历史对话
         dialogue_context = []
         list_name = f'dialogue_{self.npc_id}_{self.user_id}'
@@ -230,39 +229,8 @@ class NPCUser(Base):
             dialogue = pickle.loads(dialogue_context_byte)
             dialogue_context.append(dialogue)
         dialogue_context.reverse()
-        affinity_level = AffinityLevel(
-            acquaintance="你们刚刚认识不久，虽然互有好感，但彼此之间还不太熟悉，在他面前你的表现是「害羞、好奇、试探」。",
-            familiar="你们经过长时间交流，已经相互有深度的了解，并相互暧昧，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、挑逗、调侃」。",
-            friend="你们已经是亲密关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「主动、溺爱、渴望、撒娇」。",
-            soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间心有灵犀，和谐到了几乎完美的境界，你们互信互依。",
-            adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
-        )
-        self.affinity = AffinityManager(score=self.score,level=affinity_level)
-        self.event = None
-        self.dialogue_round = dialogue_round
-        #加载角色模板
-        if role_template_filename == None:
-            file_content = DEFAULT_ROLE_TEMPLATE
-        else:
-            with open(role_template_filename, 'r', encoding="utf-8") as fr:
-                file_content = fr.read()
-        if not self.validate_template(file_content):
-            raise ValueError(f"模板错误，缺少必须的关键字")
-        self.role_chat_template = jinja2.Template(file_content)
-        # 记忆及思维
-        model = doubao.ChatSkylark(
-            model="skylark2-pro-32k",
-            top_k=1,
-        )
-        self.thoughts = Mind(model=model, character=self.trait)
-        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.thoughts, summarize_limit=dialogue_summarize_num)
-        # character model
-        self.character_model = doubao.ChatSkylark(
-            model="skylark2-pro-character-4k",
-            top_k=1,
-            model_version="1.1"
-        )
-        return
+        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.thoughts, summarize_limit=self.dialogue_summarize_num)
+
     
     def validate_template(self, text):
         for key in ["name","scene","affinity","trait","event"]:
