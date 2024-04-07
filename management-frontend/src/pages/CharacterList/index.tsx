@@ -156,7 +156,7 @@ const Character: React.FC = () => {
       width: 80,
       render: (text) => {
         if (text !== '') {
-          return <Image src={text || ''} height={100} />;
+          return <Image src={text || ''} height={100} width={75} />;
         } else {
           return '-';
         }

@@ -106,12 +106,12 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
   return (
     <Modal
       {...modalProps}
-      title={<Text style={{ color: '#fff', fontSize: 16 }}>Welcome to LoveTalk</Text>}
+      title={'Welcome to LoveTalk 后台'}
       okText={null}
       cancelText={null}
       width={450}
       styles={{
-        header: { textAlign: 'center', backgroundColor: '#262626' },
+        header: { textAlign: 'center' },
         body: { padding: '32px 32px 0 32px' },
       }}
       closeIcon={<CloseOutlined style={{ color: '#fff' }} />}
@@ -127,7 +127,7 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
         initialValues={{ remember: true }}
       >
         <Form.Item
-          label={<Text style={{ color: '#fff' }}>用户名</Text>}
+          label={<Text>用户名</Text>}
           name="name"
           rules={[
             { required: true, message: '请输入用户名' },
@@ -142,7 +142,7 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
         </Form.Item>
 
         <Form.Item
-          label={<Text style={{ color: '#fff' }}>密码</Text>}
+          label={<Text>密码</Text>}
           name="password"
           rules={[
             { required: true, message: '请输入密码' },
@@ -156,7 +156,7 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
         {
           loginType === 'register' ? (
             <Form.Item
-              label={<Text style={{ color: '#fff' }}>确认密码</Text>}
+              label={<Text>确认密码</Text>}
               name="confirm_password"
               dependencies={['password']}
               hasFeedback

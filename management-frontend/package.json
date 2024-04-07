@@ -16,14 +16,15 @@
     "@umijs/max": "^4.1.5",
     "ahooks": "^3.7.10",
     "antd": "^5.15.3",
+    "antd-img-crop": "^4.21.0",
     "copy-to-clipboard": "^3.3.3",
     "dayjs": "^1.11.10",
     "form-render": "^2.4.3",
     "humps": "^2.0.1",
     "lodash": "^4.17.21",
+    "proto": "pbjs -t static-module -w commonjs -o src/proto/proto.js src/proto/*.proto && pbts -o src/proto/proto.d.ts src/proto/proto.js",
     "table-render": "^2.1.4",
-    "uuid": "^9.0.1",
-    "proto": "pbjs -t static-module -w commonjs -o src/proto/proto.js src/proto/*.proto && pbts -o src/proto/proto.d.ts src/proto/proto.js"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/humps": "^2.0.6",

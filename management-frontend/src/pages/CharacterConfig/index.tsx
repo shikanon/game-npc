@@ -30,6 +30,7 @@ import {
 import { RcFile } from 'antd/es/upload';
 import React, { useEffect, useRef, useState } from 'react';
 import styles from './index.less';
+import ImgCrop from 'antd-img-crop';
 
 const { TextArea } = Input;
 const { Paragraph, Text } = Typography;
@@ -311,35 +312,43 @@ const Character: React.FC = () => {
               rules={[{ required: false }]}
               extra="支持JPG、PNG格式图片，5M以内"
             >
-              <Upload
-                listType="picture-circle"
-                fileList={avatarFileList}
-                beforeUpload={beforeAvatarUpload}
-                onPreview={handlePreview}
-                onChange={handleAvatarChange}
-                onRemove={() => {
-                  avatarSrc.current = '';
-                }}
+              <ImgCrop
+                rotationSlider
+                // aspectSlider
+                aspect={1}
+                showReset
+                cropShape={'round'}
               >
-                {avatarFileList.length >= 1 ? null : (
-                  <>
-                    {npcInfo?.profile ? (
-                      <Avatar
-                        src={npcInfo.profile}
-                        style={{ width: '100%', height: '100%' }}
-                      />
-                    ) : (
-                      <button
-                        style={{ border: 0, background: 'none' }}
-                        type="button"
-                      >
-                        <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
-                      </button>
-                    )}
-                  </>
-                )}
-              </Upload>
+                <Upload
+                  listType="picture-circle"
+                  fileList={avatarFileList}
+                  beforeUpload={beforeAvatarUpload}
+                  onPreview={handlePreview}
+                  onChange={handleAvatarChange}
+                  onRemove={() => {
+                    avatarSrc.current = '';
+                  }}
+                >
+                  {avatarFileList.length >= 1 ? null : (
+                    <>
+                      {npcInfo?.profile ? (
+                        <Avatar
+                          src={npcInfo.profile}
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      ) : (
+                        <button
+                          style={{ border: 0, background: 'none' }}
+                          type="button"
+                        >
+                          <PlusOutlined />
+                          <div style={{ marginTop: 8 }}>Upload</div>
+                        </button>
+                      )}
+                    </>
+                  )}
+                </Upload>
+              </ImgCrop>
             </Form.Item>
           </Col>
           <Col span={8}>
@@ -355,36 +364,44 @@ const Character: React.FC = () => {
                 </>
               }
             >
-              <Upload
-                listType="picture-card"
-                fileList={chatBgFileList}
-                beforeUpload={beforeChatBgUpload}
-                onPreview={handlePreview}
-                onChange={handleChatBgChange}
-                onRemove={() => {
-                  chatBgSrc.current = '';
-                }}
+              <ImgCrop
+                rotationSlider
+                // aspectSlider
+                aspect={3 / 4}
+                showReset
+                cropShape={'rect'}
               >
-                {chatBgFileList.length >= 1 ? null : (
-                  <>
-                    {npcInfo?.chatBackground ? (
-                      <Image
-                        src={npcInfo.chatBackground}
-                        style={{ width: 50 }}
-                        preview={false}
-                      />
-                    ) : (
-                      <button
-                        style={{ border: 0, background: 'none' }}
-                        type="button"
-                      >
-                        <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
-                      </button>
-                    )}
-                  </>
-                )}
-              </Upload>
+                <Upload
+                  listType="picture-card"
+                  fileList={chatBgFileList}
+                  beforeUpload={beforeChatBgUpload}
+                  onPreview={handlePreview}
+                  onChange={handleChatBgChange}
+                  onRemove={() => {
+                    chatBgSrc.current = '';
+                  }}
+                >
+                  {chatBgFileList.length >= 1 ? null : (
+                    <>
+                      {npcInfo?.chatBackground ? (
+                        <Image
+                          src={npcInfo.chatBackground}
+                          style={{ width: 50 }}
+                          preview={false}
+                        />
+                      ) : (
+                        <button
+                          style={{ border: 0, background: 'none' }}
+                          type="button"
+                        >
+                          <PlusOutlined />
+                          <div style={{ marginTop: 8 }}>Upload</div>
+                        </button>
+                      )}
+                    </>
+                  )}
+                </Upload>
+              </ImgCrop>
             </Form.Item>
           </Col>
           <Col span={8}>

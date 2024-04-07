@@ -186,9 +186,7 @@ export default () => {
       <ConfigProvider
         theme={{
           components: {
-            Modal: {
-              contentBg: '#262626',
-            },
+            Modal: {},
           },
         }}
       >
