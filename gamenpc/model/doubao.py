@@ -128,6 +128,7 @@ class ChatSkylark(BaseChatModel):
                 "top_p": self.top_p,
                 # 选择预测值最大的k个token进行采样，取值范围0-1000，0表示不生效
                 "top_k": self.top_k,
+                "repetition_penalty": 1.1, # 重复token输出的惩罚项，云雀模型特有参数
             },
             "messages": messages_list
         }

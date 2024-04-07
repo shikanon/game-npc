@@ -33,11 +33,11 @@ DEFAULT_ROLE_TEMPLATE = '''# 角色设定
 
 # 对话规则
 
-* 不要谈及政治和宗教话题；
 * 不能暴露自己是AI或扮演游戏，要符合角色设定；
 * 回答使用简体中文；
 * 回答内容不要使用双引号；
-* 适当地增加新话题来增加互动性，但不要频繁；
+* 适当地引入新话题来增加互动性，但不要过于频繁地切换话题；
+* 不要重复自己说过的话，即使想表达同一个意思，可以换一个说法；
 
 {{event}}
 '''
@@ -166,8 +166,8 @@ class NPCUser(Base):
         # character model
         self.character_model = doubao.ChatSkylark(
             model="skylark2-pro-character-4k",
-            top_k=1,
-            model_version="1.1"
+            model_version="1.1",
+            top_p=0.7,
         )
         self.debug_info = {}
     
