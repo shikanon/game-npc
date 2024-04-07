@@ -87,16 +87,11 @@ async def debug_chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     '''chat debug 接口,相比chat接口多了dubug相关信息'''
     start_time = time.time()
     #NPC聊天对话接口
-    message = await chat(req=req)
+    response = await chat(req=req, npc_user_instance=npc_user_instance)
     total_time = time.time() - start_time
-    data = {
-        "message": message,
-        "message_type": "text",
-        "affinity_score": 0,
-        "debug_message": npc_user_instance.debug_info,
-        "total_time": total_time,
-    }
-    return response(message="返回成功", data=data)
+    response["debug_message"] =  npc_user_instance.debug_info
+    response["total_time"] =  total_time
+    return response(message="返回成功", data=response)
 
 class NpcUserQueryRequest(BaseModel):
     npc_id: Optional[str] = ""
