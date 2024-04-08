@@ -1,4 +1,3 @@
-import leaveImg from '@/assets/images/leave.png';
 import userImg from '@/assets/images/user.png';
 import LoadingDots from '@/components/LoadingDots';
 import { INPCAllInfo } from '@/interfaces/game_npc';
@@ -7,7 +6,7 @@ import { getHashParams } from '@/utils';
 import { ClearOutlined, LeftOutlined, SendOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { useRequest } from 'ahooks';
-import { App, Avatar, Button, Col, Image, Input, Row, Typography } from 'antd';
+import { App, Avatar, Button, Col, Input, Row, Typography } from 'antd';
 import { useTheme } from 'antd-style';
 import { useEffect, useState } from 'react';
 import styles from './index.less';

@@ -21,6 +21,7 @@ import { USER_ID_KEY } from "@/constants";
 import userService from "@/services/user";
 import PromptModal from "@/components/PromptModal";
 import { Timeout } from "ahooks/es/useRequest/src/types";
+import ReactJson from "react-json-view";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -31,6 +32,7 @@ interface IChatItem {
   status?: 'wait' | 'success' | 'fail';
   content?: string | null;
   contentType?: 'text' | 'image' | null;
+  debugMessage?: object | null;
   totalTime?: number;
 }
 
@@ -165,16 +167,18 @@ const ChatDebug = () => {
     if (result?.data?.message) {
       waitChatList[waitChatList.length - 1].status = 'success';
       waitChatList[waitChatList.length - 1].content = result.data.message;
+      waitChatList[waitChatList.length - 1].debugMessage = result?.data?.debugMessage || null;
       waitChatList[waitChatList.length - 1].totalTime = result?.data?.totalTime || null;
-      setChatList(waitChatList);
 
+      setChatList(waitChatList);
       scrollToBottom();
     } else {
       waitChatList[waitChatList.length - 1].status = 'fail';
       waitChatList[waitChatList.length - 1].content = '回答失败，请重试';
+      waitChatList[waitChatList.length - 1].debugMessage = result?.data?.debugMessage || null;
       waitChatList[waitChatList.length - 1].totalTime = result?.data?.totalTime || null;
-      setChatList(waitChatList);
 
+      setChatList(waitChatList);
       scrollToBottom();
     }
   };
@@ -517,6 +521,32 @@ const ChatDebug = () => {
                     </Col>
                     <Col>
                       <Row style={{ marginBottom: 5, marginLeft: 5, color: '#595959' }}>{npcConfig?.name || '-'}</Row>
+                      {
+                        item?.debugMessage ? (
+                          <Row style={{ marginBottom: 10 }}>
+                            <Collapse
+                              size={'small'}
+                              items={[
+                                {
+                                  key: '1',
+                                  label: '调试信息',
+                                  children: (
+                                    <ReactJson
+                                      src={item.debugMessage}
+                                      theme={'monokai'}
+                                      displayDataTypes={true}
+                                      displayObjectSize={true}
+                                      name={false}
+                                      style={{ padding: '10px' }}
+                                    />
+                                  )
+                                }
+                              ]}
+                              defaultActiveKey={[]}
+                            />
+                          </Row>
+                        ) : null
+                      }
                       <Row className={styles.npcChatItem}>
                         {item?.status === 'wait' ? <LoadingDots/> : null}
                         {item?.status === 'success' ? (

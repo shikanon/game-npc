@@ -23,6 +23,7 @@
     "humps": "^2.0.1",
     "lodash": "^4.17.21",
     "proto": "pbjs -t static-module -w commonjs -o src/proto/proto.js src/proto/*.proto && pbts -o src/proto/proto.d.ts src/proto/proto.js",
+    "react-json-view": "^1.21.3",
     "table-render": "^2.1.4",
     "uuid": "^9.0.1"
   },
