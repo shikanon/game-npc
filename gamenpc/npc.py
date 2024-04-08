@@ -19,7 +19,7 @@ from gamenpc.store.mysql_client import MySQLDatabase, Base
 from gamenpc.store.redis_client import RedisList
 from gamenpc.utils.logger import debuglog
 
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text, text
 from sqlalchemy.orm import relationship
 from dataclasses import dataclass
 
@@ -60,7 +60,7 @@ class NPC(Base):
     affinity_level_description = Column(Text)
     status = Column(Integer)
     knowledge_id = Column(String(255))
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
     created_at = Column(DateTime, default=datetime.now())
 
     def __init__(self, id=None, name=None, short_description=None, trait=None, sex=None, prompt_description=None, profile=None, chat_background=None, 
@@ -222,6 +222,7 @@ class NPCUser(Base):
         npc_user = client.select_record(NPCUser, filter_dict)
         npc_user.scene = scene
         self.scene = scene
+        self.updated_at = datetime.now()
         client.update_record(npc_user)
     
     def get_scene(self):
@@ -231,6 +232,7 @@ class NPCUser(Base):
         self.affinity.set_score(score=60)
         self.event = None
         self.dialogue_manager.clear(client, self.id)
+        self.updated_at = datetime.now()
         mysql_client.update_record(self)
 
     def set_dialogue_context(self, dialogue_context: List)->List:
@@ -254,6 +256,7 @@ class NPCUser(Base):
         )
         self.affinity_level = self.affinity.get_relation_level()
         self.score = self.affinity.get_score()
+        self.updated_at = datetime.now()
         client.update_record(self)
         return self.score
 
@@ -406,6 +409,7 @@ class NPCManager:
     
     def update_npc(self, npc: NPC)->NPC:
         # 更新npc的配置
+        npc.updated_at = datetime.now()
         new_npc = self.mysql_client.update_record(npc)
         debuglog.info(f'update_npc: new npc === {new_npc.to_dict()}')
         # 获取对应的npc_user，更新相关信息
@@ -426,6 +430,7 @@ class NPCManager:
             npc_user.name = new_npc.name
             npc_user.sex = new_npc.sex
             npc_user.trait = new_npc.trait
+            npc_user.updated_at = datetime.now()
             db_npc_user = self.mysql_client.update_record(npc_user)
             debuglog.info(f'update_npc: update npc and update db npc_user = {db_npc_user}')
         return new_npc

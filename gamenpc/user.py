@@ -1,7 +1,7 @@
 import uuid
 import os
 
-from sqlalchemy import Column, String, Integer, DateTime, Enum, Text
+from sqlalchemy import Column, String, Integer, DateTime, Enum, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from typing import List
 from datetime import datetime
@@ -55,6 +55,7 @@ class UserOpinion(Base):
     labels = Column(String(255))  # 意见标签（多标签通过逗号隔开）
     name = Column(String(255))  # 用户名称
     content = Column(Text)  # 用户意见
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
 
     def __init__(self, labels=None, name=None, content=None):
@@ -69,6 +70,7 @@ class UserOpinion(Base):
             'labels': self.labels,
             'content': self.content,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
         }
 
     def labels_str_to_list(label_strs:str)->List:
@@ -117,6 +119,7 @@ class UserManager:
             user.phone = phone
         if password != "": 
             user.password = password
+        user.updated_at = datetime.now()
         user = self.mysql_client.update_record(user)
         return user
     
