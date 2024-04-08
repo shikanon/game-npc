@@ -4,7 +4,7 @@ import LoadingDots from '@/components/LoadingDots';
 import { INPCAllInfo } from '@/interfaces/game_npc';
 import gameNpcService from '@/services/game_npc';
 import { getHashParams } from '@/utils';
-import { ClearOutlined, SendOutlined } from '@ant-design/icons';
+import { ClearOutlined, LeftOutlined, SendOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { useRequest } from 'ahooks';
 import { App, Avatar, Button, Col, Image, Input, Row, Typography } from 'antd';
@@ -163,12 +163,12 @@ const Conversation = () => {
       className={styles.container}
     >
       <div className={styles.left}>
-        <Row>
-          <Image
-            src={leaveImg}
-            preview={false}
-            width={40}
-            style={{ cursor: 'pointer' }}
+        <Row style={{ marginTop: 20 }}>
+          <Button
+            shape={'circle'}
+            size={'large'}
+            style={{ color: '#ff7875', border: '2px solid #ff7875' }}
+            icon={<LeftOutlined />}
             onClick={() => {
               history.push('/character');
             }}

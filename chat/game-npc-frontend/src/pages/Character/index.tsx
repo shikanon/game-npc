@@ -65,7 +65,7 @@ const Character = () => {
         <Row gutter={36} style={{ marginTop: 40 }} wrap={true}>
           {characterList.map((item) => {
             return (
-              <Col key={item.id}>
+              <Col key={item.id} span={6}>
                 <Row justify={'center'}>
                   <div
                     className={styles.characterItem}
