@@ -121,7 +121,7 @@ async def get_npc_users(req: NpcUserQueryRequest):
         return response(code=-1, message="Invaild value of npc_id, it not Exists")
     npc_instances = []
     for npc_user in npc_users:
-        npc_instances.append(npc_user.get_character_info())
+        npc_instances.append(npc_user.to_dict())
     return response(data=npc_instances)
 
 class NpcUserAllInfoRequest(BaseModel):

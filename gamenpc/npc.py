@@ -64,19 +64,18 @@ class NPC(Base):
     created_at = Column(DateTime, default=datetime.now())
 
     def __init__(self, id=None, name=None, short_description=None, trait=None, sex=None, prompt_description=None, profile=None, chat_background=None, 
-                 affinity_level_description=None, knowledge_id=None, updated_at=None):
+                 affinity_level_description=None, knowledge_id=None):
         self.id = id
         self.name = name
-        self.short_description = short_description
         self.trait = trait
         self.sex = sex
-        self.prompt_description = prompt_description
-        self.profile = profile
         self.status = 0
+        self.profile = profile
         self.chat_background = chat_background
+        self.short_description = short_description
+        self.prompt_description = prompt_description
         self.affinity_level_description = affinity_level_description
         self.knowledge_id = knowledge_id
-        self.updated_at = updated_at
 
     def to_dict(self):
         return {
@@ -176,11 +175,6 @@ class NPCUser(Base):
         dialogue_context = self.get_dialogue_context()
         dialogue_context_list = [dialogue.to_dict() for dialogue in dialogue_context]
 
-        # short_description = npc.short_description
-        # prompt_description = npc.prompt_description
-        # profile = npc.profile
-        # chat_background = npc.chat_background
-        # affinity_level_description = npc.affinity_level_description
         return {
             'id': self.id,
             'name': self.name,
@@ -190,27 +184,7 @@ class NPCUser(Base):
             'sex': self.sex,
             'scene': self.scene,
             'trait': self.trait,
-            # 'short_description': short_description,
-            # 'prompt_description': prompt_description,
-            # 'profile': profile,
-            # 'chat_background': chat_background,
-            # 'affinity_level_description': affinity_level_description,
             'dialogue_context': dialogue_context_list,
-            'affinity_level': self.affinity_level,
-            'dialogue_round': self.dialogue_round,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
-        }
-
-    def get_character_info(self):
-         return {
-            'id': self.id,
-            'name': self.name,
-            'npc_id': self.npc_id,
-            'user_id': self.user_id,
-            'score': self.score,
-            'sex': self.sex,
-            'scene': self.scene,
-            'trait': self.trait,
             'affinity_level': self.affinity_level,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
@@ -431,12 +405,15 @@ class NPCManager:
         return npc
     
     def update_npc(self, npc: NPC)->NPC:
+        # 更新npc的配置
         new_npc = self.mysql_client.update_record(npc)
         debuglog.info(f'update_npc: new npc === {new_npc.to_dict()}')
+        # 获取对应的npc_user，更新相关信息
         filter_dict = {'npc_id': npc.id}
         npc_user_list = self.mysql_client.select_records(record_class=NPCUser, filter_dict=filter_dict)
         debuglog.info(f'update_npc: npc_user list len === {len(npc_user_list)}')
         for npc_user in npc_user_list:
+            # 更新内存
             npc_user_id = npc_user.id
             old_npc_user = self._instances.get(npc_user_id, None)
             old_npc_user.name = new_npc.name
@@ -445,6 +422,7 @@ class NPCManager:
             self._instances[npc_user_id] = old_npc_user
             debuglog.info(f'update_npc: update npc and update cache npc_user = {old_npc_user.to_dict()}')
 
+            # 更新DB
             npc_user.name = new_npc.name
             npc_user.sex = new_npc.sex
             npc_user.trait = new_npc.trait
