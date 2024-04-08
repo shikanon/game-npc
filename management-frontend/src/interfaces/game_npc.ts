@@ -70,13 +70,14 @@ export interface ICreateNPCResponse {
  * 备注：单独的更新接口，用于更新NPC角色信息
  */
 export interface IUpdateNPCCharacterRequest {
-  id: string; // NPC角色ID
+  id?: string; // NPC角色ID
   name?: string; // NPC角色名称
   sex?: NPCCharacterSexEnum; // NPC角色性别
   profile?: string; // NPC角色头像
-  chat_background?: string; // NPC角色聊天背景
-  short_description?: string; // NPC角色短描述
-  prompt_description?: string; // NPC角色详细描述
+  chatBackground?: string; // NPC角色聊天背景
+  shortDescription?: string; // NPC角色短描述
+  trait?: string; // NPC角色描述
+  promptDescription?: string; // NPC角色详细描述
 }
 
 export interface IUpdateNPCCharacterResponse {
@@ -86,9 +87,12 @@ export interface IUpdateNPCCharacterResponse {
     name?: string; // NPC角色名称
     sex?: NPCCharacterSexEnum; // NPC角色性别
     profile?: string; // NPC角色头像
-    chat_background?: string; // NPC角色聊天背景
-    short_description?: string; // NPC角色短描述
-    prompt_description?: string; // NPC角色详细描述
+    chatBackground?: string; // NPC角色聊天背景
+    shortDescription?: string; // NPC角色短描述
+    promptDescription?: string; // NPC角色详细描述
+    status: NPCCharacterStatusEnum;
+    createdAt: string;
+    updatedAt: string;
   };
   msg: string;
 }
@@ -100,7 +104,18 @@ export interface IUpdateNPCStatusRequest {
 }
 export interface IUpdateNPCStatusResponse {
   code: number;
-  data: null;
+  data: {
+    id: string; // NPC角色ID
+    name?: string; // NPC角色名称
+    sex?: NPCCharacterSexEnum; // NPC角色性别
+    profile?: string; // NPC角色头像
+    chatBackground?: string; // NPC角色聊天背景
+    shortDescription?: string; // NPC角色短描述
+    promptDescription?: string; // NPC角色详细描述
+    status: NPCCharacterStatusEnum;
+    createdAt: string;
+    updatedAt: string;
+  };
   msg: string;
 }
 

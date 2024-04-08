@@ -98,7 +98,7 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
       ]}
     >
       <Spin spinning={generatorNpcTraitLoading}>
-        <div>{prompt}</div>
+        <div style={{ minHeight: 100 }}>{prompt}</div>
       </Spin>
     </Modal>
   );
