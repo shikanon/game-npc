@@ -41,7 +41,7 @@ const ChatDebug = () => {
   const { message } = App.useApp();
   const { userInfo, setUserInfo, openPromptModal, setOpenPromptModal } = useModel('user');
 
-  const [activeKey, setActiveKey] = useState<string|string[]>(['1']);
+  const [activeKey, setActiveKey] = useState<string|string[]>([]);
   const [editName, setEditName] = useState<string>('');
   const [editShortDesc, setEditShortDesc] = useState<string>('');
   const [editTrait, setEditTrait] = useState<string>('');
@@ -323,6 +323,7 @@ const ChatDebug = () => {
                 <Col>
                   <Popconfirm
                     title={null}
+                    icon={null}
                     description={(
                       <Input
                         value={editName}
@@ -387,120 +388,137 @@ const ChatDebug = () => {
 
       <div className={styles.main}>
         <div className={styles.left}>
-          <Collapse
-            style={{ height: '100%' }}
-            accordion
-            bordered={false}
-            expandIconPosition={'end'}
-            collapsible={'icon'}
-            expandIcon={(panelProps) => {
-              if (panelProps.isActive) {
-                return <CompressOutlined />
-              } else {
-                return <ExpandOutlined />
-              }
-            }}
-            activeKey={activeKey}
-            onChange={(key) => {
-              setActiveKey(key);
-            }}
-            items={[
-              {
-                key: '1',
-                label: (
-                  <Row align={'middle'}>
-                    <Col>角色描述</Col>
-                    <Col>
-                      <Button
-                        style={{ color: '#EB2F96' }}
-                        size={'small'}
-                        type={'link'}
-                        icon={<OpenAIOutlined />}
-                        onClick={() => {
-                          setOpenPromptModal(true);
-                        }}
-                      >
-                        生成
-                      </Button>
-                    </Col>
-                  </Row>
-                ),
-                children: (
-                  <TextArea
-                    style={{ width: '100%' }}
-                    placeholder="请输入"
-                    maxLength={1000}
-                    showCount
-                    autoSize={{
-                      minRows: 20,
-                      maxRows: 30,
-                    }}
-                    value={editTrait}
-                    onChange={(e) => {
-                      setEditTrait(e.target.value);
+          <div>
+            <Collapse
+              accordion
+              bordered={false}
+              expandIconPosition={'end'}
+              collapsible={'icon'}
+              defaultActiveKey={['1']}
+              expandIcon={(panelProps) => {
+                if (panelProps.isActive) {
+                  return <CompressOutlined />
+                } else {
+                  return <ExpandOutlined />
+                }
+              }}
+              items={[
+                {
+                  key: '1',
+                  label: (
+                    <Row align={'middle'}>
+                      <Col>角色描述</Col>
+                      <Col>
+                        <Button
+                          style={{ color: '#EB2F96' }}
+                          size={'small'}
+                          type={'link'}
+                          icon={<OpenAIOutlined />}
+                          onClick={() => {
+                            setOpenPromptModal(true);
+                          }}
+                        >
+                          生成
+                        </Button>
+                      </Col>
+                    </Row>
+                  ),
+                  children: (
+                    <TextArea
+                      style={{ width: '100%' }}
+                      placeholder="请输入"
+                      showCount
+                      autoSize={{
+                        minRows: 20,
+                        maxRows: 30,
+                      }}
+                      value={editTrait}
+                      onChange={(e) => {
+                        setEditTrait(e.target.value);
 
-                      // 简单防抖处理
-                      if (debounceTimeout) {
-                        clearTimeout(debounceTimeout);
-                      }
+                        // 简单防抖处理
+                        if (debounceTimeout) {
+                          clearTimeout(debounceTimeout);
+                        }
 
-                      debounceTimeout = setTimeout(() => {
-                        updateConfig({
-                          trait: e.target.value,
-                        }).then()
-                      }, 2000);
-                    }}
-                  />
-                ),
-              },
-              {
-                key: '2',
-                label: '简短描述',
-                children: (
-                  <TextArea
-                    style={{ width: '100%' }}
-                    placeholder="请输入"
-                    maxLength={1000}
-                    showCount
-                    autoSize={{
-                      minRows: 20,
-                      maxRows: 30,
-                    }}
-                    value={editShortDesc}
-                    onChange={(e) => {
-                      setEditShortDesc(e.target.value);
+                        debounceTimeout = setTimeout(() => {
+                          updateConfig({
+                            trait: e.target.value,
+                          }).then()
+                        }, 2000);
+                      }}
+                    />
+                  ),
+                },
+              ]}
+            />
+          </div>
 
-                      // 简单防抖处理
-                      if (debounceTimeout) {
-                        clearTimeout(debounceTimeout);
-                      }
+          <div>
+            <Collapse
+              accordion
+              bordered={false}
+              expandIconPosition={'end'}
+              collapsible={'icon'}
+              expandIcon={(panelProps) => {
+                if (panelProps.isActive) {
+                  return <CompressOutlined />
+                } else {
+                  return <ExpandOutlined />
+                }
+              }}
+              activeKey={activeKey}
+              onChange={(key) => {
+                setActiveKey(key);
+              }}
+              items={[
+                {
+                  key: '1',
+                  label: '简短描述',
+                  children: (
+                    <TextArea
+                      style={{ width: '100%' }}
+                      placeholder="请输入"
+                      showCount
+                      autoSize={{
+                        minRows: 5,
+                        maxRows: 10,
+                      }}
+                      value={editShortDesc}
+                      onChange={(e) => {
+                        setEditShortDesc(e.target.value);
 
-                      debounceTimeout = setTimeout(() => {
-                        updateConfig({
-                          shortDescription: e.target.value,
-                        }).then()
-                      }, 2000);
-                    }}
-                  />
-                ),
-              },
-              // {
-              //   key: '3',
-              //   label: '完整Prompt',
-              //   children: (
-              //     <TextArea
-              //       placeholder="请输入"
-              //       maxLength={1000}
-              //       style={{ width: '100%' }}
-              //       autoSize={{
-              //         minRows: 8,
-              //         maxRows: 10,
-              //       }}
-              //     />
-              //   ),
-              // },
-            ]}
-          />
+                        // 简单防抖处理
+                        if (debounceTimeout) {
+                          clearTimeout(debounceTimeout);
+                        }
+
+                        debounceTimeout = setTimeout(() => {
+                          updateConfig({
+                            shortDescription: e.target.value,
+                          }).then()
+                        }, 2000);
+                      }}
+                    />
+                  ),
+                },
+                // {
+                //   key: '2',
+                //   label: '完整Prompt',
+                //   children: (
+                //     <TextArea
+                //       placeholder="请输入"
+                //       style={{ width: '100%' }}
+                //       autoSize={{
+                //         minRows: 8,
+                //         maxRows: 10,
+                //       }}
+                //     />
+                //   ),
+                // },
+              ]}
+            />
+          </div>
         </div>
 
         <div className={styles.chatContainer}>

@@ -494,11 +494,11 @@ const Character: React.FC = () => {
         >
           <TextArea
             placeholder="请输入"
-            maxLength={10000}
-            style={{ width: 500 }}
+            style={{ width: '60vw' }}
+            showCount
             autoSize={{
-              minRows: 4,
-              maxRows: 4,
+              minRows: 5,
+              maxRows: 8,
             }}
           />
         </Form.Item>
