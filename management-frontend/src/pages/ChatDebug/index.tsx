@@ -7,16 +7,16 @@ import { getHashParams } from '@/utils';
 import {
   CheckCircleOutlined, CheckOutlined,
   ClearOutlined,
-  ClockCircleOutlined, CompressOutlined, ExpandOutlined,
+  ClockCircleOutlined, CompressOutlined, ExclamationCircleOutlined, ExpandOutlined,
   FormOutlined,
-  LeftOutlined, OpenAIOutlined,
+  LeftOutlined, LoadingOutlined, OpenAIOutlined,
   SendOutlined
 } from '@ant-design/icons';
 import { useMount, useRequest } from 'ahooks';
-import { App, Avatar, Button, Col, Collapse, Input, Popconfirm, Row, Typography } from 'antd';
+import { App, Avatar, Button, Col, Collapse, Divider, Input, Popconfirm, Row, Typography } from 'antd';
 import React, { useEffect, useState } from 'react';
 import styles from './index.less';
-import { useModel } from "@umijs/max";
+import { useModel, history } from "@umijs/max";
 import { USER_ID_KEY } from "@/constants";
 import userService from "@/services/user";
 import PromptModal from "@/components/PromptModal";
@@ -28,12 +28,13 @@ const { Text } = Typography;
 let debounceTimeout: Timeout | null = null;
 
 interface IChatItem {
-  from: 'npc' | 'user';
+  from: 'npc' | 'user' | 'clear';
   status?: 'wait' | 'success' | 'fail';
   content?: string | null;
   contentType?: 'text' | 'image' | null;
   debugMessage?: object | null;
   totalTime?: number;
+  isClear?: boolean;
 }
 
 const ChatDebug = () => {
@@ -193,7 +194,16 @@ const ChatDebug = () => {
     });
 
     if (result?.code === 0) {
-      setChatList([]);
+      const clearChatList: IChatItem[] = chatList.map((item) => {
+        return {
+          ...item,
+          isClear: true,
+        };
+      });
+      clearChatList.push({
+        from: 'clear',
+      });
+      setChatList(clearChatList);
       message.success('重置对话成功');
     } else {
       message.warning(result?.msg);
@@ -294,7 +304,16 @@ const ChatDebug = () => {
         <Col>
           <Row align={'middle'}>
             <Col style={{ marginRight: 10 }}>
-              <Button icon={<LeftOutlined />} type={'text'} size={'small'}>返回</Button>
+              <Button
+                icon={<LeftOutlined />}
+                type={'text'}
+                size={'small'}
+                onClick={() => {
+                  history.push('/characterList');
+                }}
+              >
+                返回
+              </Button>
             </Col>
             <Col>
               <Row align={'middle'}>
@@ -498,7 +517,7 @@ const ChatDebug = () => {
                   >
                     <Col>
                       <Row justify={'end'} style={{ marginBottom: 5, marginRight: 10, color: '#595959' }}>{userInfo?.name || '-'}</Row>
-                      <Row className={styles.userChatItem}>
+                      <Row className={styles.userChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
                         <Text className={styles.content}>{item.content}</Text>
                       </Row>
                     </Col>
@@ -507,7 +526,7 @@ const ChatDebug = () => {
                     </Col>
                   </Row>
                 );
-              } else {
+              } else if (item.from === 'npc') {
                 return (
                   <Row
                     key={index}
@@ -522,14 +541,17 @@ const ChatDebug = () => {
                     <Col>
                       <Row style={{ marginBottom: 5, marginLeft: 5, color: '#595959' }}>{npcConfig?.name || '-'}</Row>
                       {
-                        item?.debugMessage ? (
+                        item?.status === 'success' && item?.debugMessage ? (
                           <Row style={{ marginBottom: 10 }}>
                             <Collapse
                               size={'small'}
+                              expandIconPosition={'end'}
                               items={[
                                 {
                                   key: '1',
-                                  label: '调试信息',
+                                  label: (
+                                    <Text style={{ color: '#389e0d' }}><CheckCircleOutlined /> 运行完毕</Text>
+                                  ),
                                   children: (
                                     <ReactJson
                                       src={item.debugMessage}
@@ -547,7 +569,56 @@ const ChatDebug = () => {
                           </Row>
                         ) : null
                       }
-                      <Row className={styles.npcChatItem}>
+                      {
+                        item?.status === 'wait' ? (
+                          <Row style={{ marginBottom: 10 }}>
+                            <Collapse
+                              size={'small'}
+                              expandIconPosition={'end'}
+                              items={[
+                                {
+                                  key: '1',
+                                  label: (
+                                    <Text style={{ color: '#ff9c6e' }}><LoadingOutlined /> 运行中</Text>
+                                  ),
+                                  children: null
+                                }
+                              ]}
+                              defaultActiveKey={[]}
+                            />
+                          </Row>
+                        ) : null
+                      }
+                      {
+                        item?.status === 'fail' ? (
+                          <Row style={{ marginBottom: 10 }}>
+                            <Collapse
+                              size={'small'}
+                              expandIconPosition={'end'}
+                              items={[
+                                {
+                                  key: '1',
+                                  label: (
+                                    <Text style={{ color: '#f5222d' }}><ExclamationCircleOutlined /> 运行失败</Text>
+                                  ),
+                                  children: item?.debugMessage ? (
+                                    <ReactJson
+                                      src={item.debugMessage}
+                                      theme={'monokai'}
+                                      displayDataTypes={true}
+                                      displayObjectSize={true}
+                                      name={false}
+                                      style={{ padding: '10px' }}
+                                    />
+                                  ) : item.content
+                                }
+                              ]}
+                              defaultActiveKey={[]}
+                            />
+                          </Row>
+                        ) : null
+                      }
+                      <Row className={styles.npcChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
                         {item?.status === 'wait' ? <LoadingDots/> : null}
                         {item?.status === 'success' ? (
                           <Text className={styles.content}>{item.content}</Text>
@@ -566,6 +637,18 @@ const ChatDebug = () => {
                     </Col>
                   </Row>
                 );
+              } else {
+                return (
+                  <Row
+                    key={index}
+                    justify={'center'}
+                    align={'middle'}
+                    wrap={false}
+                    style={{ marginBottom: 10, paddingRight: 40 }}
+                  >
+                    <Divider orientation={'center'}>以上消息已清除</Divider>
+                  </Row>
+                )
               }
             })}
           </div>

@@ -14,7 +14,7 @@ import {
   Row,
   Space,
   Table,
-  Tag,
+  Tag, Tooltip,
   Typography,
 } from 'antd';
 import { ColumnsType } from 'antd/es/table';
@@ -195,9 +195,14 @@ const Character: React.FC = () => {
       dataIndex: 'trait',
       width: 180,
       render: (text) => (
-        <Text style={{ width: 200 }} ellipsis={{ tooltip: text }}>
-          {text || '-'}
-        </Text>
+        <Tooltip
+          title={text}
+          overlayInnerStyle={{ maxHeight: 500, width: 400, overflowY: 'auto' }}
+        >
+          <Text style={{ width: 200 }} ellipsis={{  }}>
+            {text || '-'}
+          </Text>
+        </Tooltip>
       ),
     },
     {
