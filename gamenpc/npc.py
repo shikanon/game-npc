@@ -438,9 +438,12 @@ class NPCManager:
     def remove_npc(self, npc_id: str):
         self.mysql_client.delete_record_by_id(NPC, npc_id)
     
-    def set_npc(self, name: str, sex: int, trait: str, short_description: str,
+    def set_npc(self, id: str, name: str, sex: int, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str, affinity_level_description: str)->NPC:
         new_npc= NPC(name=name, sex=sex, trait=trait, short_description=short_description,
+                               prompt_description=prompt_description, profile=profile, chat_background=chat_background, affinity_level_description=affinity_level_description)
+        if id != "":
+            new_npc= NPC(id=id, name=name, sex=sex, trait=trait, short_description=short_description,
                                prompt_description=prompt_description, profile=profile, chat_background=chat_background, affinity_level_description=affinity_level_description)
         new_npc = self.mysql_client.insert_record(new_npc)
         return new_npc
@@ -449,6 +452,10 @@ class NPCManager:
         npc_user_id = f'{npc_id}_{user_id}'
         npc_user = self._instances.get(npc_user_id, None)
         return npc_user
+    
+    def remove_npc_user(self, npc_id: str, user_id: str):
+        npc_user_id = f'{npc_id}_{user_id}'
+        self.mysql_client.delete_record_by_id(NPCUser, npc_user_id)
 
     def get_npc_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPCUser]:
         npc_users = self._instances.values()
@@ -480,6 +487,7 @@ class NPCManager:
             dict_1 = npc.to_dict()
             dict_1['scene'] = "宅在家里"
             return npc.to_dict()
+        # TODO 补充通过npc user_id获取user_name
         return None
 
     

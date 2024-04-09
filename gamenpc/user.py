@@ -100,9 +100,11 @@ class UserManager:
             return None
         return user
     
-    def set_user(self, name, sex, phone, money, password) -> User:
+    def set_user(self, id, name, sex, phone, money, password) -> User:
         # 创建新用户
         user = User(name=name, sex=sex, phone=phone, money=money, password=password)
+        if id != "":
+            user = User(id=id, name=name, sex=sex, phone=phone, money=money, password=password)
         user = self.mysql_client.insert_record(user)
         return user
     

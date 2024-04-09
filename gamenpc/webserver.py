@@ -43,11 +43,6 @@ npc_manager = NPCManager(mysql_client=config.mysql_client, redis_client=config.r
 user_manager = UserManager(mysql_client=config.mysql_client)
 
 class ChatRequest(BaseModel):
-    '''
-    user_name: 用户名称
-    npc_name: NPC的名称
-    question: 问题，文本格式
-    '''
     user_id: str
     npc_id: str
     scene: str
@@ -75,7 +70,7 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
         return None
 
 @router.post("/npc/chat")
-async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
+async def chat(req: ChatRequest, npc_user_instance: NPCUser = Depends(get_npc_user)):
     '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
@@ -88,7 +83,7 @@ async def chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
     return response(message="返回成功", data=data)
 
 @router.post("/npc/debug_chat")
-async def debug_chat(req: ChatRequest, npc_user_instance=Depends(get_npc_user)):
+async def debug_chat(req: ChatRequest, npc_user_instance: NPCUser=Depends(get_npc_user)):
     '''chat debug 接口,相比chat接口多了dubug相关信息'''
     start_time = time.time()
     #NPC聊天对话接口
@@ -136,6 +131,19 @@ async def get_npc_all_info(req: NpcUserAllInfoRequest):
         return response(code=-1, message="Invaild value of npc_id/user_id, it not Exists")
     return response(data=npc_all_info)
 
+class NPCUserRemoveRequest(BaseModel):
+    '''
+    user_id: 用户 ID
+    npc_id: NPC ID
+    '''
+    user_id: str
+    npc_id: str
+
+@router.post("/npc_user/remove")
+async def remove_npc_user(req: NPCUserRemoveRequest):
+    npc_manager.remove_npc_user(user_id=req.user_id, npc_id=req.npc_id)
+    return response(message=f'删除 npc_user {req.user_id} {req.npc_id} 成功')
+
 class DefaultRequest(BaseModel):
     '''
     user_id: 用户 ID
@@ -175,7 +183,7 @@ class NPCRequest(BaseModel):
 # prompt_description=req.prompt_description
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest):
-    npc = npc_manager.set_npc(name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
+    npc = npc_manager.set_npc(id=req.id, name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
                                profile=req.profile, prompt_description="",
                                chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
     return response(data=npc.id)
@@ -255,7 +263,7 @@ class NpcGetRequest(BaseModel):
     id: Optional[str] = ""
 
 @router.post("/npc/get")
-async def query_npc(req: NpcGetRequest):
+async def get_npc(req: NpcGetRequest):
     if req.id == "":
         return 
     npc = npc_manager.get_npc(npc_id=req.id)
@@ -278,6 +286,7 @@ async def shift_scenes(req: ShiftSceneRequest):
     return response(message="场景转移成功")
 
 class UserCreateRequest(BaseModel):
+    id: Optional[str] = ""
     name: str
     sex: Optional[int] = 0
     phone: Optional[str] = ""
@@ -293,7 +302,7 @@ async def user_register(req: UserCreateRequest):
     user = user_manager.get_user(filter_dict=filter_dict)
     if user != None:
         return response(message='该用户名已注册')
-    user = user_manager.set_user(name=req.name, sex=req.sex, phone=req.phone, money=0, password=req.password)
+    user = user_manager.set_user(id=req.id, name=req.name, sex=req.sex, phone=req.phone, money=0, password=req.password)
     if user == None:
         return response(message=f'user {req.name} 注册失败')
     else:
@@ -340,7 +349,7 @@ async def query_user(req: UserQueryRequest):
     return response(data=user.to_dict())
 
 class UserCreateRequest(BaseModel):
-    id: str
+    id: Optional[str] = ""
     name: Optional[str] = ""
     sex: Optional[int] = -1
     phone: Optional[str] = ""

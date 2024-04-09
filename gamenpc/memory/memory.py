@@ -318,6 +318,8 @@ class DialogueMemory:
     
     def check_dialogue(self)-> bool:
         flag = False
+        if self.dialogue_context == None:
+            return flag
         if len(self.dialogue_context) >= self.context_limit:
             # 移除最早的上下文以便为新上下文腾出空间; 同时清理数据库中的信息。
             self.dialogue_context.pop(0)

@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, desc, text
 from sqlalchemy.orm import sessionmaker
 from urllib.parse import quote_plus
 from gamenpc.utils.logger import debuglog
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 # debuglog = DebugLogger("mysql")
