@@ -646,7 +646,7 @@ const ChatDebug = () => {
                     wrap={false}
                     style={{ marginBottom: 10, paddingRight: 40 }}
                   >
-                    <Divider orientation={'center'}>以上消息已清除</Divider>
+                    <Divider orientation={'center'}>以上对话内容已清除</Divider>
                   </Row>
                 )
               }

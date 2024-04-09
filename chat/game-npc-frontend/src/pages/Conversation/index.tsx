@@ -6,7 +6,7 @@ import { getHashParams } from '@/utils';
 import { ClearOutlined, LeftOutlined, SendOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { useRequest } from 'ahooks';
-import { App, Avatar, Button, Col, Input, Row, Typography } from 'antd';
+import { App, Avatar, Button, Col, Divider, Input, Row, Typography } from 'antd';
 import { useTheme } from 'antd-style';
 import { useEffect, useState } from 'react';
 import styles from './index.less';
@@ -15,10 +15,11 @@ const { TextArea } = Input;
 const { Paragraph, Text } = Typography;
 
 interface IChatItem {
-  from: 'npc' | 'user';
+  from: 'npc' | 'user' | 'clear';
   status?: 'wait' | 'success' | 'fail';
   content?: string | null;
   contentType?: 'text' | 'image' | null;
+  isClear?: boolean;
 }
 
 const Conversation = () => {
@@ -136,8 +137,16 @@ const Conversation = () => {
     });
 
     if (result?.code === 0) {
-      setChatList([]);
-
+      const clearChatList: IChatItem[] = chatList.map((item) => {
+        return {
+          ...item,
+          isClear: true,
+        };
+      });
+      clearChatList.push({
+        from: 'clear',
+      });
+      setChatList(clearChatList);
       message.success('重置对话成功');
     } else {
       message.warning(result?.msg);
@@ -195,7 +204,7 @@ const Conversation = () => {
                   wrap={false}
                   style={{ marginBottom: 10, paddingLeft: 40 }}
                 >
-                  <Col className={styles.userChatItem}>
+                  <Col className={styles.userChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
                     <Text className={styles.content}>{item.content}</Text>
                   </Col>
                   <Col>
@@ -203,7 +212,7 @@ const Conversation = () => {
                   </Col>
                 </Row>
               );
-            } else {
+            } else if (item.from === 'npc') {
               return (
                 <Row
                   key={index}
@@ -215,7 +224,7 @@ const Conversation = () => {
                   <Col>
                     <Avatar src={npcAllInfo?.profile || ''} size={32} />
                   </Col>
-                  <Col className={styles.npcChatItem}>
+                  <Col className={styles.npcChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
                     {item?.status === 'wait' ? <LoadingDots /> : null}
                     {item?.status === 'success' ? (
                       <Text className={styles.content}>{item.content}</Text>
@@ -226,6 +235,18 @@ const Conversation = () => {
                   </Col>
                 </Row>
               );
+            } else {
+              return (
+                <Row
+                  key={index}
+                  justify={'center'}
+                  align={'middle'}
+                  wrap={false}
+                  style={{ marginBottom: 10, paddingRight: 40 }}
+                >
+                  <Divider orientation={'center'}>以上对话内容已清除</Divider>
+                </Row>
+              )
             }
           })}
         </div>
