@@ -381,7 +381,7 @@ class NPCManager:
             soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间心有灵犀，和谐到了几乎完美的境界，你们互信互依。",
             adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
         )
-        self.affinity = AffinityManager(score=60, level=self.affinity_level)
+        self.affinity = AffinityManager(score=100, level=self.affinity_level)
         
         npc_users = self.mysql_client.select_all_records(record_class=NPCUser)
         for npc_user in npc_users:
