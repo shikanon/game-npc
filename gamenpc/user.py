@@ -3,7 +3,7 @@ import os
 
 from sqlalchemy import Column, String, Integer, DateTime, Enum, Text, text
 from sqlalchemy.dialects.postgresql import UUID
-from typing import List
+from typing import List, Tuple
 from datetime import datetime
 from dataclasses import dataclass
 from itsdangerous import TimedSerializer, BadData
@@ -90,9 +90,9 @@ class UserManager:
         if self.secret_key is None:
             self.secret_key = "this-your-default-secret-key"
 
-    def get_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[User]:
-        users = self.mysql_client.select_records(record_class=User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
-        return users
+    def get_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> Tuple[List[User], int]:
+        users, total = self.mysql_client.select_records(record_class=User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
+        return users, total
     
     def get_user(self, filter_dict) -> User:
         user = self.mysql_client.select_record(record_class=User, filter_dict=filter_dict)

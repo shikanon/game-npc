@@ -47,25 +47,26 @@ class MySQLDatabase:
             session = self.session()
             record = session.query(record_class).filter_by(**filter_dict).first()
             return record
-    
-    def select_records(self, record_class, order_by=None, filter_dict=None, page=1, limit=10)->List:
+      
+    def select_records(self, record_class, order_by=None, filter_dict=None, page=1, limit=10):
         with self.session() as session:
             query = session.query(record_class)
             if filter_dict is not None:
                 query = query.filter_by(**filter_dict)
+            total = query.count()  # calculate total count before limiting the query
             if order_by is not None:
-                if isinstance(order_by, str):                      # order_by 默认为升序
+                if isinstance(order_by, str):
                     query = query.order_by(text(order_by))
-                elif isinstance(order_by, dict):                   # 如果为字典时，key也就是需要排序的字段，value为True则为升序，False则为降序
+                elif isinstance(order_by, dict):
                     for key, value in order_by.items():
                         if value:
                             query = query.order_by(text(key))
                         else:
-                            query = query.order_by(text(key + " DESC"))     # 使用sqlalchemy的desc函数进行降序排序
-            if page is not None and limit is not None:             # 加入分页功能
+                            query = query.order_by(text(key + " DESC"))
+            if page is not None and limit is not None:
                 query = query.limit(limit).offset((page-1)*limit)
             results = query.all()
-            return results
+            return results, total 
     
     def select_all_records(self, record_class)->List:
         with self.session() as session:

@@ -256,8 +256,8 @@ async def query_npc(req: NpcQueryRequest):
         req.page = 1
     if req.limit <= 0:
         req.limit = 10 
-    npcs = npc_manager.get_npcs(filter_dict=filter_dict, order_by=req.order_by, page=req.page, limit=req.limit)
-    return response(data={'list': [npc.to_dict() for npc in npcs], 'total': len(npcs)})
+    npcs, total = npc_manager.get_npcs(filter_dict=filter_dict, order_by=req.order_by, page=req.page, limit=req.limit)
+    return response(data={'list': [npc.to_dict() for npc in npcs], 'total': total})
 
 class NpcGetRequest(BaseModel):
     id: Optional[str] = ""

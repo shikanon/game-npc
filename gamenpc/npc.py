@@ -6,7 +6,7 @@ create: 2024/1/21
 """
 import jinja2
 import json, uuid, pickle
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from datetime import datetime
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema.messages import BaseMessage
@@ -399,9 +399,10 @@ class NPCManager:
             debuglog.info(f'npc_user load_from_db: new npc_user === {new_npc_user.to_dict()}')
             self._instances[npc_user.id] = new_npc_user
 
-    def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPC]:
-        npcs = self.mysql_client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
-        return npcs
+    def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> Tuple:
+        npcs, total = self.mysql_client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
+        print(f'npcs: {npcs}, total: {total}')
+        return npcs, total
     
     def get_npc(self, npc_id) -> NPC:
         filter_dict = {'id': npc_id}
@@ -415,8 +416,8 @@ class NPCManager:
         debuglog.info(f'update_npc: new npc === {new_npc.to_dict()}')
         # 获取对应的npc_user，更新相关信息
         filter_dict = {'npc_id': npc.id}
-        npc_user_list = self.mysql_client.select_records(record_class=NPCUser, filter_dict=filter_dict)
-        debuglog.info(f'update_npc: npc_user list len === {len(npc_user_list)}')
+        npc_user_list, total = self.mysql_client.select_records(record_class=NPCUser, filter_dict=filter_dict)
+        debuglog.info(f'update_npc: npc_user list len === {len(npc_user_list)}, total: {total}')
         for npc_user in npc_user_list:
             # 更新内存
             npc_user_id = npc_user.id
