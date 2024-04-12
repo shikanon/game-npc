@@ -29,9 +29,9 @@ const Character: React.FC = () => {
   const { userInfo, setOpenLoginModal } = useModel('user');
 
   const [npcList, setNpcList] = useState<INPCInfo[]>([]);
+  const [listTotal, setListTotal] = useState<number | null>(null); // 列表总数
   const [searchParams, setSearchParams] = useState<any | null>(null); // 搜索框筛选参数
   const [queryPage, setQueryPage] = useState<PageParams | null>(null); // 查询页码数据
-  const [listTotal, setListTotal] = useState<number | null>(null); // 列表总数
 
   const { runAsync: getNPCListRequest, loading: getNPCListLoading } =
     useRequest(npcService.GetNPCList, { manual: true });
@@ -356,19 +356,19 @@ const Character: React.FC = () => {
           total: listTotal ?? 0,
           showSizeChanger: true,
           showQuickJumper: true,
-          current: queryPage?.page,
+          current: queryPage?.page || 1,
           pageSize: queryPage?.limit || 10,
           onChange: (pageNum: number, pageSize: number) => {
             // 更新当前页码
             setQueryPage({
-              page: (pageNum - 1) * pageSize,
+              page: pageNum,
               limit: pageSize,
             });
 
             // 更新列表
             getList({
               ...searchParams,
-              page: (pageNum - 1) * pageSize,
+              page: pageNum,
               limit: pageSize,
             }).then();
           },

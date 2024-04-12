@@ -560,7 +560,7 @@ const ChatDebug = () => {
                       <Row style={{ marginBottom: 5, marginLeft: 5, color: '#595959' }}>{npcConfig?.name || '-'}</Row>
                       {
                         item?.status === 'success' && item?.debugMessage ? (
-                          <Row style={{ marginBottom: 10 }}>
+                          <Row style={{ marginBottom: 10, marginLeft: 5 }}>
                             <Collapse
                               size={'small'}
                               expandIconPosition={'end'}
@@ -589,7 +589,7 @@ const ChatDebug = () => {
                       }
                       {
                         item?.status === 'wait' ? (
-                          <Row style={{ marginBottom: 10 }}>
+                          <Row style={{ marginBottom: 10, marginLeft: 5 }}>
                             <Collapse
                               size={'small'}
                               expandIconPosition={'end'}
@@ -609,7 +609,7 @@ const ChatDebug = () => {
                       }
                       {
                         item?.status === 'fail' ? (
-                          <Row style={{ marginBottom: 10 }}>
+                          <Row style={{ marginBottom: 10, marginLeft: 5 }}>
                             <Collapse
                               size={'small'}
                               expandIconPosition={'end'}

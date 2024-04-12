@@ -26,7 +26,7 @@ const Character = () => {
   const getNPCList = async () => {
     const result = await getNPCListRequest({
       page: 1,
-      limit: 10,
+      limit: 1000,
     });
     console.log('result', result);
     if (result?.data?.list.length) {
