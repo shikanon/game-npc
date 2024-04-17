@@ -21,6 +21,7 @@ from gamenpc.utils.logger import debuglog
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text, text
 from sqlalchemy.orm import relationship
+# from sqlalchemy.dialects.mysql import JSON
 from dataclasses import dataclass
 
 # debuglog = DebugLogger("npc")
@@ -59,6 +60,9 @@ class NPC(Base):
     profile = Column(Text)
     chat_background = Column(Text)
     affinity_level_description = Column(Text)
+    # prologue = Column(Text)
+    # preset_problems = Column(JSON)
+    # pictures = Column(JSON)
     status = Column(Integer)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))

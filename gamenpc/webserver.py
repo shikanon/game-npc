@@ -284,7 +284,7 @@ class NpcQueryRequest(BaseModel):
     limit: Optional[int] = 10
 
 @router.post("/npc/query")
-async def query_npc(req: NpcQueryRequest, user_id: str= Depends(check_user_validate)):
+async def query_npc(req: NpcQueryRequest):
     filter_dict = {}
     if req.name != "":
         filter_dict['name'] = req.name
