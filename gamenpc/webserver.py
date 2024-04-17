@@ -338,7 +338,6 @@ def verify_password(stored_password, provided_password):
     return pwd_context.verify(secret=provided_password, hash=stored_password)
 
 class UserCreateRequest(BaseModel):
-    id: Optional[str] = ""
     name: str
     sex: Optional[int] = 0
     phone: Optional[str] = ""
@@ -384,44 +383,37 @@ async def user_get(user_id: str= Depends(check_user_validate)):
         return response(code=400, message=f'user 不存在, 请先注册')
     return response(data=user.to_dict())
     
-class UserRemoveRequest(BaseModel):
-    id: str
 
 @router.post("/user/remove")
-async def remove_user(req: UserRemoveRequest, user_id: str= Depends(check_user_validate)):
-    filter_dict = {'id': req.id}
+async def remove_user(user_id: str= Depends(check_user_validate)):
+    filter_dict = {'id': user_id}
     user = user_manager.get_user(filter_dict=filter_dict)
     if user == None:
-        return response(code=400, message=f"user for {req.id} 不存在")
-    user_manager.remove_user(user_id=req.id)
-    return response(message=f'删除 user {req.id} 成功')
+        return response(code=400, message=f"user {user_id} 不存在")
+    user_manager.remove_user(user_id=user_id)
+    return response(message=f'删除 user {user_id} 成功')
 
-class UserQueryRequest(BaseModel):
-    id: Optional[str] = None
 
 @router.post("/user/query")
-async def query_user(req: UserQueryRequest, user_id: str= Depends(check_user_validate)):
-    if req.id is None:
-        return response(code=400, message=f'id 不能为空')
-    filter_dict = {'id': req.id}
+async def query_user(user_id: str= Depends(check_user_validate)):
+    filter_dict = {'id': user_id}
     user = user_manager.get_user(filter_dict=filter_dict)
     if user == None:
         return response(code=400, message=f'user记录为空')
     return response(data=user.to_dict())
 
-class UserCreateRequest(BaseModel):
-    id: Optional[str] = ""
+class UserUpdateRequest(BaseModel):
     name: Optional[str] = ""
     sex: Optional[int] = -1
     phone: Optional[str] = ""
     password: Optional[str] = ""
 
 @router.post("/user/update")
-async def update_user(req: UserCreateRequest, user_id: str= Depends(check_user_validate)):  
+async def update_user(req: UserUpdateRequest, user_id: str= Depends(check_user_validate)):  
     if req.sex == -1:
         req.sex = 0  
     password_hash = get_password_hash(req.password)
-    user = user_manager.update_user(id=req.id, name=req.name, sex=req.sex, phone=req.phone, password=password_hash)
+    user = user_manager.update_user(id=user_id, name=req.name, sex=req.sex, phone=req.phone, password=password_hash)
     if user == None:
         return response(code=400, message=f'user {req.name} 不存在, 请先注册')
     return response(data=user.to_dict())
