@@ -372,9 +372,13 @@ async def user_login(req: UserCreateRequest):
     if verify_password(user.password, req.password) == False:
         return response(code=400, message=f'user {req.name} 密码输入错误')
     access_token, expires_in = user_manager.generate_token(id=user.id)
-    return response(data={'access_token': access_token, "token_type": "bearer", "expires_in": expires_in})
+    user_data = user.to_dict()
+    user_data['access_token'] = access_token
+    # user_data['token_type'] = 'bearer'
+    # user_data['expires_in'] = expires_in
+    return response(data=user_data)
 
-@router.get("/user/get_info")
+@router.get("/user/verify")
 async def user_get(user_id: str= Depends(check_user_validate)):
     filter_dict = {}
     filter_dict['id'] = user_id
