@@ -1,6 +1,12 @@
 import userImg from '@/assets/images/user.png';
 import LoadingDots from '@/components/LoadingDots';
-import { INPCAllInfo, INPCInfo, IUpdateNPCCharacterRequest, NPCCharacterStatusEnum } from '@/interfaces/game_npc';
+import {
+  ImageTypeEnum,
+  INPCAllInfo,
+  INPCInfo,
+  IUpdateNPCCharacterRequest,
+  NPCCharacterStatusEnum
+} from '@/interfaces/game_npc';
 import gameNpcService from '@/services/game_npc';
 import npcService from '@/services/game_npc';
 import { getHashParams } from '@/utils';
@@ -9,22 +15,38 @@ import {
   ClearOutlined,
   ClockCircleOutlined, CompressOutlined, ExclamationCircleOutlined, ExpandOutlined,
   FormOutlined,
-  LeftOutlined, LoadingOutlined, OpenAIOutlined,
+  LeftOutlined, LoadingOutlined, OpenAIOutlined, PlusOutlined,
   SendOutlined
 } from '@ant-design/icons';
 import { useMount, useRequest } from 'ahooks';
-import { App, Avatar, Button, Col, Collapse, Divider, Input, Popconfirm, Row, Typography } from 'antd';
+import {
+  App,
+  Avatar,
+  Button,
+  Col,
+  Collapse,
+  Divider, GetProp, Image,
+  Input,
+  InputNumber, Modal,
+  Popconfirm,
+  Radio,
+  Row,
+  Typography,
+  Upload, UploadFile, UploadProps
+} from 'antd';
 import React, { useEffect, useState } from 'react';
 import styles from './index.less';
 import { useModel, history } from "@umijs/max";
-import { USER_ID_KEY } from "@/constants";
+import { ACCESS_TOKEN_KEY, USER_ID_KEY } from "@/constants";
 import userService from "@/services/user";
 import PromptModal from "@/components/PromptModal";
 import { Timeout } from "ahooks/es/useRequest/src/types";
 import ReactJson from "react-json-view";
+import ImgCrop from "antd-img-crop";
+import { RcFile } from "antd/es/upload";
 
 const { TextArea } = Input;
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 let debounceTimeout: Timeout | null = null;
 
 interface IChatItem {
@@ -37,6 +59,25 @@ interface IChatItem {
   isClear?: boolean;
 }
 
+interface IlikeabilityRuleType {
+  lv: number; // 等级
+  intimacyValue: number; // 亲密值
+  likeabilityDesc: string; // 好感度
+  image?: string; // 图片
+  imageFileList?: UploadFile[]; // 图片文件列表
+  imageTriggerScene?: string; // 图片触发场景
+}
+
+type FileType = Parameters<GetProp<UploadProps, 'beforeUpload'>>[0];
+
+const getBase64 = (file: FileType): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+
 const ChatDebug = () => {
   const { message } = App.useApp();
   const { userInfo, setUserInfo, openPromptModal, setOpenPromptModal } = useModel('user');
@@ -45,6 +86,17 @@ const ChatDebug = () => {
   const [editName, setEditName] = useState<string>('');
   const [editShortDesc, setEditShortDesc] = useState<string>('');
   const [editTrait, setEditTrait] = useState<string>('');
+  const [likeabilityRule, setLikeabilityRule] = useState<IlikeabilityRuleType[]>([
+    { lv: 1, intimacyValue: 5, likeabilityDesc: '陌生', image: '', },
+    { lv: 2, intimacyValue: 15, likeabilityDesc: '普通', image: '', },
+    { lv: 3, intimacyValue: 30, likeabilityDesc: '友好', image: '', },
+    { lv: 4, intimacyValue: 60, likeabilityDesc: '亲密', image: '', },
+    { lv: 5, intimacyValue: 100, likeabilityDesc: '恋人', image: '', },
+  ]);
+  const [presetProblem, setPresetProblem] = useState<string[]>(['问题1', '问题2', '问题3']);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState('');
+  const [previewTitle, setPreviewTitle] = useState('');
   const [npcConfig, setNpcConfig] = useState<INPCInfo | null>(null);
   const [npcAllInfo, setNpcAllInfo] = useState<INPCAllInfo | null>(null);
   const [question, setQuestion] = useState('');
@@ -79,6 +131,12 @@ const ChatDebug = () => {
   // 清除NPC聊天历史
   const { loading: clearNPCHistoryLoading, runAsync: clearNPCHistoryRequest } =
     useRequest(gameNpcService.ClearNPCHistory, { manual: true });
+
+  const {
+    runAsync: fileUploadRequest,
+    // loading: fileUploadLoading,
+  } =
+    useRequest(npcService.FileUpload, { manual: true });
 
   /**
    * 滚动到底部
@@ -271,20 +329,154 @@ const ChatDebug = () => {
     }
   };
 
-  useMount(async () => {
-    const storageUserId = localStorage.getItem(USER_ID_KEY);
-    if (storageUserId) {
-      const userResult = await userService.UserQuery({
-        id: storageUserId || '',
+  /**
+   * 亲密值变更
+   * @param item
+   * @param value
+   */
+  const onIntimacyValueChange = (item: IlikeabilityRuleType, value: number | "" | null) => {
+    const newLikeabilityRule = likeabilityRule.map((rule) => {
+      if (rule.lv === item.lv) {
+        return {
+          ...rule,
+          intimacyValue: value || 0,
+        };
+      }
+      return rule;
+    });
+    setLikeabilityRule(newLikeabilityRule);
+  }
+
+  /**
+   * 好感度描述变更
+   * @param item
+   * @param value
+   */
+  const onLikeabilityDescChange = (item: IlikeabilityRuleType, value: string) => {
+    const newLikeabilityRule = likeabilityRule.map((rule) => {
+      if (rule.lv === item.lv) {
+        return {
+          ...rule,
+          likeabilityDesc: value,
+        };
+      }
+      return rule;
+    });
+    setLikeabilityRule(newLikeabilityRule);
+  }
+
+  /**
+   * 图片触发场景变更
+   * @param item
+   * @param value
+   */
+  const onImageTriggerSceneChange = (item: IlikeabilityRuleType, value: string) => {
+    const newLikeabilityRule = likeabilityRule.map((rule) => {
+      if (rule.lv === item.lv) {
+        return {
+          ...rule,
+          imageTriggerScene: value,
+        };
+      }
+      return rule;
+    });
+    setLikeabilityRule(newLikeabilityRule);
+  }
+
+  // /**
+  //  * 图片上传前
+  //  * @param item
+  //  * @param file
+  //  */
+  // const beforeImageUpload = async (item: IlikeabilityRuleType, file: FileType) => {
+  //   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+  //   if (!isJpgOrPng) {
+  //     message.error('You can only upload JPG/PNG file!');
+  //   }
+  //   const isLt2M = file.size / 1024 / 1024 < 2;
+  //   if (!isLt2M) {
+  //     message.error('Image must smaller than 2MB!');
+  //   }
+  //   return isJpgOrPng && isLt2M;
+  // };
+
+  /**
+   * 图片上传
+   * @param item
+   * @param file
+   * @param fileList
+   */
+  const handleChatBgChange = async (item: IlikeabilityRuleType, file: UploadFile, fileList: UploadFile[]) => {
+    const formData = new FormData();
+
+    console.log(file, 'file');
+    formData.append('file', file as RcFile);
+    formData.append(
+      'image_type',
+      ImageTypeEnum.ImageTypeEnum_ChatBackground as unknown as string,
+    );
+    // @ts-ignore
+    const result = await fileUploadRequest(formData);
+    console.log(result, '上传结果');
+
+    if (result?.data && result?.code === 0) {
+      const newLikeabilityRule = likeabilityRule.map((rule) => {
+        if (rule.lv === item.lv) {
+          return {
+            ...rule,
+            image: result?.data,
+            imageFileList: fileList,
+          };
+        }
+        return rule;
       });
+      setLikeabilityRule(newLikeabilityRule);
+    }
+  };
+
+  /**
+   * 图片移除
+   * @param item
+   */
+  const onImageRemove = (item: IlikeabilityRuleType) => {
+    const newLikeabilityRule = likeabilityRule.map((rule) => {
+      if (rule.lv === item.lv) {
+        return {
+          ...rule,
+          image: '',
+          imageFileList: [],
+        };
+      }
+      return rule;
+    });
+    setLikeabilityRule(newLikeabilityRule);
+  }
+
+  const handlePreview = async (file: UploadFile) => {
+    if (!file.url && !file.preview) {
+      file.preview = await getBase64(file.originFileObj as FileType);
+    }
+
+    setPreviewImage(file.url || (file.preview as string));
+    setPreviewOpen(true);
+    setPreviewTitle(
+      file.name || file.url!.substring(file.url!.lastIndexOf('/') + 1),
+    );
+  };
+
+  useMount(async () => {
+    const storageAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (storageAccessToken) {
+      const userResult = await userService.Verify();
       console.log('用户信息：', userResult?.data);
       if (userResult?.data?.id) {
         window.localStorage.setItem(USER_ID_KEY, userResult.data.id);
         setUserInfo(userResult.data || null);
       }
+      getNPCInfo().then();
+    } else {
+      history.push('/');
     }
-
-    getNPCInfo().then();
   });
 
   useEffect(() => {
@@ -292,6 +484,10 @@ const ChatDebug = () => {
       getNPCAllInfo().then();
     }
   }, [userInfo]);
+
+  useEffect(() => {
+    console.log(likeabilityRule, 'likeabilityRule')
+  }, [likeabilityRule]);
 
   return (
     <div
@@ -387,7 +583,7 @@ const ChatDebug = () => {
       </Row>
 
       <div className={styles.main}>
-        <div className={styles.left}>
+        <div className={styles.promptConfig}>
           <div>
             <Collapse
               accordion
@@ -519,6 +715,225 @@ const ChatDebug = () => {
               ]}
             />
           </div>
+        </div>
+
+        <div className={styles.chatConfig}>
+          <Collapse
+            bordered={false}
+            defaultActiveKey={[]}
+            items={[
+              {
+                key: '1',
+                label: '好感度规则',
+                children: (
+                  <>
+                    {
+                      likeabilityRule?.map((item) => {
+                        return (
+                          <Col key={item.lv} style={{ marginBottom: 10 }}>
+                            <Row>亲密等级LV{item.lv}</Row>
+                            <Row align={'top'} style={{ marginTop: 5 }}>
+                              <Col style={{ marginRight: 10 }}>
+                                <InputNumber
+                                  style={{ width: 80 }}
+                                  value={item.intimacyValue || ''}
+                                  placeholder={'所需亲密值'}
+                                  onChange={(value) => {
+                                    console.log(value, '亲密值');
+                                    onIntimacyValueChange(item, value);
+                                  }}
+                                />
+                              </Col>
+                              <Col style={{ flex: 1 }}>
+                                <TextArea
+                                  autoSize={{ minRows: 1, maxRows: 3 }}
+                                  value={item.likeabilityDesc || ''}
+                                  placeholder={'请输入该等级下的好感度描述'}
+                                  onChange={(e) => {
+                                    console.log(e.target.value, '描述');
+                                    onLikeabilityDescChange(item, e.target.value);
+                                  }}
+                                />
+                              </Col>
+                            </Row>
+                          </Col>
+                        )
+                      })
+                    }
+                  </>
+                ),
+              },
+              {
+                key: '2',
+                label: '图片回复',
+                children: (
+                  <>
+                    {
+                      likeabilityRule?.map((item) => {
+                        return (
+                          <Col key={item.lv} style={{ marginBottom: 10 }}>
+                            <Row>图片LV{item.lv}</Row>
+                            <Row align={'top'} style={{ marginTop: 5 }}>
+                              <Col style={{ marginRight: 10 }}>
+                                <ImgCrop
+                                  rotationSlider
+                                  // aspectSlider
+                                  aspect={3 / 4}
+                                  showReset
+                                  cropShape={'rect'}
+                                >
+                                  <Upload
+                                    listType="picture-card"
+                                    fileList={item?.imageFileList || []}
+                                    beforeUpload={() => {
+                                      return false;
+                                      // beforeImageUpload(item, file).then();
+                                    }}
+                                    onPreview={handlePreview}
+                                    onChange={(info) => {
+                                      handleChatBgChange(item, info.file, info.fileList);
+                                    }}
+                                    onRemove={() => {
+                                      onImageRemove(item);
+                                    }}
+                                  >
+                                    {(item?.imageFileList?.length || 0) >= 1 ? null : (
+                                      <>
+                                        {item?.image ? (
+                                          <Image
+                                            src={item?.image}
+                                            style={{ width: 50 }}
+                                            preview={false}
+                                          />
+                                        ) : (
+                                          <button
+                                            style={{ border: 0, background: 'none' }}
+                                            type="button"
+                                          >
+                                            <PlusOutlined/>
+                                            <div style={{ marginTop: 8 }}>Upload</div>
+                                          </button>
+                                        )}
+                                      </>
+                                    )}
+                                  </Upload>
+                                </ImgCrop>
+                              </Col>
+                              <Col style={{ flex: 1 }}>
+                                <TextArea
+                                  autoSize={{ minRows: 3, maxRows: 5 }}
+                                  value={item.imageTriggerScene || ''}
+                                  placeholder={'请输入触发该图片的场景或对话信息'}
+                                  onChange={(e) => {
+                                    console.log(e.target.value, '场景');
+                                    onImageTriggerSceneChange(item, e.target.value);
+                                  }}
+                                />
+                              </Col>
+                            </Row>
+                          </Col>
+                        )
+                      })
+                    }
+                  </>
+                ),
+              },
+              {
+                key: '3',
+                label: '主动问候',
+                children: (
+                  <Col>
+                    <Row style={{ marginBottom: 15 }}>
+                      <Col>主动问候时间范围</Col>
+                      <Col style={{ marginTop: 5 }}>
+                        <Radio.Group defaultValue="a" buttonStyle="solid">
+                          <Radio.Button style={{ marginRight: 10 }} value="a">00:00-6:00</Radio.Button>
+                          <Radio.Button style={{ marginRight: 10 }} value="b">6:00-12:00</Radio.Button>
+                          <Radio.Button style={{ marginRight: 10 }} value="c">12:00-18:00</Radio.Button>
+                          <Radio.Button value="d">18:00-24:00</Radio.Button>
+                        </Radio.Group>
+                      </Col>
+                    </Row>
+
+                    <Row style={{ marginBottom: 5 }}>主动问候Prompt</Row>
+                    <Row>
+                      <TextArea
+                        autoSize={{ minRows: 3, maxRows: 5 }}
+                        value={''}
+                        placeholder={'请输入主动问候Prompt'}
+                        onChange={(e) => {
+                          console.log(e.target.value, '问候');
+                        }}
+                      />
+                    </Row>
+                  </Col>
+                ),
+              },
+              {
+                key: '4',
+                label: '开场白',
+                children: (
+                  <Col>
+                    <Col style={{ marginBottom: 5 }}>开场白内容</Col>
+                    <Col>
+                      <TextArea
+                        autoSize={{ minRows: 3, maxRows: 5 }}
+                        value={''}
+                        placeholder={'请输入开场白'}
+                        onChange={(e) => {
+                          console.log(e.target.value, '开场白');
+                        }}
+                      />
+                    </Col>
+
+                    <Col style={{ marginTop: 15, marginBottom: 5 }}>开场白预置问题</Col>
+
+                    {
+                      presetProblem?.map((item, index) => {
+                        return (
+                          <Row key={index} style={{ marginBottom: 10 }}>
+                            <TextArea
+                              autoSize={{ minRows: 1, maxRows: 3 }}
+                              value={item}
+                              placeholder={'请输入'}
+                              onChange={(e) => {
+                                console.log(e.target.value, '预置问题');
+                              }}
+                            />
+                          </Row>
+                        )
+                      })
+                    }
+                  </Col>
+                ),
+              },
+              {
+                key: '5',
+                label: '回复推荐',
+                children: (
+                  <Col>
+                    <Row>
+                      <Paragraph style={{ color: '#8c8c8c' }}>每个角色回复后面跟上3条聊天提示，提示用户可以说的话（根据上下文和prompt进行提示）</Paragraph>
+                    </Row>
+
+                    <Row style={{ marginBottom: 5 }}>
+                      自定义灵感回复prompt
+                    </Row>
+                    <Row>
+                      <TextArea
+                        autoSize={{ minRows: 3, maxRows: 5 }}
+                        value={''}
+                        placeholder={'请输入'}
+                        onChange={(e) => {
+                          console.log(e.target.value, '请输入');
+                        }}
+                      />
+                    </Row>
+                  </Col>
+                ),
+              },
+            ]}
+          />
         </div>
 
         <div className={styles.chatContainer}>
@@ -744,6 +1159,17 @@ const ChatDebug = () => {
           </div>
         </div>
       </div>
+
+      <Modal
+        open={previewOpen}
+        title={previewTitle}
+        footer={null}
+        onCancel={() => {
+          setPreviewOpen(false);
+        }}
+      >
+        <img alt="example" style={{ width: '100%' }} src={previewImage} />
+      </Modal>
 
       {/*Prompt弹窗*/}
       <PromptModal

@@ -4,6 +4,7 @@ import { IUserInfo } from '@/interfaces/user';
 import userService from '@/services/user';
 import { RequestConfig } from '@umijs/max';
 import humps from 'humps';
+import { message } from "antd";
 
 console.log('环境：', process.env.UMI_ENV);
 
@@ -17,21 +18,16 @@ interface IInitialState {
 // 全局初始化数据配置，用于 Layout 用户信息和权限初始化
 // 更多信息见文档：https://umijs.org/docs/max/data-flow
 export async function getInitialState(): Promise<IInitialState> {
-  const storageUserId = localStorage.getItem(USER_ID_KEY);
-  if (storageUserId) {
-    const userResult = await userService.UserQuery({
-      id: storageUserId || '',
-    });
-    console.log('用户信息：', userResult?.data);
-    if (userResult?.data?.id) {
-      window.localStorage.setItem(USER_ID_KEY, userResult.data.id);
+  const userResult = await userService.Verify();
+  console.log('用户信息：', userResult?.data);
+  if (userResult?.data?.id) {
+    window.localStorage.setItem(USER_ID_KEY, userResult.data.id);
 
-      return {
-        user: {
-          userInfo: userResult.data || null,
-        },
-      };
-    }
+    return {
+      user: {
+        userInfo: userResult.data || null,
+      },
+    };
   }
   return {
     user: {
@@ -58,9 +54,9 @@ export const request: RequestConfig = {
     // @ts-ignore
     (config) => {
       // 添加token
-      const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+      const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
       if (token) {
-        config.headers.token = token;
+        config.headers.Authorization = `Bearer ${token}`;
       }
 
       if (config.method === 'post' || config.method === 'delete') {
@@ -82,20 +78,17 @@ export const request: RequestConfig = {
   responseInterceptors: [
     (response: any) => {
       // 拦截响应数据，进行个性化处理
+      // console.log('响应结果', response);
 
       // 将返回的数据转驼峰
       if (response.data) {
         response.data = humps.camelizeKeys(response.data);
       }
 
-      // 全局统一响应成功信息处理
-      // if (response.config.method === 'post' &&
-      //   response.data?.baseRsp?.subMsg === '' &&
-      //   !/xxx/.test(response?.config?.url || '')) {
-      //   message.success('成功').then();
-      // }
-
-      // console.log('响应结果', response);
+      // 全局统一响应错误信息处理
+      if (response.data?.code !== 0) {
+        message.error(response.data?.msg || '异常错误').then();
+      }
 
       return response;
     },

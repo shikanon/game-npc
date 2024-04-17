@@ -3,8 +3,8 @@
   "private": true,
   "author": "ClarkChu <cc070194@gmail.com>",
   "scripts": {
-    "local": "cross-env UMI_ENV=local max dev",
-    "dev": "cross-env UMI_ENV=dev max dev",
+    "start:local": "cross-env UMI_ENV=local max dev",
+    "start:dev": "cross-env UMI_ENV=dev max dev",
     "build": "max build",
     "format": "prettier --cache --write .",
     "postinstall": "max setup",

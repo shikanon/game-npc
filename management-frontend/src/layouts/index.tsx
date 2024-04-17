@@ -1,5 +1,5 @@
 import logo from '@/assets/images/logo.png';
-import { USER_ID_KEY } from '@/constants';
+import { ACCESS_TOKEN_KEY, USER_ID_KEY } from '@/constants';
 import layoutConfig from '@/layouts/layoutConfig';
 import { LoginOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { ProLayout } from '@ant-design/pro-components';
@@ -23,6 +23,7 @@ const { Text } = Typography;
 
 export default () => {
   // 初始化的状态数据
+  const { message } = App.useApp();
   const { initialState } = useModel('@@initialState');
   const { userInfo, setUserInfo, openLoginModal, setOpenLoginModal } = useModel('user');
 
@@ -42,6 +43,8 @@ export default () => {
 
     if (initialState?.user?.userInfo) {
       setUserInfo(initialState.user.userInfo);
+    } else {
+      setOpenLoginModal(true);
     }
   });
 
@@ -58,6 +61,13 @@ export default () => {
     if (userInfo?.id) {
       setUserInfo(null);
       window.localStorage.removeItem(USER_ID_KEY);
+      window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+
+      message.success('退出登录成功');
+
+      setTimeout(() => {
+        setOpenLoginModal(true);
+      }, 500)
     } {
       setOpenLoginModal(true);
     }
@@ -196,7 +206,8 @@ export default () => {
           <LoginModal
             open={openLoginModal}
             onChange={() => {
-              setOpenLoginModal(false);
+              // 登录成功，重新加载页面
+              window.location.reload();
             }}
           />
         </App>

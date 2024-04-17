@@ -4,7 +4,7 @@ import brandImg from '@/assets/images/brand.png';
 import feedbackImg from '@/assets/images/feedback.png';
 import shareImg from '@/assets/images/share.png';
 import userImg from '@/assets/images/user.png';
-import { USER_ID_KEY } from '@/constants';
+import { ACCESS_TOKEN_KEY, USER_ID_KEY } from '@/constants';
 import { ProLayout } from '@ant-design/pro-components';
 import { Outlet, useLocation, useModel } from '@umijs/max';
 import { useMount } from 'ahooks';
@@ -50,8 +50,7 @@ export default () => {
     if (initialState?.user?.userInfo) {
       setUserInfo(initialState.user.userInfo);
     } else {
-      // 去登录
-      // history.push('/login');
+      // setOpenLoginModal(true);
     }
   });
 
@@ -166,9 +165,15 @@ export default () => {
                         type={'text'}
                         onClick={() => {
                           if (userInfo?.id) {
-                            window.localStorage.removeItem(USER_ID_KEY);
                             setUserInfo(null);
+                            window.localStorage.removeItem(USER_ID_KEY);
+                            window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+
                             message.success('退出登录成功').then();
+
+                            setTimeout(() => {
+                              setOpenLoginModal(true);
+                            }, 500)
                           } else {
                             setOpenLoginModal(true);
                           }

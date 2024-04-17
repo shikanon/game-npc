@@ -70,7 +70,7 @@ export default defineConfig({
     '/local': {
       enable: true,
       changeOrigin: true,
-      target: 'http://localhost:8080',
+      target: 'http://192.168.66.108:8888',
       pathRewrite: { '^/local': '/api' },
     },
     '/dev': {

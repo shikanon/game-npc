@@ -12,7 +12,7 @@ import { ModalProps } from 'antd/es/modal';
 import React, { useEffect, useState } from 'react';
 import { CloseOutlined } from "@ant-design/icons";
 import { IUserLoginRequest, IUserRegisterRequest } from "@/interfaces/user";
-import { USER_ID_KEY } from "@/constants";
+import { ACCESS_TOKEN_KEY, USER_ID_KEY } from "@/constants";
 import { useModel } from "@@/exports";
 import userService from "@/services/user";
 import { history } from "@umijs/max";
@@ -64,6 +64,9 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
         if (result?.data?.id) {
           setUserInfo(result.data);
           window.localStorage.setItem(USER_ID_KEY, result?.data?.id);
+          if (result?.data?.accessToken) {
+            window.localStorage.setItem(ACCESS_TOKEN_KEY, result.data.accessToken);
+          }
 
           message.success('注册成功');
 
@@ -72,8 +75,6 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
 
           // 打开设置性别弹窗
           setOpenSexModal(true);
-        } else {
-          message.warning(result?.msg);
         }
       })
       .catch(() => {});
@@ -95,13 +96,14 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
         if (result?.data?.id) {
           setUserInfo(result.data);
           window.localStorage.setItem(USER_ID_KEY, result?.data?.id);
+          if (result?.data?.accessToken) {
+            window.localStorage.setItem(ACCESS_TOKEN_KEY, result.data.accessToken);
+          }
 
           message.success('登录成功');
 
           // 进入角色页面
           onChange(true);
-        } else {
-          message.warning(result?.msg);
         }
       })
       .catch(() => {});

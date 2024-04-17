@@ -6,7 +6,7 @@ import {
   IUserQueryRequest,
   IUserQueryResponse,
   IUserRegisterRequest,
-  IUserRegisterResponse,
+  IUserRegisterResponse, IUserVerifyResponse,
 } from '@/interfaces/user';
 import { request } from '@umijs/max';
 
@@ -28,6 +28,15 @@ export default {
     return await request<IUserLoginResponse>('/user/login', {
       method: 'POST',
       data,
+    });
+  },
+
+  /**
+   * 用户验证
+   */
+  async Verify() {
+    return await request<IUserVerifyResponse>('/user/verify', {
+      method: 'GET',
     });
   },
 

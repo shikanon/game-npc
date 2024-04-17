@@ -21,6 +21,7 @@ export interface IUserInfo {
   password: string;
   phone: string;
   sex: UserSexEnum;
+  accessToken?: string;
 }
 export interface IUserRegisterResponse {
   code: number;
@@ -34,6 +35,13 @@ export interface IUserLoginRequest {
   password: string;
 }
 export interface IUserLoginResponse {
+  code: number;
+  data: IUserInfo;
+  msg: string;
+}
+
+// 用户验证
+export interface IUserVerifyResponse {
   code: number;
   data: IUserInfo;
   msg: string;
