@@ -21,7 +21,7 @@ from gamenpc.utils.logger import debuglog
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text, text
 from sqlalchemy.orm import relationship
-# from sqlalchemy.dialects.mysql import JSON
+from sqlalchemy.dialects.mysql import JSON
 from dataclasses import dataclass
 
 # debuglog = DebugLogger("npc")
@@ -60,22 +60,25 @@ class NPC(Base):
     profile = Column(Text)
     chat_background = Column(Text)
     affinity_level_description = Column(Text)
-    # prologue = Column(Text)
-    # preset_problems = Column(JSON)
-    # pictures = Column(JSON)
+    prologue = Column(Text)
+    preset_problems = Column(JSON)
+    pictures = Column(JSON)
     status = Column(Integer)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
     created_at = Column(DateTime, default=datetime.now())
 
     def __init__(self, id=None, name=None, short_description=None, trait=None, sex=None, prompt_description=None, profile=None, chat_background=None, 
-                 affinity_level_description=None, knowledge_id=None):
+                 affinity_level_description=None, knowledge_id=None, preset_problems=None, prologue=None, pictures=None):
         self.id = id
         self.name = name
         self.trait = trait
         self.sex = sex
         self.status = 0
         self.profile = profile
+        self.preset_problems = preset_problems
+        self.prologue = prologue
+        self.pictures = pictures
         self.chat_background = chat_background
         self.short_description = short_description
         self.prompt_description = prompt_description
@@ -91,6 +94,9 @@ class NPC(Base):
             'sex': self.sex,
             'prompt_description': self.prompt_description,
             'profile': self.profile,
+            'prologue': self.prologue,
+            'pictures': self.pictures,
+            'preset_problems': self.preset_problems,
             'status': self.status,
             'chat_background': self.chat_background,
             'affinity_level_description': self.affinity_level_description,
@@ -118,6 +124,7 @@ class NPCUser(Base):
     scene = Column(String(255))  # 场景描述
     trait = Column(Text)  # 场景描述
     score = Column(Integer)  # 好感分数
+    picture_index = Column(Integer)  # 发送图片标记
     affinity_level = Column(Text)  # 亲密度等级
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
     '''
@@ -150,6 +157,7 @@ class NPCUser(Base):
         self.affinity = affinity
         self.affinity_level = affinity_level
         self.event = None
+        self.picture_index = 0
         self.dialogue_round = dialogue_round
         self.dialogue_summarize_num = dialogue_summarize_num
         #加载角色模板
@@ -189,6 +197,7 @@ class NPCUser(Base):
             'sex': self.sex,
             'scene': self.scene,
             'trait': self.trait,
+            'picture_index': self.picture_index,
             'dialogue_context': dialogue_context_list,
             'affinity_level': self.affinity_level,
             'dialogue_round': self.dialogue_round,
@@ -458,6 +467,12 @@ class NPCManager:
         npc_user_id = f'{npc_id}_{user_id}'
         npc_user = self._instances.get(npc_user_id, None)
         return npc_user
+    
+    def update_npc_user(self, npc_user: NPCUser)->NPCUser:
+        # 更新npc的配置
+        npc_user.updated_at = datetime.now()
+        new_npc_user = self.mysql_client.update_record(npc_user)
+        return new_npc_user
     
     def remove_npc_user(self, npc_id: str, user_id: str):
         npc_user_id = f'{npc_id}_{user_id}'

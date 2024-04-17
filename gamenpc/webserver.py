@@ -3,7 +3,7 @@ import time
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, File, UploadFile, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import os, uvicorn, uuid, mimetypes
 
 from gamenpc.utils.logger import debuglog
@@ -83,6 +83,7 @@ class ChatRequest(BaseModel):
     npc_id: str
     scene: str
     question: str
+    prologue: Optional[str] = ""
     content_type: str
 
 def response(code=0, message="执行成功", data=None)->any:
@@ -215,13 +216,17 @@ class NPCRequest(BaseModel):
     status: Optional[int] = -1
     chat_background: Optional[str] = ""
     affinity_level_description: Optional[str] = ""
+    prologue: Optional[str] = ""
+    pictures: Optional[List[str]] = ""
+    preset_problems: Optional[List[str]] = ""
 
 # prompt_description=req.prompt_description
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest, user_id: str= Depends(check_user_validate)):
     npc = npc_manager.set_npc(id=req.id, name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
                                profile=req.profile, prompt_description="",
-                               chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
+                               chat_background=req.chat_background, affinity_level_description=req.affinity_level_description,
+                               prologue=req.prologue, pictures=req.pictures, preset_problems=req.preset_problems)
     return response(data=npc.id)
 
 class NPCRemoveRequest(BaseModel):
@@ -256,6 +261,12 @@ async def update_npc(req: NPCRequest, user_id: str= Depends(check_user_validate)
         npc.affinity_level_description = req.affinity_level_description
     if req.status >= 0:
         npc.status = req.status
+    if req.prologue != '':
+        npc.prologue = req.prologue
+    if len(req.pictures) != 0:
+        npc.pictures = req.pictures
+    if len(req.preset_problems) != 0:
+        npc.preset_problems = req.preset_problems
     npc = npc_manager.update_npc(npc)
     if npc == None:
         return response(code=400, message=f"npc for {req.id} 不存在")
@@ -296,7 +307,44 @@ async def query_npc(req: NpcQueryRequest):
     return response(data={'list': [npc.to_dict() for npc in npcs], 'total': total})
 
 class NpcGetRequest(BaseModel):
-    id: Optional[str] = ""
+    id: str
+
+@router.post("/npc/get_picture")
+async def npc_get_picture(req: NpcGetRequest, user_id: str= Depends(check_user_validate)):
+    npc_id = req.id
+    npc = npc_manager.get_npc(npc_id=npc_id)
+    pictures = npc.pictures
+
+    npc_user = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
+    if npc_user == None:
+        return response(code=400, message=f"npc {npc_id} for user {user_id} 不存在")
+    picture_index = npc_user.picture_index
+    picture = pictures[picture_index]
+    new_index = picture_index + 1
+    if new_index > len(pictures) - 1:
+        new_index = 0
+    npc_user.picture_index = new_index
+    new_npc_user = npc_manager.update_npc_user(npc_user)
+    debuglog.info(f'npc_get_picture: update picture_index === {new_npc_user.picture_index}')
+    return response(data=picture)
+
+@router.post("/npc/get_prologue")
+async def npc_get_prologue(req: NpcGetRequest, user_id: str= Depends(check_user_validate)):
+    npc_id = req.id
+    npc = npc_manager.get_npc(npc_id=npc_id)
+    prologue = npc.prologue
+
+    debuglog.info(f'npc_get_prologue: get prologue for npc {npc_id} === {prologue}')
+    return response(data=prologue)
+
+@router.post("/npc/get_preset_problems")
+async def npc_preset_problems(req: NpcGetRequest, user_id: str= Depends(check_user_validate)):
+    npc_id = req.id
+    npc = npc_manager.get_npc(npc_id=npc_id)
+    preset_problems = npc.preset_problems
+
+    debuglog.info(f'npc_preset_problems: get preset_problems for npc {npc_id} === {preset_problems}')
+    return response(data=preset_problems)
 
 @router.post("/npc/get")
 async def get_npc(req: NpcGetRequest, user_id: str= Depends(check_user_validate)):
@@ -338,6 +386,7 @@ def verify_password(stored_password, provided_password):
     return pwd_context.verify(secret=provided_password, hash=stored_password)
 
 class UserCreateRequest(BaseModel):
+    id: Optional[str] = ''
     name: str
     sex: Optional[int] = 0
     phone: Optional[str] = ""
