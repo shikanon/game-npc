@@ -1,6 +1,6 @@
 # coding:utf-8
 import time
-from fastapi import FastAPI, Depends, HTTPException, APIRouter, File, UploadFile, Form, Response
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, File, UploadFile, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -11,6 +11,8 @@ from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.user import UserManager
 from gamenpc.utils.config import Config
 from gamenpc.tools import generator
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordBearer
 
 
 app = FastAPI()
@@ -42,6 +44,40 @@ config = Config()
 npc_manager = NPCManager(mysql_client=config.mysql_client, redis_client=config.redis_client)
 user_manager = UserManager(mysql_client=config.mysql_client)
 
+def get_token(authorization: Optional[str] = Header(None)):
+    if authorization:
+        credentials = authorization.split()
+        if credentials[0].lower() != "bearer":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authorization scheme.",
+            )
+        if len(credentials) == 2:
+            token = credentials[1]
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authorization header.",
+            )
+        return token
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header not found",
+        )
+
+# 这是一个用于解码令牌的依赖项。
+def check_user_validate(access_token: str = Depends(get_token)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    user_id = user_manager.verify_token(access_token)
+    if user_id == '':
+        raise credentials_exception
+    return user_id
+
 class ChatRequest(BaseModel):
     user_id: str
     npc_id: str
@@ -70,7 +106,7 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
         return None
 
 @router.post("/npc/chat")
-async def chat(req: ChatRequest, npc_user_instance: NPCUser = Depends(get_npc_user)):
+async def chat(req: ChatRequest, npc_user_instance: NPCUser = Depends(get_npc_user), user_id: str= Depends(check_user_validate)):
     '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
@@ -83,7 +119,7 @@ async def chat(req: ChatRequest, npc_user_instance: NPCUser = Depends(get_npc_us
     return response(message="返回成功", data=data)
 
 @router.post("/npc/debug_chat")
-async def debug_chat(req: ChatRequest, npc_user_instance: NPCUser=Depends(get_npc_user)):
+async def debug_chat(req: ChatRequest, npc_user_instance: NPCUser=Depends(get_npc_user), user_id: str= Depends(check_user_validate)):
     '''chat debug 接口,相比chat接口多了dubug相关信息'''
     start_time = time.time()
     #NPC聊天对话接口
@@ -102,7 +138,7 @@ class NpcUserQueryRequest(BaseModel):
     limit: Optional[int] = 10
 
 @router.post("/npc/get_npc_users")
-async def get_npc_users(req: NpcUserQueryRequest):
+async def get_npc_users(req: NpcUserQueryRequest, user_id: str= Depends(check_user_validate)):
     '''获取NPC信息'''
     filter_dict = {}
     if req.npc_id != "" and req.user_id != "":
@@ -124,7 +160,7 @@ class NpcUserAllInfoRequest(BaseModel):
     user_id: Optional[str] = ""
 
 @router.post("/npc/get_npc_all_info")
-async def get_npc_all_info(req: NpcUserAllInfoRequest):
+async def get_npc_all_info(req: NpcUserAllInfoRequest, user_id: str= Depends(check_user_validate)):
     '''获取NPC信息''' 
     npc_all_info = npc_manager.get_npc_all_info(npc_id=req.npc_id, user_id=req.user_id)
     if npc_all_info == None:
@@ -140,7 +176,7 @@ class NPCUserRemoveRequest(BaseModel):
     npc_id: str
 
 @router.post("/npc_user/remove")
-async def remove_npc_user(req: NPCUserRemoveRequest):
+async def remove_npc_user(req: NPCUserRemoveRequest, user_id: str= Depends(check_user_validate)):
     npc_manager.remove_npc_user(user_id=req.user_id, npc_id=req.npc_id)
     return response(message=f'删除 npc_user {req.user_id} {req.npc_id} 成功')
 
@@ -153,7 +189,7 @@ class DefaultRequest(BaseModel):
     npc_id: str
 
 @router.post("/npc/get_history_dialogue")
-async def get_history_dialogue(req: DefaultRequest):
+async def get_history_dialogue(req: DefaultRequest, user_id: str= Depends(check_user_validate)):
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_instance == None:
@@ -161,7 +197,7 @@ async def get_history_dialogue(req: DefaultRequest):
     return response(data= [dialogue.to_dict() for dialogue in npc_instance.get_dialogue_context()])
 
 @router.post("/npc/clear_history_dialogue")
-async def clear_history_dialogue(req: DefaultRequest):
+async def clear_history_dialogue(req: DefaultRequest, user_id: str= Depends(check_user_validate)):
     '''获取NPC信息'''
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_instance == None:
@@ -182,7 +218,7 @@ class NPCRequest(BaseModel):
 
 # prompt_description=req.prompt_description
 @router.post("/npc/create")
-async def create_npc(req: NPCRequest):
+async def create_npc(req: NPCRequest, user_id: str= Depends(check_user_validate)):
     npc = npc_manager.set_npc(id=req.id, name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
                                profile=req.profile, prompt_description="",
                                chat_background=req.chat_background, affinity_level_description=req.affinity_level_description)
@@ -192,7 +228,7 @@ class NPCRemoveRequest(BaseModel):
     id: str
 
 @router.post("/npc/remove")
-async def remove_npc(req: NPCRemoveRequest):
+async def remove_npc(req: NPCRemoveRequest, user_id: str= Depends(check_user_validate)):
     npc = npc_manager.get_npc(npc_id=req.id)
     if npc == None:
         return response(code=400, message=f"npc for {req.id} 不存在")
@@ -200,7 +236,7 @@ async def remove_npc(req: NPCRemoveRequest):
     return response(message=f'删除 npc {req.id} 成功')
 
 @router.post("/npc/update")
-async def update_npc(req: NPCRequest):
+async def update_npc(req: NPCRequest, user_id: str= Depends(check_user_validate)):
     npc = npc_manager.get_npc(npc_id=req.id)
     if npc == None:
         return response(code=400, message=f"npc for {req.id} 不存在")
@@ -230,7 +266,7 @@ class NPCUpdateStatusRequest(BaseModel):
     status: Optional[int] = -1
 
 @router.post("/npc/update_status")
-async def update_npc_status(req: NPCUpdateStatusRequest):
+async def update_npc_status(req: NPCUpdateStatusRequest, user_id: str= Depends(check_user_validate)):
     npc = npc_manager.get_npc(npc_id=req.id)
     if npc == None:
         return response(code=400, message=f"npc for {req.id} 不存在")
@@ -248,7 +284,7 @@ class NpcQueryRequest(BaseModel):
     limit: Optional[int] = 10
 
 @router.post("/npc/query")
-async def query_npc(req: NpcQueryRequest):
+async def query_npc(req: NpcQueryRequest, user_id: str= Depends(check_user_validate)):
     filter_dict = {}
     if req.name != "":
         filter_dict['name'] = req.name
@@ -263,7 +299,7 @@ class NpcGetRequest(BaseModel):
     id: Optional[str] = ""
 
 @router.post("/npc/get")
-async def get_npc(req: NpcGetRequest):
+async def get_npc(req: NpcGetRequest, user_id: str= Depends(check_user_validate)):
     if req.id == "":
         return 
     npc = npc_manager.get_npc(npc_id=req.id)
@@ -277,13 +313,29 @@ class ShiftSceneRequest(BaseModel):
     scene: Optional[str] = "窝在家里"
 
 @router.post("/npc/shift_scenes")
-async def shift_scenes(req: ShiftSceneRequest):
+async def shift_scenes(req: ShiftSceneRequest, user_id: str= Depends(check_user_validate)):
     '''切换场景'''
     npc_user = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=req.user_id)
     if npc_user is None:
         return response(code=400, message="Invaild value of npc_name, it not Exists")
     npc_user.set_scene(client=config.mysql_client, scene=req.scene)
     return response(message="场景转移成功")
+
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def get_password_hash(password: str):
+    return pwd_context.hash(password)
+
+def verify_password(stored_password, provided_password):
+    """
+    验证密码是否有效
+    Args:
+        stored_password(string): 数据库中的存储的已哈希的密码
+        provided_password(string): 用户输入进来的密码
+    Returns:
+        result: 返回布尔值，即密码是否匹配
+    """
+    return pwd_context.verify(secret=provided_password, hash=stored_password)
 
 class UserCreateRequest(BaseModel):
     id: Optional[str] = ""
@@ -302,12 +354,13 @@ async def user_register(req: UserCreateRequest):
     user = user_manager.get_user(filter_dict=filter_dict)
     if user != None:
         return response(message='该用户名已注册')
-    user = user_manager.set_user(id=req.id, name=req.name, sex=req.sex, phone=req.phone, money=0, password=req.password)
+    password_hash = get_password_hash(req.password)
+    user = user_manager.set_user(id=req.id, name=req.name, sex=req.sex, phone=req.phone, money=0, password=password_hash)
     if user == None:
         return response(message=f'user {req.name} 注册失败')
     else:
         return response(data=user.to_dict())
-    
+
 @router.post("/user/login")
 async def user_login(req: UserCreateRequest):
     if req.name is None or req.password is None:
@@ -317,17 +370,25 @@ async def user_login(req: UserCreateRequest):
     user = user_manager.get_user(filter_dict=filter_dict)
     if user == None:
         return response(code=400, message=f'user {req.name} 不存在, 请先注册')
-    
-    if user.password != req.password:
+    if verify_password(user.password, req.password) == False:
         return response(code=400, message=f'user {req.name} 密码输入错误')
-    
+    access_token, expires_in = user_manager.generate_token(id=user.id)
+    return response(data={'access_token': access_token, "token_type": "bearer", "expires_in": expires_in})
+
+@router.get("/user/get_info")
+async def user_get(user_id: str= Depends(check_user_validate)):
+    filter_dict = {}
+    filter_dict['id'] = user_id
+    user = user_manager.get_user(filter_dict=filter_dict)
+    if user == None:
+        return response(code=400, message=f'user 不存在, 请先注册')
     return response(data=user.to_dict())
     
 class UserRemoveRequest(BaseModel):
     id: str
 
 @router.post("/user/remove")
-async def remove_user(req: UserRemoveRequest):
+async def remove_user(req: UserRemoveRequest, user_id: str= Depends(check_user_validate)):
     filter_dict = {'id': req.id}
     user = user_manager.get_user(filter_dict=filter_dict)
     if user == None:
@@ -339,7 +400,7 @@ class UserQueryRequest(BaseModel):
     id: Optional[str] = None
 
 @router.post("/user/query")
-async def query_user(req: UserQueryRequest):
+async def query_user(req: UserQueryRequest, user_id: str= Depends(check_user_validate)):
     if req.id is None:
         return response(code=400, message=f'id 不能为空')
     filter_dict = {'id': req.id}
@@ -356,10 +417,11 @@ class UserCreateRequest(BaseModel):
     password: Optional[str] = ""
 
 @router.post("/user/update")
-async def update_user(req: UserCreateRequest):  
+async def update_user(req: UserCreateRequest, user_id: str= Depends(check_user_validate)):  
     if req.sex == -1:
         req.sex = 0  
-    user = user_manager.update_user(id=req.id, name=req.name, sex=req.sex, phone=req.phone, password=req.password)
+    password_hash = get_password_hash(req.password)
+    user = user_manager.update_user(id=req.id, name=req.name, sex=req.sex, phone=req.phone, password=password_hash)
     if user == None:
         return response(code=400, message=f'user {req.name} 不存在, 请先注册')
     return response(data=user.to_dict())
@@ -369,7 +431,7 @@ async def update_user(req: UserCreateRequest):
 # image_type: int # Unknown = 0, // 未知 Avatar = 1, // 头像 ChatBackground = 2, // 聊天背景
 
 @router.post("/npc/file_upload")
-async def upload_file(image_type: int = Form(...), file: UploadFile = File(...)):
+async def upload_file(image_type: int = Form(...), file: UploadFile = File(...), user_id: str= Depends(check_user_validate)):
     # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
     if is_image_file(file.filename) == False:
         return response(code=400, message='上传的文件非图片类型')
@@ -407,7 +469,7 @@ class GenNPCTraitRequest(BaseModel):
     npc_short_description: str
 
 @router.post("/tools/generator_npc_trait")
-async def generator_npc_trait(req: GenNPCTraitRequest):
+async def generator_npc_trait(req: GenNPCTraitRequest, user_id: str= Depends(check_user_validate)):
     npc_trait = generator.generator_npc_trait(req.npc_name, req.npc_sex, req.npc_short_description)
     return response(code=0, message="执行成功", data=npc_trait)
 

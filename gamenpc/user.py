@@ -8,8 +8,12 @@ from datetime import datetime
 from dataclasses import dataclass
 from itsdangerous import TimedSerializer, BadData
 
-from gamenpc.npc import NPCUser, NPCManager
 from gamenpc.store.mysql_client import MySQLDatabase, Base
+from datetime import datetime
+from jwt import JWT, jwk_from_dict
+import jwt
+from datetime import datetime, timedelta
+import base64
 
 @dataclass
 class User(Base):
@@ -23,7 +27,7 @@ class User(Base):
     sex = Column(Integer)
     phone = Column(String(11))
     money = Column(Integer)
-    password = Column(String(11))
+    password = Column(String(255))
     is_super = Column(Integer)
     created_at = Column(DateTime, default=datetime.now())
 
@@ -85,10 +89,13 @@ class UserOpinion(Base):
 class UserManager:
     def __init__(self, mysql_client: MySQLDatabase):
         self.mysql_client = mysql_client
-        self.expire_time = 60 * 60 * 24 * 30 # 过期时间为30天
-        self.secret_key = os.environ.get('SECRET_KEY')
-        if self.secret_key is None:
-            self.secret_key = "this-your-default-secret-key"
+        self.jwttoken = JWT()
+        self.expire_time = 30 # 过期时间为30天
+        secret_key = os.environ.get('SECRET_KEY')
+        if secret_key is None:
+            secret_key = "this-your-default-secret-key"
+        secret_key = base64.urlsafe_b64encode(secret_key.encode()).decode()
+        self.secret_key = jwk_from_dict({"kty": "oct", "k": secret_key})
 
     def get_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> Tuple[List[User], int]:
         users, total = self.mysql_client.select_records(record_class=User, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
@@ -129,27 +136,33 @@ class UserManager:
         self.mysql_client.delete_record_by_id(record_class=User, id=user_id)
 
     # 生成token
-    def generate_token(self, username: str, password: str) -> str:
-        s = TimedSerializer(self.secret_key, expires_in=self.expire_time)
-        token = s.dumps({"username": username, "password": password}).decode()
-        self.mysql_client.set_key_expire(token, self.expire_time)
-        return token
+    def generate_token(self, id: str, expires_delta=None) -> Tuple[str, int]:
+        to_encode = {'id': id}
+        if expires_delta:
+            expire = (datetime.now() + expires_delta).timestamp()
+        else:
+            expire = (datetime.now() + timedelta(minutes=self.expire_time)).timestamp()
+        expire_in = int(expire)
+        to_encode.update({"exp": expire_in})
+        encoded_jwt = self.jwttoken.encode(payload=to_encode, key=self.secret_key, alg="HS256")
+        return encoded_jwt, expire_in
     
     # 解析token
     def decode_token(self, token:str) -> str:
-        s = TimedSerializer(self.secret_key)
         try:
-            data = s.loads(token)
-            username = data['username']
-            return username
-        except BadData:
+            payload = self.jwttoken.decode(message=token, key=self.secret_key, algorithms=["HS256"])
+            user_id: str = payload.get("id")
+            return user_id
+        except Exception:
             return ""
 
     # 验证token
-    def verify_token(self, token: str)-> bool:
-        username = self.decode_token(token)
-        if username == "":
+    def verify_token(self, token: str)-> str:
+        user_id = self.decode_token(token)
+        if user_id == "":
             return False
-        if not self.mysql_client.get(token):
-            return False
-        return True
+        filter_dict = {"id": user_id}
+        user = self.get_user(filter_dict=filter_dict)
+        if not user:
+            return ''
+        return user.id

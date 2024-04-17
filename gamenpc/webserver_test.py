@@ -8,6 +8,8 @@ from gamenpc.webserver import NpcGetRequest, NpcQueryRequest, NPCRemoveRequest, 
 from io import BytesIO
 import pytest, json
 from gamenpc.npc import NPC
+import unittest
+from passlib.context import CryptContext
 
 user_id = "test_user"
 npc_id = "test_npc"
@@ -290,3 +292,16 @@ async def test_generator_npc_trait():
     assert result['code'] == 0
     assert 'msg' in result
 
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# class TestWebserver(unittest.TestCase):
+#     def test_modify_user_password(self):
+#         users, total = user_manager.get_users(page=1, limit=100)
+#         print('user total: =========', total)
+#         for user in users:
+#             password = pwd_context.hash(user.password)
+#             new_user = user_manager.update_user(id=user.id,  name=user.name, sex=user.sex, phone=user.phone, password=password)
+#             print('user: =========', new_user.to_dict())
+
+
+# if __name__ == "__main__":
+#     unittest.main()
