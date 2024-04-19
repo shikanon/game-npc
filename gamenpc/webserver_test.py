@@ -7,9 +7,9 @@ from gamenpc.webserver import ChatRequest, NpcUserQueryRequest, NpcUserAllInfoRe
 from gamenpc.webserver import NpcGetRequest, NpcQueryRequest, NPCRemoveRequest, GenNPCTraitRequest, ShiftSceneRequest, UserCreateRequest, UserQueryRequest, UserRemoveRequest
 from io import BytesIO
 import pytest, json
-from gamenpc.npc import NPC
-import unittest
-from passlib.context import CryptContext
+from gamenpc.services.npc import NPC
+# import unittest
+# from passlib.context import CryptContext
 
 user_id = "test_user"
 npc_id = "test_npc"

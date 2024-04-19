@@ -1,18 +1,19 @@
 # coding:utf-8
-import time
-from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, File, UploadFile, Form, Header
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Header, Depends, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, List
-import os, uvicorn, uuid, mimetypes
-
-from gamenpc.utils.logger import debuglog
-from gamenpc.npc import NPCUser, NPCManager
-from gamenpc.user import UserManager
+import uvicorn
+from gamenpc.services.npc import NPCManager, NPCUser, Picture
+from gamenpc.services.user import UserManager
 from gamenpc.utils.config import Config
+from gamenpc.utils.logger import debuglog
 from gamenpc.tools import generator
 from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer
+import time, json
+import asyncio
+from pydantic import BaseModel
+from typing import Optional, List
+import os, uuid, mimetypes
+
 
 
 app = FastAPI()
@@ -34,15 +35,14 @@ app.add_middleware(
                    "If-Modified-Since", "Cache-Control", "Content-Type", "Range"],
 )
 
-
-file_path = os.environ.get('FILE_PATH')
-base_file_url = os.environ.get('BASE_FILE_URL')
-
 # 加载环境变量并获取 MySQL 相关配置
 config = Config()
 
 npc_manager = NPCManager(mysql_client=config.mysql_client, redis_client=config.redis_client)
 user_manager = UserManager(mysql_client=config.mysql_client)
+
+def response(code=0, message="执行成功", data=None)->any:
+    return {"code": code, "msg": message, "data": data}
 
 def get_token(authorization: Optional[str] = Header(None)):
     if authorization:
@@ -78,6 +78,9 @@ def check_user_validate(access_token: str = Depends(get_token)):
         raise credentials_exception
     return user_id
 
+file_path = os.environ.get('FILE_PATH')
+base_file_url = os.environ.get('BASE_FILE_URL')
+
 class ChatRequest(BaseModel):
     user_id: str
     npc_id: str
@@ -85,9 +88,6 @@ class ChatRequest(BaseModel):
     question: str
     prologue: Optional[str] = ""
     content_type: str
-
-def response(code=0, message="执行成功", data=None)->any:
-    return {"code": code, "msg": message, "data": data}
 
 def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
     try:
@@ -111,11 +111,17 @@ async def chat(req: ChatRequest, npc_user_instance: NPCUser = Depends(get_npc_us
     '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
-    message = await npc_user_instance.chat(client=config.redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),     
+    message, intimacy_info = await asyncio.gather(
+        npc_user_instance.chat(client=config.redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),     
+        npc_user_instance.update_intimacy(config.mysql_client, req.user_id, req.question),
+    )
+    affinity_score = intimacy_info['score']
+    intimacy_level = intimacy_info['intimacy_level']
     data = {
         "message": message,
         "message_type": "text",
-        "affinity_score": 0,
+        "affinity_score": affinity_score,
+        "intimacy_level": intimacy_level,
     }
     return response(message="返回成功", data=data)
 
@@ -217,8 +223,8 @@ class NPCRequest(BaseModel):
     chat_background: Optional[str] = ""
     affinity_level_description: Optional[str] = ""
     prologue: Optional[str] = ""
-    pictures: Optional[List[str]] = ""
-    preset_problems: Optional[List[str]] = ""
+    pictures: Optional[List[Picture]] = None
+    preset_problems: Optional[List[str]] = None
 
 # prompt_description=req.prompt_description
 @router.post("/npc/create")
@@ -308,6 +314,7 @@ async def query_npc(req: NpcQueryRequest):
 
 class NpcGetRequest(BaseModel):
     id: str
+    lv: Optional[int] = 0
 
 @router.post("/npc/get_picture")
 async def npc_get_picture(req: NpcGetRequest, user_id: str= Depends(check_user_validate)):
@@ -315,17 +322,13 @@ async def npc_get_picture(req: NpcGetRequest, user_id: str= Depends(check_user_v
     npc = npc_manager.get_npc(npc_id=npc_id)
     pictures = npc.pictures
 
-    npc_user = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
-    if npc_user == None:
-        return response(code=400, message=f"npc {npc_id} for user {user_id} 不存在")
-    picture_index = npc_user.picture_index
-    picture = pictures[picture_index]
-    new_index = picture_index + 1
-    if new_index > len(pictures) - 1:
-        new_index = 0
-    npc_user.picture_index = new_index
-    new_npc_user = npc_manager.update_npc_user(npc_user)
-    debuglog.info(f'npc_get_picture: update picture_index === {new_npc_user.picture_index}')
+    index = req.lv - 1
+    if req.lv == 0:
+        index = 0
+    if index > len(pictures) - 1 or index < 0:
+        index = 0
+    picture = pictures[index]
+    debuglog.info(f'npc_get_picture: update picture_index === {index}, picture === {picture}')
     return response(data=picture)
 
 @router.post("/npc/get_prologue")
@@ -369,6 +372,51 @@ async def shift_scenes(req: ShiftSceneRequest, user_id: str= Depends(check_user_
     npc_user.set_scene(client=config.mysql_client, scene=req.scene)
     return response(message="场景转移成功")
 
+# file: UploadFile = File(...)
+# image_type: int # Unknown = 0, // 未知 Avatar = 1, // 头像 ChatBackground = 2, // 聊天背景
+
+@router.post("/npc/file_upload")
+async def upload_file(image_type: int = Form(...), file: UploadFile = File(...), user_id: str= Depends(check_user_validate)):
+    # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
+    if is_image_file(file.filename) == False:
+        return response(code=400, message='上传的文件非图片类型')
+    if image_type == 0:
+        return response(code=400, message='请输入image_type为非0')
+    image_type_str = 'unknown'
+    if image_type == 1:
+        image_type_str = 'avatar'
+    elif image_type == 2:
+        image_type_str = 'bg'
+
+    full_file_path = f'{file_path}/{image_type_str}'
+    if not os.path.exists(full_file_path):
+      os.makedirs(full_file_path)
+
+    _, extension = os.path.splitext(file.filename)
+    filename = f'{uuid.uuid4()}{extension}'
+    file_location = f"{full_file_path}/{filename}"  
+    # 使用 'wb' 模式以二进制写入文件
+    with open(file_location, "wb") as f:
+        # 读取上传的文件数据
+        content = await file.read()
+        f.write(content)
+    message = f"文件 {file.filename} 已经被保存到 {file_location}"
+    url = f'{base_file_url}/{image_type_str}/{filename}'
+    return response(message=message, data=url)
+
+def is_image_file(filename):
+    mimetype, _ = mimetypes.guess_type(filename)
+    return mimetype and mimetype.startswith('image')
+
+class GenNPCTraitRequest(BaseModel):
+    npc_name: str
+    npc_sex: Optional[str] = "女"
+    npc_short_description: str
+
+@router.post("/tools/generator_npc_trait")
+async def generator_npc_trait(req: GenNPCTraitRequest, user_id: str= Depends(check_user_validate)):
+    npc_trait = generator.generator_npc_trait(req.npc_name, req.npc_sex, req.npc_short_description)
+    return response(code=0, message="执行成功", data=npc_trait)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def get_password_hash(password: str):
@@ -470,53 +518,6 @@ async def update_user(req: UserUpdateRequest, user_id: str= Depends(check_user_v
     if user == None:
         return response(code=400, message=f'user {req.name} 不存在, 请先注册')
     return response(data=user.to_dict())
-
-
-# file: UploadFile = File(...)
-# image_type: int # Unknown = 0, // 未知 Avatar = 1, // 头像 ChatBackground = 2, // 聊天背景
-
-@router.post("/npc/file_upload")
-async def upload_file(image_type: int = Form(...), file: UploadFile = File(...), user_id: str= Depends(check_user_validate)):
-    # 使用UploadFile类可以让FastAPI检查文件类型并提供和文件相关的操作和信息
-    if is_image_file(file.filename) == False:
-        return response(code=400, message='上传的文件非图片类型')
-    if image_type == 0:
-        return response(code=400, message='请输入image_type为非0')
-    image_type_str = 'unknown'
-    if image_type == 1:
-        image_type_str = 'avatar'
-    elif image_type == 2:
-        image_type_str = 'bg'
-
-    full_file_path = f'{file_path}/{image_type_str}'
-    if not os.path.exists(full_file_path):
-      os.makedirs(full_file_path)
-
-    _, extension = os.path.splitext(file.filename)
-    filename = f'{uuid.uuid4()}{extension}'
-    file_location = f"{full_file_path}/{filename}"  
-    # 使用 'wb' 模式以二进制写入文件
-    with open(file_location, "wb") as f:
-        # 读取上传的文件数据
-        content = await file.read()
-        f.write(content)
-    message = f"文件 {file.filename} 已经被保存到 {file_location}"
-    url = f'{base_file_url}/{image_type_str}/{filename}'
-    return response(message=message, data=url)
-
-def is_image_file(filename):
-    mimetype, _ = mimetypes.guess_type(filename)
-    return mimetype and mimetype.startswith('image')
-
-class GenNPCTraitRequest(BaseModel):
-    npc_name: str
-    npc_sex: Optional[str] = "女"
-    npc_short_description: str
-
-@router.post("/tools/generator_npc_trait")
-async def generator_npc_trait(req: GenNPCTraitRequest, user_id: str= Depends(check_user_validate)):
-    npc_trait = generator.generator_npc_trait(req.npc_name, req.npc_sex, req.npc_short_description)
-    return response(code=0, message="执行成功", data=npc_trait)
 
 if __name__ == "__main__":
     # 创建一个全局对象
