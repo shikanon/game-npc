@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Header, Depends, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from gamenpc.services.npc import NPCManager, NPCUser, Picture
+from gamenpc.services.npc import NPCManager, NPCUser, Picture, Description
 from gamenpc.services.user import UserManager
 from gamenpc.utils.config import Config
 from gamenpc.utils.logger import debuglog
@@ -221,7 +221,7 @@ class NPCRequest(BaseModel):
     profile: Optional[str] = ""
     status: Optional[int] = -1
     chat_background: Optional[str] = ""
-    affinity_level_description: Optional[str] = ""
+    affinity_level_description: Optional[List[Description]] = ""
     prologue: Optional[str] = ""
     pictures: Optional[List[Picture]] = None
     preset_problems: Optional[List[str]] = None
@@ -263,15 +263,15 @@ async def update_npc(req: NPCRequest, user_id: str= Depends(check_user_validate)
         npc.profile = req.profile
     if req.chat_background != '':
         npc.chat_background = req.chat_background
-    if req.affinity_level_description != '':
+    if req.affinity_level_description != None and len(req.affinity_level_description) != 0:
         npc.affinity_level_description = req.affinity_level_description
     if req.status >= 0:
         npc.status = req.status
     if req.prologue != '':
         npc.prologue = req.prologue
-    if len(req.pictures) != 0:
+    if req.pictures != None and len(req.pictures) != 0:
         npc.pictures = req.pictures
-    if len(req.preset_problems) != 0:
+    if req.preset_problems != None and len(req.preset_problems) != 0:
         npc.preset_problems = req.preset_problems
     npc = npc_manager.update_npc(npc)
     if npc == None:
