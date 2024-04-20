@@ -111,6 +111,8 @@ info的格式：
 | score    | int  | 否 | None | 好感分数 |
 | trait    | istrnt  | 是 | 0 | NPC特征，提示词内容 |
 | affinity_level_description     | str  | 是 | None| 亲密度等级描述 |
+| affinity_level     | str  | 是 | None| 当前亲密度等级描述 |
+| intimacy_level     | int  | 是 | None| 当前好感度等级 |
 | short_description    | str  | 否 | None | 短描述 |
 | prompt_description    | str  | 是 | None | 泼墨体 |
 | profile     | str  | 是 | None| 头像 |
