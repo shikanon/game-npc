@@ -194,7 +194,6 @@ dialogue的格式：
 | sex | int | 是 | 无 | NPC的性别 |
 | trait | str | 是 | 无 | NPC的角色描述 |
 | short_description | str | 否 | "" | NPC的简短描述 |
-<!-- | prompt_description | str | 是 | 无 | NPC的prompt详情 | -->
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
 | prologue | str | 否 | "" | NPC的开场白 |
@@ -277,7 +276,6 @@ data的结构如下：
 | sex | int | 是 | 无 | NPC的性别 |
 | trait | str | 是 | 无 | NPC的角色描述 |
 | short_description | str | 否 | "" | NPC的简短描述 |
-<!-- | prompt_description | str | 是 | 无 | NPC的提示描述 | -->
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
 | prologue | str | 否 | "" | NPC的开场白 |
