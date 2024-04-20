@@ -25,7 +25,8 @@ data的格式
 |---------|----------|----------|--------|-----|
 | message | str | 是 | 无 | 存储具体的消息内容 |
 | message_type | str | 是 | "text" | 消息类型，此处为文本 |
-| affinity_score | int/float | 是 | 无 | 亲和力得分 |
+| affinity_score | int/float | 是 | 无 | 好感度分数 |
+| intimacy_level | int/float | 是 | 无 | 好感度等级 |
 
 ---------------------------------------------------------------------------------------
 
@@ -54,7 +55,8 @@ data的格式
 |---------|----------|----------|--------|-----|
 | message | str | 是 | 无 | 存储具体的消息内容 |
 | message_type | str | 是 | "text" | 消息类型，此处为文本 |
-| affinity_score | int/float | 是 | 无 | 亲和力得分 |
+| affinity_score | int/float | 是 | 无 | 好感度分数 |
+| intimacy_level | int/float | 是 | 无 | 好感度等级 |
 | debug_message | json | 是 | 无 | debug信息输出,json格式 |
 | total_time | time | 是 | 无 | 接口总耗时 |
 
@@ -113,6 +115,9 @@ info的格式：
 | prompt_description    | str  | 是 | None | 泼墨体 |
 | profile     | str  | 是 | None| 头像 |
 | chat_background    | str  | 否 | None | 聊天背景图 |
+| prologue | str | 否 | "" | NPC的开场白 |
+| pictures | List[Picture] | 否 | "" | NPC的相关图片 |
+| preset_problems | List[str] | 否 | "" | NPC的预设问题 |
 | dialogue_context    | []dialogue  | 否 | None | 聊天上下文 |
 
 dialogue的格式：
@@ -566,6 +571,9 @@ data的结构如下：
 | prompt_description | Text  |  否    | None   | 否  |    |    | 提示词描述，存储完整提示词模板 |
 | profile  | Text           |  否    | None   | 否  |    |    | 头像图片路径 |
 | chat_background| Text   |  否    | None   | 否  |    |    | 聊天背景图片路径 |
+| prologue | str | 否 | "" | 否  |    |   | NPC的开场白 |
+| pictures | List[Picture] | 否 | "" | 否  |    |   | NPC的相关图片 |
+| preset_problems | List[str] | 否 | "" | 否  |    |   | NPC的预设问题 |
 | affinity_level_description| Text |  否 | None| 否 |  |  | 亲密度等级行为倾向描述 |
 | knowledge_id  | String(255)  |  否 | None | 否  |    |    | 知识库的 index id |
 | status  | String(255)  |  否 | None | 否  |    |    | 发布状态，0: Unknown 未知, 1: Save 待发布, 2: Publish 已发布 |
@@ -584,14 +592,17 @@ class NPC(Base):
     name = Column(String(64))
     short_description = Column(String(255))
     trait = Column(Text)
-    sex = Column(Integer)
+    sex = Column(Integer)  # NPC性别
     prompt_description = Column(Text)
     profile = Column(Text)
     chat_background = Column(Text)
+    prologue = Column(Text)
+    preset_problems = Column(JSON)
+    pictures = Column(JSON)
     affinity_level_description = Column(Text)
     status = Column(Integer)
     knowledge_id = Column(String(255))
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
     created_at = Column(DateTime, default=datetime.now())
 ```
 
@@ -605,6 +616,7 @@ class NPC(Base):
 | phone   | String(11)           |  否    | None   | 否   |    |    | 手机号   |
 | money   | Integer              |  否    | None   | 否   |    |    | 用户虚拟积分    |
 | password| String(11)           |  否    | None   | 否   |    |    | 用户密码  |
+| is_super   | Integer              |  否    | None   | 否   |    |    | 用户是否是管理员    |
 | created_at | DateTime          |  否    | datetime.now| 否 |  |  | 创建时间  |
 
 ORM设计：
@@ -615,13 +627,14 @@ class User(Base):
     __table_args__ = {'extend_existing': True}
 
     # 表的结构
-    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True) # 用户ID，自增id
-    name = Column(String(64)) # 用户名称 
-    sex = Column(Enum("男", "女", "未知")) # 性别：男、女、未知
-    phone = Column(String(11)) # 手机号
-    money = Column(Integer) # 用户虚拟积分
-    password = Column(String(11)) # 用户密码
-    created_at = Column(DateTime, default=datetime.now()) # 创建时间
+    id = Column(String(255), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True)
+    name = Column(String(64))
+    sex = Column(Integer)
+    phone = Column(String(11))
+    money = Column(Integer)
+    password = Column(String(255))
+    is_super = Column(Integer)
+    created_at = Column(DateTime, default=datetime.now())
 ```
 
 ### Scene表
@@ -668,6 +681,7 @@ class Scene(Base):
 ORM设计：
 ```python
 class NPCUser(Base):
+        # 表的名字
     __tablename__ = 'npc_user'
     __table_args__ = {'extend_existing': True}
 
@@ -680,9 +694,11 @@ class NPCUser(Base):
     # 通过关系关联User对象
     user = relationship('User')
     name = Column(String(255))  # NPC名称
+    sex = Column(Integer)  # NPC性别
     scene = Column(String(255))  # 场景描述
     trait = Column(Text)  # 场景描述
     score = Column(Integer)  # 好感分数
+    intimacy_level = Column(Integer)  # 亲密度分数
     affinity_level = Column(Text)  # 亲密度等级
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
 ```
