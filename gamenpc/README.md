@@ -571,9 +571,9 @@ data的结构如下：
 | prompt_description | Text  |  否    | None   | 否  |    |    | 提示词描述，存储完整提示词模板 |
 | profile  | Text           |  否    | None   | 否  |    |    | 头像图片路径 |
 | chat_background| Text   |  否    | None   | 否  |    |    | 聊天背景图片路径 |
-| prologue | str | 否 | "" | 否  |    |   | NPC的开场白 |
-| pictures | List[Picture] | 否 | "" | 否  |    |   | NPC的相关图片 |
-| preset_problems | List[str] | 否 | "" | 否  |    |   | NPC的预设问题 |
+| prologue | str | 否 | None | 否  |    |   | NPC的开场白 |
+| pictures | List[Picture] | 否 | None | 否  |    |   | NPC的相关图片 |
+| preset_problems | List[str] | 否 | None | 否  |    |   | NPC的预设问题 |
 | affinity_level_description| Text |  否 | None| 否 |  |  | 亲密度等级行为倾向描述 |
 | knowledge_id  | String(255)  |  否 | None | 否  |    |    | 知识库的 index id |
 | status  | String(255)  |  否 | None | 否  |    |    | 发布状态，0: Unknown 未知, 1: Save 待发布, 2: Publish 已发布 |
@@ -675,6 +675,7 @@ class Scene(Base):
 |      scene         |  String(255) |  否    |  None   | 否   |                       |         | 场景描述              |
 |      score         |  Integer     |  否    |  None   | 否   |                       |         | 好感分数              |
 |     trait          |  Text        |  否    |  None   | 否   |                       |         | NPC特征，提示词内容 |
+| intimacy_level     |  Text        |  否    |  None   | 否   |                       |         | 好感度等级         |
 | affinity_level     |  Text        |  否    |  None   | 否   |                       |         | 亲密度等级描述         |
 |   created_at       |  DateTime    |  否    | datetime.now| 否 |                     |         | 创建时间              |
 
