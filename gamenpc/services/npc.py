@@ -454,6 +454,7 @@ class NPCManager:
         return npc
     
     def update_npc(self, npc: NPC)->NPC:
+        pictures_data = npc.pictures
         if npc.pictures != None:
             picture_list = []
             for picture in npc.pictures:
@@ -464,6 +465,8 @@ class NPCManager:
         # 更新npc的配置
         npc.updated_at = datetime.now()
         new_npc = self.mysql_client.update_record(npc)
+        if pictures_data != None:
+            new_npc.pictures = pictures_data
         debuglog.info(f'update_npc: new npc === {new_npc.to_dict()}')
         # 获取对应的npc_user，更新相关信息
         filter_dict = {'npc_id': npc.id}
