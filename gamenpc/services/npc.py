@@ -49,7 +49,7 @@ class Picture(BaseModel):
     lv: Optional[int] = None
     image_url: Optional[str] = None
     score: Optional[int] = None
-    condition: Optional[str] = None
+    description: Optional[str] = None
 
 class Description(BaseModel):
     lv: Optional[int] = None
