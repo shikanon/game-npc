@@ -49,6 +49,7 @@ class Picture(BaseModel):
     lv: Optional[int] = None
     image_url: Optional[str] = None
     score: Optional[int] = None
+    condition: Optional[str] = None
 
 class Description(BaseModel):
     lv: Optional[int] = None
@@ -454,14 +455,12 @@ class NPCManager:
     
     def update_npc(self, npc: NPC)->NPC:
         if npc.pictures != None:
-            pictures = []
-            pictures_json = npc.pictures
-            pictures_list_dict = json.loads(pictures_json)
-            for pictures_dict in pictures_list_dict:
-                # 使用字典创建新的 Picture 对象
-                picture = Picture(**pictures_dict)
-                pictures.append(picture)
-            npc.pictures = pictures
+            picture_list = []
+            for picture in npc.pictures:
+                picture_dict = picture.dict()
+                picture_list.append(picture_dict)
+            pictures_str = json.dumps(picture_list)
+            npc.pictures = pictures_str 
         # 更新npc的配置
         npc.updated_at = datetime.now()
         new_npc = self.mysql_client.update_record(npc)
