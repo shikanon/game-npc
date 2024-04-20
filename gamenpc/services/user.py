@@ -6,7 +6,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from typing import List, Tuple
 from datetime import datetime
 from dataclasses import dataclass
-from itsdangerous import TimedSerializer, BadData
 
 from gamenpc.store.mysql_client import MySQLDatabase, Base
 from datetime import datetime

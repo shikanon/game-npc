@@ -192,7 +192,18 @@ dialogue的格式：
 <!-- | prompt_description | str | 是 | 无 | NPC的prompt详情 | -->
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
+| prologue | str | 否 | "" | NPC的开场白 |
+| pictures | List[Picture] | 否 | "" | NPC的相关图片 |
+| preset_problems | List[str] | 否 | "" | NPC的预设问题 |
 | affinity_level_description | str | 是 | 无 | NPC的亲和级别描述 |
+
+Picture:
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|--------------------------------|
+| lv | int | 是 | 0 | 好感度等级 |
+| image_url | str | "" | 无 | 图片url |
+| score | int | 是 | 0 | 亲密度分数 |
+
 
 返回参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
