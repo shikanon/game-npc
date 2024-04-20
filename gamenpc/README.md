@@ -241,7 +241,6 @@ data的结构如下：
 | list | []npc | 是 | None | 返回的数据列表 |
 
 
-
 ---------------------------------------------------------------------------------------
 
 ### 获取单个NPC
@@ -276,8 +275,18 @@ data的结构如下：
 <!-- | prompt_description | str | 是 | 无 | NPC的提示描述 | -->
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
+| prologue | str | 否 | "" | NPC的开场白 |
+| pictures | List[Picture] | 否 | "" | NPC的相关图片 |
+| preset_problems | List[str] | 否 | "" | NPC的预设问题 |
 | affinity_level_description | str | 是 | 无 | NPC的亲和级别描述 |
 | status    | int  | 否 | None | 发布状态，0: Unknown 未知, 1: Save 待发布, 2: Publish 已发布 |
+
+Picture:
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|--------------------------------|
+| lv | int | 是 | 0 | 好感度等级 |
+| image_url | str | "" | 无 | 图片url |
+| score | int | 是 | 0 | 亲密度分数 |
 
 返回参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
