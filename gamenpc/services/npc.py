@@ -13,7 +13,7 @@ from langchain.schema import SystemMessage, HumanMessage, AIMessage
 
 from gamenpc.memory.memory import Mind, DialogueMemory
 from gamenpc.model import doubao
-from gamenpc.services.emotion import IntimacyManager, IntimacyLevel
+from gamenpc.services.emotion import AffinityManager, Affinity
 from gamenpc.store.mysql_client import MySQLDatabase, Base
 from gamenpc.store.redis_client import RedisList
 from gamenpc.utils.logger import debuglog
@@ -32,7 +32,7 @@ DEFAULT_ROLE_TEMPLATE = '''# 角色设定
 你扮演的角色名字是{{name}}。
 {{trait}}
 {{scene}}
-{{intimacy}}
+{{affinity_description}}
 {{event}}
 
 # 约束和限制
@@ -74,14 +74,14 @@ class NPC(Base):
     prologue = Column(Text)
     preset_problems = Column(JSON)
     pictures = Column(JSON)
-    affinity_level_description = Column(Text)
+    affinity = Column(Text)
     status = Column(Integer)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
     created_at = Column(DateTime, default=datetime.now())
 
     def __init__(self, id=None, name=None, short_description=None, trait=None, sex=None, prompt_description=None, profile=None, chat_background=None, 
-                 affinity_level_description=None, knowledge_id=None, preset_problems=None, prologue=None, pictures=None):
+                 affinity=None, knowledge_id=None, preset_problems=None, prologue=None, pictures=None):
         self.id = id
         self.name = name
         self.trait = trait
@@ -94,7 +94,7 @@ class NPC(Base):
         self.chat_background = chat_background
         self.short_description = short_description
         self.prompt_description = prompt_description
-        self.affinity_level_description = affinity_level_description
+        self.affinity = affinity
         self.knowledge_id = knowledge_id
 
     def to_dict(self):
@@ -111,7 +111,8 @@ class NPC(Base):
             'preset_problems': self.preset_problems,
             'status': self.status,
             'chat_background': self.chat_background,
-            'affinity_level_description': self.affinity_level_description,
+            # TODO 特殊处理
+            'affinity': self.affinity,
             'knowledge_id': self.knowledge_id,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
@@ -136,8 +137,8 @@ class NPCUser(Base):
     scene = Column(String(255))  # 场景描述
     trait = Column(Text)  # 场景描述
     score = Column(Integer)  # 好感分数
-    intimacy_level = Column(Integer)  # 亲密度分数
-    affinity_level = Column(Text)  # 亲密度等级
+    affinity_level = Column(Integer)  # 亲密度等级
+    affinity_level_description = Column(Text)  # 亲密度等级描述
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
     '''
     NPC名称、角色prompt模板、好感系统、场景
@@ -151,10 +152,10 @@ class NPCUser(Base):
                  sex=0, 
                  trait=None, 
                  score=0,  
-                 intimacy_level=0, 
-                 affinity_level='', 
+                 affinity_level=0, 
+                 affinity_level_description='', 
                  dialogue_context=None,
-                 intimacy=None, 
+                 affinity_manager=None, 
                  role_template_filename=None,
                  dialogue_summarize_num=20,
                  dialogue_round=20,
@@ -167,9 +168,9 @@ class NPCUser(Base):
         self.sex = sex
         self.scene = scene
         self.trait = trait
-        self.intimacy = intimacy
+        self.affinity_manager = affinity_manager
         self.affinity_level = affinity_level
-        self.intimacy_level = intimacy_level
+        self.affinity_level_description = affinity_level_description
         self.event = None
         self.dialogue_round = dialogue_round
         self.dialogue_summarize_num = dialogue_summarize_num
@@ -212,7 +213,7 @@ class NPCUser(Base):
             'dialogue_context': dialogue_context_list,
             'score': self.score,
             'affinity_level': self.affinity_level,
-            'intimacy_level': self.intimacy_level,
+            'affinity_level_description': self.affinity_level_description,
             'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
@@ -234,7 +235,7 @@ class NPCUser(Base):
 
     
     def validate_template(self, text):
-        for key in ["name","scene","intimacy","trait","event"]:
+        for key in ["name","scene","affinity_description","trait","event"]:
             if key not in text:
                 return False
         return True
@@ -256,7 +257,7 @@ class NPCUser(Base):
         return self.scene
     
     def re_init(self, client: RedisList, mysql_client: MySQLDatabase,)->None:
-        self.intimacy.set_score(score=0)
+        self.affinity_manager.set_score(score=0)
         self.event = None
         self.dialogue_manager.clear(client, self.id)
         self.updated_at = datetime.now()
@@ -268,27 +269,28 @@ class NPCUser(Base):
     def get_dialogue_context(self)->List:
         return self.dialogue_manager.get_all_contexts()
     
-    async def update_intimacy(self, client: MySQLDatabase, player_id:str, content:str)->int:
-        '''更新好感度'''
+    async def update_affinity(self, client: MySQLDatabase, player_id:str, content:str):
+        '''更新亲密度'''
         history = self.dialogue_manager.get_recent_dialogue(round=2)
         if history:
             history_dialogues = "\n".join(m.content for m in history)
         else:
             history_dialogues = ""
-        self.intimacy.calculate_affinity(
+        self.affinity_manager.calculate_affinity(
             npc=self.id, 
             target=player_id,
             history_dialogues=history_dialogues,
             dialogue_content=content,
         )
-        self.score = self.intimacy.get_score()
-        self.intimacy_level = self.intimacy.get_intimacy_level()
-        self.affinity_level = self.intimacy.get_relation_level()
+        self.score = self.affinity_manager.get_score()
+        self.affinity_level = self.affinity_manager.get_affinity_level()
+        self.affinity_level_description = self.affinity_manager.get_affinity_level_description()
         self.updated_at = datetime.now()
         client.update_record(self)
         return {
             'score': self.score,
-            'intimacy_level': self.intimacy_level
+            'affinity_level': self.affinity_level,
+            'affinity_level_description': self.affinity_level_description,
         }
 
     
@@ -303,7 +305,7 @@ class NPCUser(Base):
                 scene=self.scene,
                 trait=self.trait,
                 event=event,
-                intimacy=self.intimacy,
+                affinity_description=self.affinity_manager.get_affinity_description(),
                 )
     
     def process_message(self, message:str)->str:
@@ -408,7 +410,7 @@ class NPCManager:
         npc_users = self.mysql_client.select_all_records(record_class=NPCUser)
         for npc_user in npc_users:
             score = npc_user.score
-            intimacy = IntimacyManager(score=score, intimacy_level=IntimacyLevel())
+            affinity_manager = AffinityManager(score=score, affinity=Affinity())
             new_npc_user = NPCUser(id=npc_user.id, 
                                    name=npc_user.name, 
                                    npc_id=npc_user.npc_id, 
@@ -417,7 +419,7 @@ class NPCManager:
                                    score=score,
                                    trait=npc_user.trait, 
                                    scene=npc_user.scene,
-                                   intimacy=intimacy,
+                                   affinity_manager=affinity_manager,
                                    )
             new_npc_user.load_from_db(redis_client=redis_client)
             debuglog.info(f'npc_user load_from_db: new npc_user === {new_npc_user.to_dict()}')
@@ -496,7 +498,7 @@ class NPCManager:
     
     def set_npc(self, id: str, name: str, sex: int, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str,
-                            affinity_level_description: str, prologue: str, pictures: str, preset_problems: str)->NPC:
+                            affinity: str, prologue: str, pictures: str, preset_problems: str)->NPC:
         picture_list = []
         for picture in pictures:
             picture_dict = picture.dict()
@@ -504,12 +506,12 @@ class NPCManager:
         pictures_str = json.dumps(picture_list)
         new_npc= NPC(name=name, sex=sex, trait=trait, short_description=short_description,
                                prompt_description=prompt_description, profile=profile, 
-                               chat_background=chat_background, affinity_level_description=affinity_level_description,
+                               chat_background=chat_background, affinity=affinity,
                                prologue=prologue, pictures=pictures_str, preset_problems=preset_problems)
         if id != "":
             new_npc= NPC(id=id, name=name, sex=sex, trait=trait, short_description=short_description,
                                prompt_description=prompt_description, profile=profile, 
-                               chat_background=chat_background, affinity_level_description=affinity_level_description,
+                               chat_background=chat_background, affinity=affinity,
                                prologue=prologue, pictures=pictures_str, preset_problems=preset_problems)
         new_npc = self.mysql_client.insert_record(new_npc)
         return new_npc
@@ -566,9 +568,11 @@ class NPCManager:
     def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str, sex: int) -> NPCUser:
         dialogue_context = []
         npc_user_id = f'{npc_id}_{user_id}'
-        # TODO 根据不同的npc获取其affinity_level，传给IntimacyManager，暂时使用默认
-        intimacy = IntimacyManager(score=0, intimacy_level=IntimacyLevel())
-        new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, sex=sex, trait=trait, scene=scene, intimacy=intimacy, dialogue_context=dialogue_context)
+        # TODO 根据不同的npc获取其affinity_level，传给AffinityManager，暂时使用默认
+        affinity_manager = AffinityManager(score=0, affinity=Affinity())
+        new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, 
+                               sex=sex, trait=trait, scene=scene, affinity_manager=affinity_manager, 
+                               dialogue_context=dialogue_context)
         self.mysql_client.insert_record(new_npc_user)
         self._instances[npc_user_id] = new_npc_user
         return new_npc_user

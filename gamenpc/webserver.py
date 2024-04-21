@@ -111,17 +111,18 @@ async def chat(req: ChatRequest, npc_user_instance: NPCUser = Depends(get_npc_us
     '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
-    message, intimacy_info = await asyncio.gather(
+    message, affinity_info = await asyncio.gather(
         npc_user_instance.chat(client=config.redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),     
-        npc_user_instance.update_intimacy(config.mysql_client, req.user_id, req.question),
+        npc_user_instance.update_affinity(config.mysql_client, req.user_id, req.question),
     )
-    affinity_score = intimacy_info['score']
-    intimacy_level = intimacy_info['intimacy_level']
+    debuglog.info(f'user_id: {req.user_id}, content: {req.question}, affinity_info: {affinity_info}')
+    # affinity_score = affinity_info['score']
+    # affinity_level = affinity_info['affinity_level']
     data = {
         "message": message,
         "message_type": "text",
-        "affinity_score": affinity_score,
-        "intimacy_level": intimacy_level,
+        # "affinity_score": affinity_score,
+        # "affinity_level": affinity_level,
     }
     return response(message="返回成功", data=data)
 

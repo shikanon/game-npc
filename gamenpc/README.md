@@ -25,8 +25,6 @@ data的格式
 |---------|----------|----------|--------|-----|
 | message | str | 是 | 无 | 存储具体的消息内容 |
 | message_type | str | 是 | "text" | 消息类型，此处为文本 |
-| affinity_score | int/float | 是 | 无 | 好感度分数 |
-| intimacy_level | int/float | 是 | 无 | 好感度等级 |
 
 ---------------------------------------------------------------------------------------
 
@@ -55,8 +53,6 @@ data的格式
 |---------|----------|----------|--------|-----|
 | message | str | 是 | 无 | 存储具体的消息内容 |
 | message_type | str | 是 | "text" | 消息类型，此处为文本 |
-| affinity_score | int/float | 是 | 无 | 好感度分数 |
-| intimacy_level | int/float | 是 | 无 | 好感度等级 |
 | debug_message | json | 是 | 无 | debug信息输出,json格式 |
 | total_time | time | 是 | 无 | 接口总耗时 |
 
@@ -111,8 +107,7 @@ info的格式：
 | score    | int  | 否 | None | 好感分数 |
 | trait    | istrnt  | 是 | 0 | NPC特征，提示词内容 |
 | affinity_level_description     | str  | 是 | None| 亲密度等级描述 |
-| affinity_level     | str  | 是 | None| 当前亲密度等级描述 |
-| intimacy_level     | int  | 是 | None| 当前好感度等级 |
+| affinity_level     | int  | 是 | None| 当前亲密度等级 |
 | short_description    | str  | 否 | None | 短描述 |
 | prompt_description    | str  | 是 | None | 泼墨体 |
 | profile     | str  | 是 | None| 头像 |
@@ -206,7 +201,7 @@ dialogue的格式：
 Picture:
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------------------------------|
-| lv | int | 是 | 0 | 好感度等级 |
+| lv | int | 是 | 0 | 亲密度等级 |
 | image_url | str | "" | 无 | 图片url |
 | score | int | 是 | 0 | 亲密度分数 |
 
@@ -289,7 +284,7 @@ data的结构如下：
 Picture:
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------------------------------|
-| lv | int | 是 | 0 | 好感度等级 |
+| lv | int | 是 | 0 | 亲密度等级 |
 | image_url | str | "" | 无 | 图片url |
 | score | int | 是 | 0 | 亲密度分数 |
 
@@ -419,7 +414,7 @@ Picture:
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------|
 | id | str | 是 | 无 | NPCID |
-| lv | str | 是 | 无 | 好感度等级 |
+| lv | str | 是 | 无 | 亲密度等级 |
 
 返回参数：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
@@ -431,7 +426,7 @@ Picture:
 Picture:
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------------------------------|
-| lv | int | 是 | 0 | 好感度等级 |
+| lv | int | 是 | 0 | 亲密度等级 |
 | image_url | str | "" | 无 | 图片url |
 | score | int | 是 | 0 | 亲密度分数 |
 
@@ -574,7 +569,7 @@ data的结构如下：
 | prologue | str | 否 | None | 否  |    |   | NPC的开场白 |
 | pictures | List[Picture] | 否 | None | 否  |    |   | NPC的相关图片 |
 | preset_problems | List[str] | 否 | None | 否  |    |   | NPC的预设问题 |
-| affinity_level_description| Text |  否 | None| 否 |  |  | 亲密度等级行为倾向描述 |
+| affinity| Text |  否 | None| 否 |  |  | 亲密度等级行为倾向描述 |
 | knowledge_id  | String(255)  |  否 | None | 否  |    |    | 知识库的 index id |
 | status  | String(255)  |  否 | None | 否  |    |    | 发布状态，0: Unknown 未知, 1: Save 待发布, 2: Publish 已发布 |
 | updated_at | DateTime  |  否    |datetime.now| 否 |    |   | 更新时间 |
@@ -599,7 +594,7 @@ class NPC(Base):
     prologue = Column(Text)
     preset_problems = Column(JSON)
     pictures = Column(JSON)
-    affinity_level_description = Column(Text)
+    affinity = Column(Text)
     status = Column(Integer)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
@@ -675,8 +670,8 @@ class Scene(Base):
 |      scene         |  String(255) |  否    |  None   | 否   |                       |         | 场景描述              |
 |      score         |  Integer     |  否    |  None   | 否   |                       |         | 好感分数              |
 |     trait          |  Text        |  否    |  None   | 否   |                       |         | NPC特征，提示词内容 |
-| intimacy_level     |  Text        |  否    |  None   | 否   |                       |         | 好感度等级         |
-| affinity_level     |  Text        |  否    |  None   | 否   |                       |         | 亲密度等级描述         |
+| affinity_level     |  Integer        |  否    |  None   | 否   |                       |         | 亲密度等级         |
+| affinity_level_description     |  Text        |  否    |  None   | 否   |                       |         | 亲密度等级描述         |
 |   created_at       |  DateTime    |  否    | datetime.now| 否 |                     |         | 创建时间              |
 
 ORM设计：
@@ -699,8 +694,8 @@ class NPCUser(Base):
     scene = Column(String(255))  # 场景描述
     trait = Column(Text)  # 场景描述
     score = Column(Integer)  # 好感分数
-    intimacy_level = Column(Integer)  # 亲密度分数
-    affinity_level = Column(Text)  # 亲密度等级
+    affinity_level = Column(Integer)  # 亲密度分数
+    affinity_level_description = Column(Text)  # 亲密度等级
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
 ```
 
