@@ -32,7 +32,7 @@ DEFAULT_ROLE_TEMPLATE = '''# 角色设定
 你扮演的角色名字是{{name}}。
 {{trait}}
 {{scene}}
-{{affinity_description}}
+{{affinity_level_description}}
 {{event}}
 
 # 约束和限制
@@ -235,7 +235,7 @@ class NPCUser(Base):
 
     
     def validate_template(self, text):
-        for key in ["name","scene","affinity_description","trait","event"]:
+        for key in ["name","scene","affinity_level_description","trait","event"]:
             if key not in text:
                 return False
         return True
@@ -305,7 +305,7 @@ class NPCUser(Base):
                 scene=self.scene,
                 trait=self.trait,
                 event=event,
-                affinity_description=self.affinity_manager.get_affinity_description(),
+                affinity_level_description=str(self.affinity_manager.get_affinity_level_description()),
                 )
     
     def process_message(self, message:str)->str:

@@ -47,7 +47,7 @@ class AffinityLevelDescription:
         return self.status
     
     def get_level_description(self,score)->str:
-        self.get_level(score)
+        self.get_level_status(score)
         if self.status == "adversary":
             return self.adversary
         if self.status == "acquaintance":
@@ -163,8 +163,8 @@ class AffinityManager:
     def get_affinity_level_description(self)->str:
         return self.affinity.get_score_affinity_level_description(self.score)
     
-    def get_affinity_description(self)->str:
-        return self.affinity.description
+    def get_affinity_description(self):
+        return self.affinity.description.to_dict()
     
     def calculate_affinity(self, npc:str, target:str, history_dialogues:str, dialogue_content:str)->None:
         affinity_level_description = self.get_affinity_level_description()
