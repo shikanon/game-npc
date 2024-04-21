@@ -8,6 +8,7 @@ import unittest
 from gamenpc.tools import suggestion
 
 class TestGeneratorDialogueSuggestion(unittest.TestCase):
+    '''NPC对话建议函数测试用例'''
     def test_generator_dialogue_suggestion(self):
         dialogue = "爱莉：哥哥在看什么，怎么这么晚了还没睡？（好奇地爬到哥哥身边）"
         npc_trait = """你是爱莉，你和你的哥哥从小时候就一直在一起成长，在成长过程中，你总是喜欢跟在哥哥身后，像个小尾巴一样。

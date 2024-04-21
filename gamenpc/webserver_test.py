@@ -2,7 +2,7 @@
 from gamenpc.webserver import npc_manager, user_manager
 from gamenpc.webserver import debug_chat, chat, get_npc_user, get_npc_users, get_npc_all_info, get_history_dialogue, create_npc, clear_history_dialogue
 from gamenpc.webserver import update_npc, update_npc_status, query_npc, get_npc, remove_npc, shift_scenes, user_register, user_login, query_user
-from gamenpc.webserver import update_user, remove_user, remove_npc_user, generator_npc_trait, app
+from gamenpc.webserver import update_user, remove_user, remove_npc_user, generator_npc_trait, app, check_user_validate
 from gamenpc.webserver import ChatRequest, NpcUserQueryRequest, NpcUserAllInfoRequest, DefaultRequest, NPCRequest, NPCUpdateStatusRequest, NPCUserRemoveRequest
 from gamenpc.webserver import NpcGetRequest, NpcQueryRequest, NPCRemoveRequest, GenNPCTraitRequest, ShiftSceneRequest, UserCreateRequest, UserQueryRequest, UserRemoveRequest
 from io import BytesIO
@@ -17,6 +17,13 @@ user_id = "test_user"
 npc_id = "test_npc"
 test_access_token = "test_token"
 client = TestClient(app)
+
+# 创建总是返回有效用户ID的模拟验证函数
+def mock_check_user_validate(access_token: str):
+    return user_id
+
+# 在应用中重写依赖，使用模拟的验证函数
+app.dependency_overrides[check_user_validate] = mock_check_user_validate
 
 
 def test_generate_chat_suggestion():
@@ -333,3 +340,6 @@ async def test_generator_npc_trait():
 
 # if __name__ == "__main__":
 #     unittest.main()
+
+# 测试完成后，移除依赖重写以回到正常状态
+app.dependency_overrides.pop(check_user_validate, None)
