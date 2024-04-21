@@ -2,17 +2,45 @@
 from gamenpc.webserver import npc_manager, user_manager
 from gamenpc.webserver import debug_chat, chat, get_npc_user, get_npc_users, get_npc_all_info, get_history_dialogue, create_npc, clear_history_dialogue
 from gamenpc.webserver import update_npc, update_npc_status, query_npc, get_npc, remove_npc, shift_scenes, user_register, user_login, query_user
-from gamenpc.webserver import update_user, remove_user, remove_npc_user, generator_npc_trait
+from gamenpc.webserver import update_user, remove_user, remove_npc_user, generator_npc_trait, app
 from gamenpc.webserver import ChatRequest, NpcUserQueryRequest, NpcUserAllInfoRequest, DefaultRequest, NPCRequest, NPCUpdateStatusRequest, NPCUserRemoveRequest
 from gamenpc.webserver import NpcGetRequest, NpcQueryRequest, NPCRemoveRequest, GenNPCTraitRequest, ShiftSceneRequest, UserCreateRequest, UserQueryRequest, UserRemoveRequest
 from io import BytesIO
 import pytest, json
+from unittest.mock import patch
+from fastapi.testclient import TestClient
 from gamenpc.services.npc import NPC
 # import unittest
 # from passlib.context import CryptContext
 
 user_id = "test_user"
 npc_id = "test_npc"
+test_access_token = "test_token"
+client = TestClient(app)
+
+
+def test_generate_chat_suggestion():
+
+    # 模拟可能的返回对象和响应值
+    npc_user_mock = {
+        "dialogue_manager": {
+            "get_recent_dialogue": lambda round: ["哥哥，晚安咯~"]
+        },
+        "trait": "你的性格乖巧，对世界充满好奇"
+    }
+
+    
+    # 开始编写单元测试
+    with patch('npc_manager.get_npc_user', return_value=npc_user_mock):
+        with patch('check_user_validate', return_value=user_id):
+            response = client.post("/api/npc/chat-suggestion", json={
+                "npc_id": npc_id
+            }, headers={
+                "Authorization": f"Bearer {test_access_token}"
+            })
+            assert response.status_code == 200
+            data = response.json()
+            assert data['code'] == 0
 
 @pytest.mark.asyncio
 async def test_create_npc():

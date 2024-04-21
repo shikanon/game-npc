@@ -6,7 +6,7 @@ from gamenpc.services.npc import NPCManager, NPCUser, Picture, Description
 from gamenpc.services.user import UserManager
 from gamenpc.utils.config import Config
 from gamenpc.utils.logger import debuglog
-from gamenpc.tools import generator
+from gamenpc.tools import generator, suggestion
 from passlib.context import CryptContext
 import time, json
 import asyncio
@@ -174,6 +174,38 @@ async def get_npc_all_info(req: NpcUserAllInfoRequest, user_id: str= Depends(che
     if npc_all_info == None:
         return response(code=-1, message="Invaild value of npc_id/user_id, it not Exists")
     return response(data=npc_all_info)
+
+
+# 定义chat-suggestion请求参数的模型
+class ChatSuggestionRequest(BaseModel):
+    user_id: str
+    npc_id: str
+
+# 定义chat-suggestion返回参数的模型
+class SuggestionMessage(BaseModel):
+    suggestion_messages: List[str]
+
+class ChatSuggestionResponse(BaseModel):
+    code: int
+    msg: str
+    data: Optional[SuggestionMessage] = None
+
+# chat-suggestion接口实现
+@app.post("/api/npc/chat-suggestion", response_model=ChatSuggestionResponse)
+async def generate_chat_suggestion(req: ChatSuggestionRequest, user_id: str= Depends(check_user_validate)):
+    npc_user = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
+    dialogues = npc_user.dialogue_manager.get_recent_dialogue(round=1)
+    dialogue = "".join(dialogues)
+    npc_trait = npc_user.trait
+    response = suggestion.generator_dialogue_suggestion(dialogue, npc_trait)
+    if response is None:
+        return ChatSuggestionResponse(code=1, msg="生成建议回复出错，建议重试", data=suggestions)
+    suggestion_messages = [response["1"],response["2"],response["3"]]
+    suggestions = SuggestionMessage(suggestion_messages=suggestion_messages)
+    return ChatSuggestionResponse(code=0, msg="执行成功", data=suggestions)
+
+
+
 
 class NPCUserRemoveRequest(BaseModel):
     '''
