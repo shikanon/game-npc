@@ -51,7 +51,7 @@ class Picture(BaseModel):
     score: Optional[int] = None
     description: Optional[str] = None
 
-class Description(BaseModel):
+class AffinityRule(BaseModel):
     lv: Optional[int] = None
     content: Optional[str] = None
     score: Optional[int] = None
@@ -74,14 +74,14 @@ class NPC(Base):
     prologue = Column(Text)
     preset_problems = Column(JSON)
     pictures = Column(JSON)
-    affinity = Column(Text)
+    affinity_rules = Column(JSON)
     status = Column(Integer)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
     created_at = Column(DateTime, default=datetime.now())
 
     def __init__(self, id=None, name=None, short_description=None, trait=None, sex=None, prompt_description=None, profile=None, chat_background=None, 
-                 affinity=None, knowledge_id=None, preset_problems=None, prologue=None, pictures=None):
+                 affinity_rules=None, knowledge_id=None, preset_problems=None, prologue=None, pictures=None):
         self.id = id
         self.name = name
         self.trait = trait
@@ -94,7 +94,7 @@ class NPC(Base):
         self.chat_background = chat_background
         self.short_description = short_description
         self.prompt_description = prompt_description
-        self.affinity = affinity
+        self.affinity_rules = affinity_rules
         self.knowledge_id = knowledge_id
 
     def to_dict(self):
@@ -111,12 +111,45 @@ class NPC(Base):
             'preset_problems': self.preset_problems,
             'status': self.status,
             'chat_background': self.chat_background,
-            # TODO 特殊处理
-            'affinity': self.affinity,
+            'affinity_rules': self.affinity_rules,
             'knowledge_id': self.knowledge_id,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
         }
+    
+    def get_affinity_rule_list(self) -> List[AffinityRule]:
+        affinity_rules = []
+        affinity_rules_json = self.affinity_rules
+        affinity_rule_list_dict = json.loads(affinity_rules_json)
+        for affinity_rule__dict in affinity_rule_list_dict:
+            affinity_rule = AffinityRule(**affinity_rule__dict)
+            affinity_rules.append(affinity_rule)
+        return affinity_rules
+
+    def get_affinity_rule_list_str(self) -> str:
+        affinity_rule_list = []
+        for affinity_rule in self.affinity_rules:
+            affinity_rule_dict = affinity_rule.dict()
+            affinity_rule_list.append(affinity_rule_dict)
+        affinity_rules_str = json.dumps(affinity_rule_list)
+        return affinity_rules_str
+    
+    def get_pic_list(self) -> List[Picture]:
+        pictures = []
+        pictures_json = self.pictures
+        picture_list_dict = json.loads(pictures_json)
+        for picture_dict in picture_list_dict:
+            picture = Picture(**picture_dict)
+            pictures.append(picture)
+        return pictures
+
+    def get_pic_list_str(self) -> str:
+        picture_list = []
+        for picture in self.pictures:
+            picture_dict = picture.dict()
+            picture_list.append(picture_dict)
+        pictures_str = json.dumps(picture_list)
+        return pictures_str
 
 @dataclass
 class NPCUser(Base):
@@ -292,6 +325,19 @@ class NPCUser(Base):
             'affinity_level': self.affinity_level,
             'affinity_level_description': self.affinity_level_description,
         }
+    
+    async def increase_affinity(self, client: MySQLDatabase, player_id:str, content:str):
+        self.affinity_manager.increase_affinity(amount=1)
+        self.score = self.affinity_manager.get_score()
+        self.affinity_level = self.affinity_manager.get_affinity_level()
+        self.affinity_level_description = self.affinity_manager.get_affinity_level_description()
+        self.updated_at = datetime.now()
+        client.update_record(self)
+        return {
+            'score': self.score,
+            'affinity_level': self.affinity_level,
+            'affinity_level_description': self.affinity_level_description,
+        }
 
     
     def render_role_template(self):
@@ -410,13 +456,17 @@ class NPCManager:
         npc_users = self.mysql_client.select_all_records(record_class=NPCUser)
         for npc_user in npc_users:
             score = npc_user.score
-            affinity_manager = AffinityManager(score=score, affinity=Affinity())
+            affinity_level = npc_user.affinity_level
+            affinity_level_description = npc_user.affinity_level_description
+            affinity_manager = AffinityManager(score=score, affinity=Affinity(level=affinity_level))
             new_npc_user = NPCUser(id=npc_user.id, 
                                    name=npc_user.name, 
                                    npc_id=npc_user.npc_id, 
                                    user_id=npc_user.user_id, 
                                    sex=npc_user.sex, 
                                    score=score,
+                                   affinity_level=affinity_level,
+                                   affinity_level_description=affinity_level_description,
                                    trait=npc_user.trait, 
                                    scene=npc_user.scene,
                                    affinity_manager=affinity_manager,
@@ -429,14 +479,9 @@ class NPCManager:
         npcs, total = self.mysql_client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
         for npc in npcs:
             if npc.pictures != None:
-                pictures = []
-                pictures_json = npc.pictures
-                pictures_list_dict = json.loads(pictures_json)
-                for pictures_dict in pictures_list_dict:
-                    # 使用字典创建新的 Picture 对象
-                    picture = Picture(**pictures_dict)
-                    pictures.append(picture)
-                npc.pictures = pictures
+                npc.pictures = npc.get_pic_list()
+            if npc.affinity_rules != None:
+                npc.affinity_rules = npc.get_affinity_rule_list()
         print(f'npcs: {npcs}, total: {total}')
         return npcs, total
     
@@ -444,31 +489,27 @@ class NPCManager:
         filter_dict = {'id': npc_id}
         npc = self.mysql_client.select_record(record_class=NPC, filter_dict=filter_dict)
         # 将 JSON 字符串转换为字典
-        if npc != None and npc.pictures != None:
-            pictures = []
-            pictures_json = npc.pictures
-            pictures_list_dict = json.loads(pictures_json)
-            for pictures_dict in pictures_list_dict:
-                # 使用字典创建新的 Picture 对象
-                picture = Picture(**pictures_dict)
-                pictures.append(picture)
-            npc.pictures = pictures
+        if npc != None:
+            if npc.pictures != None:
+                npc.pictures = npc.get_pic_list()
+            if npc.affinity_rules != None:
+                npc.affinity_rules = npc.get_affinity_rule_list()
         return npc
     
     def update_npc(self, npc: NPC)->NPC:
         pictures_data = npc.pictures
         if npc.pictures != None:
-            picture_list = []
-            for picture in npc.pictures:
-                picture_dict = picture.dict()
-                picture_list.append(picture_dict)
-            pictures_str = json.dumps(picture_list)
-            npc.pictures = pictures_str 
+            npc.pictures = npc.get_pic_list_str()
+        affinity_rules_data = npc.affinity_rules
+        if npc.affinity_rules != None:
+            npc.affinity_rules = npc.get_affinity_rule_list_str()
         # 更新npc的配置
         npc.updated_at = datetime.now()
         new_npc = self.mysql_client.update_record(npc)
         if pictures_data != None:
             new_npc.pictures = pictures_data
+        if affinity_rules_data != None:
+            new_npc.affinity_rules = affinity_rules_data
         debuglog.info(f'update_npc: new npc === {new_npc.to_dict()}')
         # 获取对应的npc_user，更新相关信息
         filter_dict = {'npc_id': npc.id}
@@ -478,6 +519,7 @@ class NPCManager:
             # 更新内存
             npc_user_id = npc_user.id
             old_npc_user = self._instances.get(npc_user_id, None)
+            # TODO 更新affinity_manager
             old_npc_user.name = new_npc.name
             old_npc_user.sex = new_npc.sex
             old_npc_user.trait = new_npc.trait
@@ -498,21 +540,18 @@ class NPCManager:
     
     def set_npc(self, id: str, name: str, sex: int, trait: str, short_description: str,
                                prompt_description: str, profile: str, chat_background: str,
-                            affinity: str, prologue: str, pictures: str, preset_problems: str)->NPC:
-        picture_list = []
-        for picture in pictures:
-            picture_dict = picture.dict()
-            picture_list.append(picture_dict)
-        pictures_str = json.dumps(picture_list)
+                            affinity_rules: str, prologue: str, pictures: str, preset_problems: str)->NPC:
         new_npc= NPC(name=name, sex=sex, trait=trait, short_description=short_description,
                                prompt_description=prompt_description, profile=profile, 
-                               chat_background=chat_background, affinity=affinity,
-                               prologue=prologue, pictures=pictures_str, preset_problems=preset_problems)
+                               chat_background=chat_background, affinity_rules=affinity_rules,
+                               prologue=prologue, pictures=pictures, preset_problems=preset_problems)
         if id != "":
             new_npc= NPC(id=id, name=name, sex=sex, trait=trait, short_description=short_description,
                                prompt_description=prompt_description, profile=profile, 
-                               chat_background=chat_background, affinity=affinity,
-                               prologue=prologue, pictures=pictures_str, preset_problems=preset_problems)
+                               chat_background=chat_background, affinity_rules=affinity_rules,
+                               prologue=prologue, pictures=pictures, preset_problems=preset_problems)
+        new_npc.pictures = new_npc.get_pic_list_str()
+        new_npc.affinity_rules = new_npc.get_affinity_rule_list_str()
         new_npc = self.mysql_client.insert_record(new_npc)
         return new_npc
     

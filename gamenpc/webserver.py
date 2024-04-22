@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Header, Depends, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from gamenpc.services.npc import NPCManager, NPCUser, Picture, Description
+from gamenpc.services.npc import NPCManager, NPCUser, Picture, AffinityRule
 from gamenpc.services.user import UserManager
 from gamenpc.utils.config import Config
 from gamenpc.utils.logger import debuglog
@@ -113,7 +113,7 @@ async def chat(req: ChatRequest, npc_user_instance: NPCUser = Depends(get_npc_us
         return response(code="-1", message="选择NPC异常: 用户不存在/NPC不存在")
     message, affinity_info = await asyncio.gather(
         npc_user_instance.chat(client=config.redis_client, player_id=req.user_id, content=req.question, content_type=req.content_type),     
-        npc_user_instance.update_affinity(config.mysql_client, req.user_id, req.question),
+        npc_user_instance.increase_affinity(config.mysql_client, req.user_id, req.question),
     )
     debuglog.info(f'user_id: {req.user_id}, content: {req.question}, affinity_info: {affinity_info}')
     # affinity_score = affinity_info['score']
@@ -222,9 +222,10 @@ class NPCRequest(BaseModel):
     profile: Optional[str] = ""
     status: Optional[int] = -1
     chat_background: Optional[str] = ""
-    affinity_level_description: Optional[List[Description]] = ""
+    affinity_rules: Optional[List[AffinityRule]] = ""
     prologue: Optional[str] = ""
     pictures: Optional[List[Picture]] = None
+    affinity_rules: Optional[List[AffinityRule]] = None
     preset_problems: Optional[List[str]] = None
 
 # prompt_description=req.prompt_description
@@ -232,7 +233,7 @@ class NPCRequest(BaseModel):
 async def create_npc(req: NPCRequest, user_id: str= Depends(check_user_validate)):
     npc = npc_manager.set_npc(id=req.id, name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
                                profile=req.profile, prompt_description="",
-                               chat_background=req.chat_background, affinity_level_description=req.affinity_level_description,
+                               chat_background=req.chat_background, affinity_rules=req.affinity_rules,
                                prologue=req.prologue, pictures=req.pictures, preset_problems=req.preset_problems)
     return response(data=npc.id)
 
@@ -264,14 +265,14 @@ async def update_npc(req: NPCRequest, user_id: str= Depends(check_user_validate)
         npc.profile = req.profile
     if req.chat_background != '':
         npc.chat_background = req.chat_background
-    if req.affinity_level_description != None and len(req.affinity_level_description) != 0:
-        npc.affinity_level_description = req.affinity_level_description
     if req.status >= 0:
         npc.status = req.status
     if req.prologue != '':
         npc.prologue = req.prologue
     if req.pictures != None and len(req.pictures) != 0:
         npc.pictures = req.pictures
+    if req.affinity_rules != None and len(req.affinity_rules) != 0:
+        npc.affinity_rules = req.affinity_rules
     if req.preset_problems != None and len(req.preset_problems) != 0:
         npc.preset_problems = req.preset_problems
     npc = npc_manager.update_npc(npc)

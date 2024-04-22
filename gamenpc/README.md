@@ -196,13 +196,20 @@ dialogue的格式：
 | prologue | str | 否 | "" | NPC的开场白 |
 | pictures | List[Picture] | 否 | "" | NPC的相关图片 |
 | preset_problems | List[str] | 否 | "" | NPC的预设问题 |
-| affinity_level_description | str | 是 | 无 | NPC的亲和级别描述 |
+| affinity_rules | List[AffinityRule] | 是 | 无 | NPC的亲密度规则 |
 
 Picture:
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|----------|----------|--------|--------------------------------|
 | lv | int | 是 | 0 | 亲密度等级 |
 | image_url | str | "" | 无 | 图片url |
+| score | int | 是 | 0 | 亲密度分数 |
+
+AffinityRule:
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|--------------------------------|
+| lv | int | 是 | 0 | 亲密度等级 |
+| content | str | "" | 无 | 亲密度规则内容 |
 | score | int | 是 | 0 | 亲密度分数 |
 
 
@@ -278,7 +285,7 @@ data的结构如下：
 | prologue | str | 否 | "" | NPC的开场白 |
 | pictures | List[Picture] | 否 | "" | NPC的相关图片 |
 | preset_problems | List[str] | 否 | "" | NPC的预设问题 |
-| affinity_level_description | str | 是 | 无 | NPC的亲和级别描述 |
+| affinity_rules | List[AffinityRule] | 是 | 无 | NPC的亲密度规则 |
 | status    | int  | 否 | None | 发布状态，0: Unknown 未知, 1: Save 待发布, 2: Publish 已发布 |
 
 Picture:
@@ -286,6 +293,13 @@ Picture:
 |---------|----------|----------|--------|--------------------------------|
 | lv | int | 是 | 0 | 亲密度等级 |
 | image_url | str | "" | 无 | 图片url |
+| score | int | 是 | 0 | 亲密度分数 |
+
+AffinityRule:
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|--------------------------------|
+| lv | int | 是 | 0 | 亲密度等级 |
+| content | str | "" | 无 | 亲密度规则内容 |
 | score | int | 是 | 0 | 亲密度分数 |
 
 返回参数：
@@ -569,7 +583,7 @@ data的结构如下：
 | prologue | str | 否 | None | 否  |    |   | NPC的开场白 |
 | pictures | List[Picture] | 否 | None | 否  |    |   | NPC的相关图片 |
 | preset_problems | List[str] | 否 | None | 否  |    |   | NPC的预设问题 |
-| affinity| Text |  否 | None| 否 |  |  | 亲密度等级行为倾向描述 |
+| affinity_rules| Text |  否 | None| 否 |  |  | 亲密度规则 |
 | knowledge_id  | String(255)  |  否 | None | 否  |    |    | 知识库的 index id |
 | status  | String(255)  |  否 | None | 否  |    |    | 发布状态，0: Unknown 未知, 1: Save 待发布, 2: Publish 已发布 |
 | updated_at | DateTime  |  否    |datetime.now| 否 |    |   | 更新时间 |
@@ -594,7 +608,7 @@ class NPC(Base):
     prologue = Column(Text)
     preset_problems = Column(JSON)
     pictures = Column(JSON)
-    affinity = Column(Text)
+    affinity_rules = Column(JSON)
     status = Column(Integer)
     knowledge_id = Column(String(255))
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), server_onupdate=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))

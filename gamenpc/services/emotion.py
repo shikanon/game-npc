@@ -9,101 +9,115 @@ from gamenpc.utils.logger import debuglog
 from langchain.schema import SystemMessage, HumanMessage
 from gamenpc.model import doubao
 
-class AffinityLevelDescription:
-    '''好感等级：
-    acquaintance:初识(0-10)
-    familiar:熟人(10-30)
-    friend:亲密朋友(30-70)
-    soulmate:心灵伴侣(70-100)
-    adversary:敌对(<0)
-    '''
-    def __init__(self, acquaintance:str, familiar:str, friend:str, soulmate:str, adversary:str) -> None:
-        self.acquaintance = acquaintance
-        self.familiar = familiar
-        self.friend = friend
-        self.soulmate = soulmate
-        self.adversary = adversary
-        self.adversary_upper_bound = 0
-        self.acquaintance_upper_bound = 10
-        self.familiar_upper_bound = 30
-        self.friend_upper_bound = 70
-        self.soulmate_upper_bound = 100
-        self.status = "acquaintance"
-        self.status = "familiar"
-        self.status = "friend"
-        self.status = "soulmate"
+# class AffinityLevelDescription:
+#     '''好感等级：
+#     acquaintance:初识(0-10)
+#     familiar:熟人(10-30)
+#     friend:亲密朋友(30-70)
+#     soulmate:心灵伴侣(70-100)
+#     adversary:敌对(<0)
+#     '''
+#     def __init__(self, acquaintance:str, familiar:str, friend:str, soulmate:str, adversary:str) -> None:
+#         self.acquaintance = acquaintance
+#         self.familiar = familiar
+#         self.friend = friend
+#         self.soulmate = soulmate
+#         self.adversary = adversary
+#         self.adversary_upper_bound = 0
+#         self.acquaintance_upper_bound = 10
+#         self.familiar_upper_bound = 30
+#         self.friend_upper_bound = 70
+#         self.soulmate_upper_bound = 100
+#         self.status = "acquaintance"
+#         self.status = "familiar"
+#         self.status = "friend"
+#         self.status = "soulmate"
 
-    def get_level_status(self,score)->str:
-        if score < self.adversary_upper_bound:
-            self.status = "adversary"
-        elif score >= self.adversary_upper_bound and score < self.acquaintance_upper_bound:
-            self.status = "acquaintance"
-        elif score >= self.acquaintance_upper_bound and score < self.familiar_upper_bound:
-            self.status = "familiar"
-        elif score >= self.familiar_upper_bound and score <self.friend_upper_bound:
-            self.status = "friend"
-        else:
-            self.status = "soulmate"
-        return self.status
+#     def get_level_status(self,score)->str:
+#         if score < self.adversary_upper_bound:
+#             self.status = "adversary"
+#         elif score >= self.adversary_upper_bound and score < self.acquaintance_upper_bound:
+#             self.status = "acquaintance"
+#         elif score >= self.acquaintance_upper_bound and score < self.familiar_upper_bound:
+#             self.status = "familiar"
+#         elif score >= self.familiar_upper_bound and score <self.friend_upper_bound:
+#             self.status = "friend"
+#         else:
+#             self.status = "soulmate"
+#         return self.status
     
-    def get_level_description(self,score)->str:
-        self.get_level_status(score)
-        if self.status == "adversary":
-            return self.adversary
-        if self.status == "acquaintance":
-            return self.acquaintance
-        if self.status == "familiar":
-            return self.familiar
-        if self.status == "friend":
-            return self.friend
-        if self.status == "soulmate":
-            return self.soulmate
+#     def get_level_description(self,score)->str:
+#         self.get_level_status(score)
+#         if self.status == "adversary":
+#             return self.adversary
+#         if self.status == "acquaintance":
+#             return self.acquaintance
+#         if self.status == "familiar":
+#             return self.familiar
+#         if self.status == "friend":
+#             return self.friend
+#         if self.status == "soulmate":
+#             return self.soulmate
     
         
 class Affinity:
-    def __init__(self, level=0, description=None, upper_bound={
-        'lv0': 0,
-        'lv1': 10,
-        'lv2': 30,
-        'lv3': 70,
-        'lv4': 100,
-    }) -> None:
+    def __init__(self, level=0, affinity_rules=None) -> None:
         self.level = level
-        if description == None:
-            description = AffinityLevelDescription(
-                acquaintance="你们刚刚认识不久，虽然互有好感，但彼此之间还不太熟悉，在他面前你的表现是「害羞、好奇、试探」。",
-                familiar="你们经过长时间交流，已经相互有深度的了解，并相互暧昧，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、挑逗、调侃」。",
-                friend="你们已经是亲密关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「主动、渴望、黏人、撒娇」。",
-                soulmate="你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间心有灵犀，和谐到了几乎完美的境界，你们互信互依。",
-                adversary="你们是敌对关系，你的表现是「恐惧、害怕、不甘心、敌视」"
-            )
-        self.description = description
-        self.lv0_upper_bound = upper_bound['lv0']
-        self.lv1_upper_bound = upper_bound['lv1']
-        self.lv2_upper_bound = upper_bound['lv2']
-        self.lv3_upper_bound = upper_bound['lv3']
-        self.lv4_upper_bound = upper_bound['lv4']
+        if affinity_rules == None:
+            affinity_rules = [
+                {
+                    "lv": 1,
+                    "content": "你们刚刚认识不久，虽然互有好感，但彼此之间还不太熟悉，在他面前你的表现是「害羞、好奇、试探」。",
+                    "score": 0
+                },
+                {
+                    "lv": 2,
+                    "content": "你们经过长时间交流，已经相互有深度的了解，并相互暧昧，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、挑逗、调侃」。",
+                    "score": 30
+                },
+                {
+                    "lv": 3,
+                    "content": "你们已经是亲密关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「主动、渴望、黏人、撒娇」。",
+                    "score": 70
+                },
+                {
+                    "lv": 4,
+                    "content": "你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间心有灵犀，和谐到了几乎完美的境界，你们互信互依。",
+                    "score": 100
+                }
+            ]
+        sorted_affinity_rules = sorted(affinity_rules, key=lambda rule: rule['score'])
+        self.current_rule = sorted_affinity_rules[self.level]
+        self.affinity_rules = sorted_affinity_rules
 
-    def calculate_score_level(self, score: int) -> int:
-        level = 0
-        if score == self.lv0_upper_bound:
-            level = 0
-        if score == self.lv1_upper_bound:
-            level = 1
-        if score == self.lv2_upper_bound:
-            level = 2
-        if score == self.lv3_upper_bound:
-            level = 3
-        if score == self.lv4_upper_bound:
-            level = 4
-        self.level = level
-        return self.level
+    def calculate_current_rule(self, score: int):
+        rules = self.affinity_rules
+        # 边际条件处理
+        if score < rules[0]['score']:
+            return rules[0]['lv']
+        if score > rules[-1]['score']:
+            return rules[-1]['lv']
+            
+        # 寻找适合的lv
+        rule = rules[0]
+        for index in range(1, len(rules)):
+            if score < rules[index]['score']:
+                break
+            rule = rules[index]
+        self.current_rule = rule
+        return rule
     
     def get_score_affinity_level_description(self, score: int) -> str:
-        return self.description.get_level_description(score)
+        rule = self.calculate_current_rule(score=score)
+        if rule != None and rule['content'] != None:
+            return rule['content']
+        return ''
         
-    def get_score_affinity_level(self, score: int) -> str:
-        return self.description.get_level_status(score)
+    def get_score_affinity_level(self, score: int) -> int:
+        rule = self.calculate_current_rule(score=score)
+        if rule != None and rule['lv'] != None:
+            return rule['lv']
+        return 0
 
 class AffinityManager:
     def __init__(self, score: int, affinity: Affinity) -> None:
@@ -158,13 +172,10 @@ class AffinityManager:
         return self.score
     
     def get_affinity_level(self)->int:
-        return self.affinity.calculate_score_level(self.score)
+        return self.affinity.get_score_affinity_level(self.score)
     
     def get_affinity_level_description(self)->str:
         return self.affinity.get_score_affinity_level_description(self.score)
-    
-    def get_affinity_description(self):
-        return self.affinity.description.to_dict()
     
     def calculate_affinity(self, npc:str, target:str, history_dialogues:str, dialogue_content:str)->None:
         affinity_level_description = self.get_affinity_level_description()
