@@ -101,7 +101,8 @@ def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
         npc_user = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
         if npc_user == None:
             npc = npc_manager.get_npc(npc_id)
-            npc_user = npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, sex=npc.sex, trait=npc.trait, scene=scene)
+            npc_user = npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, sex=npc.sex, 
+                                                   trait=npc.trait, scene=scene, affinity_rules=npc.affinity_rules)
         return npc_user
     except KeyError:
         return None

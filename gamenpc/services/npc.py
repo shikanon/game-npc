@@ -459,6 +459,12 @@ class NPCManager:
             affinity_level = npc_user.affinity_level
             affinity_level_description = npc_user.affinity_level_description
             affinity_manager = AffinityManager(score=score, affinity=Affinity(level=affinity_level))
+            # 获取affinity_rules
+            npc = self.get_npc(npc_user.npc_id)
+            affinity_rules = npc.affinity_rules
+            if affinity_rules != None and len(affinity_rules) != 0:
+                affinity_manager = AffinityManager(score=score, affinity=Affinity(level=affinity_level, affinity_rules=affinity_rules))
+            
             new_npc_user = NPCUser(id=npc_user.id, 
                                    name=npc_user.name, 
                                    npc_id=npc_user.npc_id, 
@@ -519,20 +525,24 @@ class NPCManager:
             # 更新内存
             npc_user_id = npc_user.id
             old_npc_user = self._instances.get(npc_user_id, None)
-            # TODO 更新affinity_manager
-            old_npc_user.name = new_npc.name
-            old_npc_user.sex = new_npc.sex
-            old_npc_user.trait = new_npc.trait
-            self._instances[npc_user_id] = old_npc_user
-            debuglog.info(f'update_npc: update npc and update cache npc_user = {old_npc_user.to_dict()}')
+            if old_npc_user != None: 
+                # TODO 更新affinity_manager
+                old_npc_user.name = new_npc.name
+                old_npc_user.sex = new_npc.sex
+                old_npc_user.trait = new_npc.trait
+                affinity_manager = AffinityManager(score=old_npc_user.score, 
+                                                   affinity=Affinity(level=old_npc_user.affinity_level, affinity_rules=affinity_rules_data))
+                old_npc_user.affinity_manager = affinity_manager
+                self._instances[npc_user_id] = old_npc_user
+                debuglog.info(f'update_npc: update npc and update cache npc_user = {old_npc_user.to_dict()}')
 
-            # 更新DB
-            npc_user.name = new_npc.name
-            npc_user.sex = new_npc.sex
-            npc_user.trait = new_npc.trait
-            npc_user.updated_at = datetime.now()
-            db_npc_user = self.mysql_client.update_record(npc_user)
-            debuglog.info(f'update_npc: update npc and update db npc_user = {db_npc_user}')
+                # 更新DB
+                npc_user.name = new_npc.name
+                npc_user.sex = new_npc.sex
+                npc_user.trait = new_npc.trait
+                npc_user.updated_at = datetime.now()
+                db_npc_user = self.mysql_client.update_record(npc_user)
+                debuglog.info(f'update_npc: update npc and update db npc_user = {db_npc_user}')
         return new_npc
 
     def remove_npc(self, npc_id: str):
@@ -604,11 +614,11 @@ class NPCManager:
         return None
 
     
-    def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str, sex: int) -> NPCUser:
+    def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, scene: str, sex: int, affinity_rules: any) -> NPCUser:
         dialogue_context = []
         npc_user_id = f'{npc_id}_{user_id}'
         # TODO 根据不同的npc获取其affinity_level，传给AffinityManager，暂时使用默认
-        affinity_manager = AffinityManager(score=0, affinity=Affinity())
+        affinity_manager = AffinityManager(score=0, affinity=Affinity(affinity_rules=affinity_rules))
         new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, 
                                sex=sex, trait=trait, scene=scene, affinity_manager=affinity_manager, 
                                dialogue_context=dialogue_context)

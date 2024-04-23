@@ -5,6 +5,7 @@ author: shikanon
 create: 2024/1/21
 """
 import json
+from typing import List
 from gamenpc.utils.logger import debuglog
 from langchain.schema import SystemMessage, HumanMessage
 from gamenpc.model import doubao
@@ -73,19 +74,28 @@ class Affinity:
                 {
                     "lv": 2,
                     "content": "你们经过长时间交流，已经相互有深度的了解，并相互暧昧，会开始分享更多的个人信息和邀请共同活动，在他面前你的表现是「积极、主动、挑逗、调侃」。",
-                    "score": 30
+                    "score": 20
                 },
                 {
                     "lv": 3,
-                    "content": "你们已经是亲密关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「主动、渴望、黏人、撒娇」。",
-                    "score": 70
+                    "content": "你们已经是亲密关系，你在他面前你的表现是「主动、渴望、黏人、撒娇」。",
+                    "score": 40
                 },
                 {
                     "lv": 4,
+                    "content": "你们已经是亲密关系，你非常黏着他，你们会相互寻求帮助和支持，经常共享个人情感和难题，在他面前你的表现是「主动、渴望、黏人、撒娇」。",
+                    "score": 60
+                },
+                {
+                    "lv": 5,
                     "content": "你们是心灵伴侣，他的最信任的人，是你的一切，你们两人之间心有灵犀，和谐到了几乎完美的境界，你们互信互依。",
                     "score": 100
                 }
             ]
+        else:
+            affinity_rules = [rule_data.__dict__ for rule_data in affinity_rules]
+        
+        # 按照 AffinityRule 的 score 属性排序
         sorted_affinity_rules = sorted(affinity_rules, key=lambda rule: rule['score'])
         self.current_rule = sorted_affinity_rules[self.level]
         self.affinity_rules = sorted_affinity_rules
@@ -109,12 +119,14 @@ class Affinity:
     
     def get_score_affinity_level_description(self, score: int) -> str:
         rule = self.calculate_current_rule(score=score)
+        print('rule: ========', rule)
         if rule != None and rule['content'] != None:
             return rule['content']
         return ''
         
     def get_score_affinity_level(self, score: int) -> int:
         rule = self.calculate_current_rule(score=score)
+        print('rule: ========', rule)
         if rule != None and rule['lv'] != None:
             return rule['lv']
         return 0
