@@ -91,16 +91,18 @@ class ChatRequest(BaseModel):
 
 def get_npc_user(req:ChatRequest=Depends) -> NPCUser:
     try:
-        filter_dict = {"id": req.user_id}
-        user = user_manager.get_user(filter_dict=filter_dict)
-        if user == None:
-            return None
         npc_id=req.npc_id
         user_id=req.user_id
         scene=req.scene
         npc_user = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
         if npc_user == None:
+            filter_dict = {"id": req.user_id}
+            user = user_manager.get_user(filter_dict=filter_dict)
+            if user == None:
+                return None
             npc = npc_manager.get_npc(npc_id)
+            if npc == None:
+                return None
             npc_user = npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, sex=npc.sex, 
                                                    trait=npc.trait, scene=scene, affinity_rules=npc.affinity_rules)
         return npc_user

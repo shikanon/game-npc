@@ -234,6 +234,7 @@ async def test_get_npc_users():
 
 
 @pytest.mark.asyncio
+@patch('gamenpc.webserver.check_user_validate', return_value='your_user_id')
 async def test_get_npc_all_info():
     # 创建mock request对象
     payload = NpcUserAllInfoRequest(user_id=user_id, npc_id=npc_id)
