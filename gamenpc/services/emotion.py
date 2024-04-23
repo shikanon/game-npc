@@ -102,18 +102,19 @@ class Affinity:
 
     def calculate_current_rule(self, score: int):
         rules = self.affinity_rules
-        # 边际条件处理
-        if score < rules[0]['score']:
-            return rules[0]['lv']
-        if score > rules[-1]['score']:
-            return rules[-1]['lv']
-            
+        print('affinity_rules: ========', rules)
+        print('score: ========', score)
         # 寻找适合的lv
         rule = rules[0]
-        for index in range(1, len(rules)):
-            if score < rules[index]['score']:
-                break
-            rule = rules[index]
+        if score < rules[0]['score']: # 边际条件处理
+            rule = rules[0]
+        elif score > rules[-1]['score']: # 边际条件处理
+            rule = rules[-1]
+        else:
+            for index in range(1, len(rules)):
+                if score < rules[index]['score']:
+                    break
+                rule = rules[index]
         self.current_rule = rule
         return rule
     

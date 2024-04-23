@@ -186,26 +186,23 @@ class ChatSuggestionRequest(BaseModel):
 class SuggestionMessage(BaseModel):
     suggestion_messages: List[str]
 
-class ChatSuggestionResponse(BaseModel):
-    code: int
-    msg: str
-    data: Optional[SuggestionMessage] = None
-
 # chat-suggestion接口实现
-@app.post("/api/npc/chat-suggestion", response_model=ChatSuggestionResponse)
+@app.post("/api/npc/chat-suggestion")
 async def generate_chat_suggestion(req: ChatSuggestionRequest, user_id: str= Depends(check_user_validate)):
+    print(f'user_id: {user_id}, req.npc_id: {req.npc_id}')
     npc_user = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
-    dialogues = npc_user.dialogue_manager.get_recent_dialogue(round=1)
-    dialogue = "".join(dialogues)
+    if npc_user == None:
+        return response(code=400, message=f"当前 npc {req.npc_id} 并未开始聊天")
+    dialogues = npc_user.get_recent_dialogue(round=1)
+    dialogue = "".join([str(i) for i in dialogues])
     npc_trait = npc_user.trait
-    response = suggestion.generator_dialogue_suggestion(dialogue, npc_trait)
-    if response is None:
-        return ChatSuggestionResponse(code=1, msg="生成建议回复出错，建议重试", data=suggestions)
-    suggestion_messages = [response["1"],response["2"],response["3"]]
+    suggestion_response = suggestion.generator_dialogue_suggestion(dialogue, npc_trait)
+    if suggestion_response is None:
+        return response(code=400, message="生成建议回复出错，建议重试")
+    print(f'suggestion_response: {suggestion_response}')
+    suggestion_messages = [suggestion_response["1"]['reply'],suggestion_response["2"]['reply'],suggestion_response["3"]['reply']]
     suggestions = SuggestionMessage(suggestion_messages=suggestion_messages)
-    return ChatSuggestionResponse(code=0, msg="执行成功", data=suggestions)
-
-
+    return response(message="执行成功", data=suggestions)
 
 
 class NPCUserRemoveRequest(BaseModel):
