@@ -109,13 +109,14 @@ def get_npc_user(npc_id: str, user_id: str, scene: str) -> NPCUser:
 @router.post("/npc/chat")
 async def chat(req: ChatRequest, user: User = Depends(check_user_validate)):
     user_id = user.id
+    name = user.name
     print(f'req.npc_id: {req.npc_id}, user_id: {user_id}, scene: {req.scene}')
     npc_user_instance: NPCUser = get_npc_user(npc_id=req.npc_id, user_id=user_id, scene=req.scene)
     '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="400", message="选择NPC异常: 用户不存在/NPC不存在")
     message, affinity_info = await asyncio.gather(
-        npc_user_instance.chat(client=config.redis_client, player_id=user_id, content=req.question, content_type=req.content_type),     
+        npc_user_instance.chat(client=config.redis_client, player_id=name, content=req.question, content_type=req.content_type),     
         npc_user_instance.increase_affinity(config.mysql_client, user_id, req.question),
     )
     debuglog.info(f'user_id: {user_id}, content: {req.question}, affinity_info: {affinity_info}')
@@ -339,6 +340,7 @@ async def update_npc_status(req: NPCUpdateStatusRequest, user: User= Depends(che
     return response(data=npc.to_dict())
 
 class NpcQueryRequest(BaseModel):
+    sex: Optional[int] = -1
     name: Optional[str] = ""
     order_by: Optional[str] = {"updated_at": False}
     page: Optional[int] = 1
@@ -353,6 +355,11 @@ async def query_npc(req: NpcQueryRequest):
         req.page = 1
     if req.limit <= 0:
         req.limit = 10 
+    if req.sex != -1:
+        if req.sex == 1:
+            req.order_by = {"sex": False}
+        if req.sex == 2:
+            req.order_by = {"sex": True}
     npcs, total = npc_manager.get_npcs(filter_dict=filter_dict, order_by=req.order_by, page=req.page, limit=req.limit)
     return response(data={'list': [npc.to_dict() for npc in npcs], 'total': total})
 

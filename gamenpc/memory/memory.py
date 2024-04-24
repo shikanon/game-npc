@@ -156,7 +156,13 @@ class DialogueEntry(Base):
         }
     
     def __str__(self) -> str:
-        return "%s: %s"%(self.role_from, self.content)
+        speaker = self.role_from
+        message = self.content
+        created_at = self.created_at
+        '''处理对话，加入外部变量'''
+        if created_at == None:
+            created_at = datetime.now()
+        return "当前时间: %s, 当前说话对象: %s, 说话内容: %s"%(created_at.strftime("%A %B-%d %X"), speaker, message)
 
 @dataclass
 class ConverationEntry:
