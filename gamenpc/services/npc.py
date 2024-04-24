@@ -383,7 +383,7 @@ class NPCUser(Base):
         ]
         history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
         for dialog in history_dialogues:
-            if dialog.role_from == self.name:
+            if dialog.role_from == self.name or dialog.role_from == self.id:
                 all_messages.append(
                     AIMessage(content=str(dialog))
                 )
