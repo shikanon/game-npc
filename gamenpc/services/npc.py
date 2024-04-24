@@ -356,11 +356,9 @@ class NPCUser(Base):
                 affinity_level_description=str(self.affinity_manager.get_affinity_level_description()),
                 )
     
-    def process_message(self, speaker: str, message:str, created_at: DateTime=None)->str:
+    def process_message(self, message:str)->str:
         '''处理对话，加入外部变量'''
-        if created_at == None:
-            created_at = datetime.now()
-        return "当前时间：%s。\n %s：%s"%(created_at.strftime("%A %B-%d %X"), speaker, message)
+        return "当前时间：%s。\n%s"%(datetime.now().strftime("%A %B-%d %X"),message)
     
     async def thinking(self):
         '''NPC思考问题'''
@@ -383,28 +381,27 @@ class NPCUser(Base):
         ]
         history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
         for dialog in history_dialogues:
-            if dialog.role_from == self.name:
+            if dialog.role_from == self.id:
                 all_messages.append(
-                    AIMessage(content=str(dialog))
+                    AIMessage(content=dialog.content)
                 )
             else:
                 all_messages.append(
-                    HumanMessage(content=str(dialog))
+                    HumanMessage(content=dialog.content)
                 )
-        
+        # 本次消息
+        format_message = self.process_message(content)
+        all_messages.append(HumanMessage(content=format_message))
+        debuglog.info(f'chat: all_messages === {all_messages}')
+
         if content_type == '':
             content_type = 'text'
-
-        # 本次消息
-        new_dialog = self.dialogue_manager.new_dialogue(role_from=player_id, role_to=self.name, content=content, content_type=content_type)
-        all_messages.append(HumanMessage(content=str(new_dialog)))
-        debuglog.info(f'chat: all_messages === {all_messages}')
         
         list_name = f'dialogue_{self.id}'
         if self.dialogue_manager.check_dialogue():
             client.pop(list_name)
 
-        call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.name, content=content, content_type=content_type)
+        call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.id, content=content, content_type=content_type)
         debuglog.info(f'chat: call_dialogue === {call_dialogue.to_dict()}')
 
         self.debug_info["模型输入"] = all_messages
@@ -414,7 +411,7 @@ class NPCUser(Base):
         if self.dialogue_manager.check_dialogue():
             client.pop(list_name)
 
-        back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.name, role_to=player_id, content=content, content_type=content_type)
+        back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.id, role_to=player_id, content=content, content_type=content_type)
         client.push(list_name, call_dialogue)
         client.push(list_name, back_dialogue)
         return content
