@@ -89,7 +89,7 @@ class UserManager:
     def __init__(self, mysql_client: MySQLDatabase):
         self.mysql_client = mysql_client
         self.jwttoken = JWT()
-        self.expire_time = 30 # 过期时间为30天
+        self.expire_time = 60 # 过期时间为30天
         secret_key = os.environ.get('SECRET_KEY')
         if secret_key is None:
             secret_key = "this-your-default-secret-key"
@@ -156,12 +156,12 @@ class UserManager:
             return ""
 
     # 验证token
-    def verify_token(self, token: str)-> str:
+    def verify_token(self, token: str)-> User:
         user_id = self.decode_token(token)
         if user_id == "":
-            return False
+            return None
         filter_dict = {"id": user_id}
         user = self.get_user(filter_dict=filter_dict)
         if not user:
-            return ''
-        return user.id
+            return None
+        return user

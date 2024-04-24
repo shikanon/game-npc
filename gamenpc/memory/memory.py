@@ -138,6 +138,7 @@ class DialogueEntry(Base):
 
     '''对话实体，谁说了什么话'''
     def __init__(self, role_from:str, role_to:str, content:str, content_type:str):
+        self.id = str(uuid.uuid4())
         self.role_from = role_from
         self.role_to = role_to
         self.content = content  # 存储对话内容
@@ -155,7 +156,13 @@ class DialogueEntry(Base):
         }
     
     def __str__(self) -> str:
-        return "%s: %s"%(self.role_from, self.content)
+        speaker = self.role_from
+        message = self.content
+        created_at = self.created_at
+        '''处理对话，加入外部变量'''
+        if created_at == None:
+            created_at = datetime.now()
+        return "当前时间: %s。\n %s: %s"%(created_at.strftime("%A %B-%d %X"), speaker, message)
 
 @dataclass
 class ConverationEntry:
@@ -343,6 +350,10 @@ class DialogueMemory:
             # 重置对话长度
             self.dialogue_pair_count = 0
 
+        return dialogue
+    
+    def new_dialogue(self, role_from, role_to, content, content_type)->DialogueEntry:
+        dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         return dialogue
 
     def get_recent_dialogue(self, round=6)->List[DialogueEntry]:
