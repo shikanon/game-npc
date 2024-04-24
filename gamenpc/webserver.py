@@ -82,7 +82,7 @@ file_path = os.environ.get('FILE_PATH')
 base_file_url = os.environ.get('BASE_FILE_URL')
 
 class ChatRequest(BaseModel):
-    # user_id: str
+    user_id: Optional[str] = ""
     npc_id: str
     scene: str
     question: str
@@ -149,7 +149,7 @@ async def debug_chat(req: ChatRequest, user: User= Depends(check_user_validate))
 
 class NpcUserQueryRequest(BaseModel):
     npc_id: Optional[str] = ""
-    # user_id: Optional[str] = ""
+    user_id: Optional[str] = ""
     order_by: Optional[str] = {"id": False}
     page: Optional[int] = 1
     limit: Optional[int] = 10
@@ -175,7 +175,7 @@ async def get_npc_users(req: NpcUserQueryRequest, user: User= Depends(check_user
 
 class NpcUserAllInfoRequest(BaseModel):
     npc_id: Optional[str] = ""
-    # user_id: Optional[str] = ""
+    user_id: Optional[str] = ""
 
 @router.post("/npc/get_npc_all_info")
 async def get_npc_all_info(req: NpcUserAllInfoRequest, user: User= Depends(check_user_validate)):
@@ -189,7 +189,7 @@ async def get_npc_all_info(req: NpcUserAllInfoRequest, user: User= Depends(check
 
 # 定义chat-suggestion请求参数的模型
 class ChatSuggestionRequest(BaseModel):
-    # user_id: str
+    user_id: Optional[str] = ""
     npc_id: str
 
 # 定义chat-suggestion返回参数的模型
@@ -221,7 +221,7 @@ class NPCUserRemoveRequest(BaseModel):
     user_id: 用户 ID
     npc_id: NPC ID
     '''
-    # user_id: str
+    user_id: Optional[str] = ""
     npc_id: str
 
 @router.post("/npc_user/remove")
@@ -234,7 +234,7 @@ class DefaultRequest(BaseModel):
     '''
     npc_id: NPC ID
     '''
-    # user_id: str
+    user_id: Optional[str] = ""
     npc_id: str
 
 @router.post("/npc/get_history_dialogue")
@@ -405,7 +405,7 @@ async def get_npc(req: NpcGetRequest, user: User= Depends(check_user_validate)):
 
 class ShiftSceneRequest(BaseModel):
     npc_id: str
-    # user_id: str
+    user_id: Optional[str] = ""
     scene: Optional[str] = "窝在家里"
 
 @router.post("/npc/shift_scenes")
