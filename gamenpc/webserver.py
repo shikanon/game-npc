@@ -109,14 +109,13 @@ def get_npc_user(npc_id: str, user_id: str, scene: str) -> NPCUser:
 @router.post("/npc/chat")
 async def chat(req: ChatRequest, user: User = Depends(check_user_validate)):
     user_id = user.id
-    name = user.name
     print(f'req.npc_id: {req.npc_id}, user_id: {user_id}, scene: {req.scene}')
     npc_user_instance: NPCUser = get_npc_user(npc_id=req.npc_id, user_id=user_id, scene=req.scene)
     '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="400", message="选择NPC异常: 用户不存在/NPC不存在")
     message, affinity_info = await asyncio.gather(
-        npc_user_instance.chat(client=config.redis_client, player_id=name, content=req.question, content_type=req.content_type),     
+        npc_user_instance.chat(client=config.redis_client, player_id=user_id, content=req.question, content_type=req.content_type),     
         npc_user_instance.increase_affinity(config.mysql_client, user_id, req.question),
     )
     debuglog.info(f'user_id: {user_id}, content: {req.question}, affinity_info: {affinity_info}')

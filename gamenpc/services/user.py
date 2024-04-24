@@ -89,7 +89,7 @@ class UserManager:
     def __init__(self, mysql_client: MySQLDatabase):
         self.mysql_client = mysql_client
         self.jwttoken = JWT()
-        self.expire_time = 60 # 过期时间为30天
+        self.expire_time = 43200 # 过期时间为30天
         secret_key = os.environ.get('SECRET_KEY')
         if secret_key is None:
             secret_key = "this-your-default-secret-key"
