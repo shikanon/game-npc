@@ -7,8 +7,8 @@ create: 2024/2/17
 import pytest
 import asyncio
 
-from gamenpc import emotion
-from gamenpc import npc
+from gamenpc.npc import emotion
+from gamenpc.npc import npc
 
 trait = '''
 你是一只极品神兽，现在是主人的宠物。

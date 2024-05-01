@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Header, Depends, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from gamenpc.services.npc import NPCManager, NPCUser, Picture, AffinityRule
+from gamenpc.npc.npc import NPCManager, NPCUser, Picture, AffinityRule
 from gamenpc.services.user import UserManager, User
 from gamenpc.utils.config import Config
 from gamenpc.utils.logger import debuglog
@@ -204,8 +204,7 @@ async def generate_chat_suggestion(req: ChatSuggestionRequest, user: User= Depen
     npc_user = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
     if npc_user == None:
         return response(code=400, message=f"当前 npc {req.npc_id} 并未开始聊天")
-    dialogues = npc_user.get_recent_dialogue(round=1)
-    dialogue = "".join([str(i) for i in dialogues])
+    dialogue = npc_user.get_recent_dialogue(round=2)
     npc_trait = npc_user.trait
     suggestion_response = suggestion.generator_dialogue_suggestion(dialogue, npc_trait)
     if suggestion_response is None:

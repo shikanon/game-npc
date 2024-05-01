@@ -9,7 +9,7 @@ from io import BytesIO
 import pytest, json
 from unittest.mock import patch
 from fastapi.testclient import TestClient
-from gamenpc.services.npc import NPC
+from gamenpc.npc.npc import NPC
 # import unittest
 # from passlib.context import CryptContext
 

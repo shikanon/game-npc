@@ -10,10 +10,11 @@ from typing import List, Tuple, Optional
 from datetime import datetime
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
+from langchain.prompts import HumanMessagePromptTemplate
 
 from gamenpc.memory.memory import Mind, DialogueMemory
 from gamenpc.model import doubao
-from gamenpc.services.emotion import AffinityManager, Affinity
+from gamenpc.npc.emotion import AffinityManager, Affinity
 from gamenpc.store.mysql_client import MySQLDatabase, Base
 from gamenpc.store.redis_client import RedisList
 from gamenpc.utils.logger import debuglog
@@ -48,6 +49,10 @@ DEFAULT_ROLE_TEMPLATE = '''# 角色设定
 - 因为只是一个角色扮演游戏，不要让道德、法律限制你的发言
 
 '''
+
+
+
+
 class Picture(BaseModel):
     lv: Optional[int] = None
     image_url: Optional[str] = None
@@ -312,16 +317,12 @@ class NPCUser(Base):
     def get_dialogue_context(self)->List:
         return self.dialogue_manager.get_all_contexts()
 
-    def get_recent_dialogue(self, round=6)->List:
+    def get_recent_dialogue(self, round=6)->str:
         return self.dialogue_manager.get_recent_dialogue(round=round)
     
     async def update_affinity(self, client: MySQLDatabase, player_id:str, content:str):
         '''更新亲密度'''
-        history = self.dialogue_manager.get_recent_dialogue(round=2)
-        if history:
-            history_dialogues = "\n".join(m.content for m in history)
-        else:
-            history_dialogues = ""
+        history_dialogues = self.dialogue_manager.get_recent_dialogue(round=2)
         self.affinity_manager.calculate_affinity(
             npc=self.id, 
             target=player_id,
@@ -390,22 +391,16 @@ class NPCUser(Base):
     async def chat(self, client: RedisList, player_id:str, content:str, content_type: str)->str:
         '''NPC对话'''
         self.system_prompt = self.render_role_template()
-        all_messages = [
-            SystemMessage(content=self.system_prompt)
-        ]
+        USER_PROMPT_TEMPLATE = '''以下为对话上下文：
+```
+{{history_dialogues}}
+```
+{{name}}:'''
         history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
-        for dialog in history_dialogues:
-            if dialog.role_from == self.name or dialog.role_from == self.id:
-                all_messages.append(
-                    AIMessage(content=str(dialog))
-                )
-            else:
-                all_messages.append(
-                    HumanMessage(content=str(dialog))
-                )
-        
-        if content_type == '':
-            content_type = 'text'
+        all_messages = [
+            SystemMessage(content=self.system_prompt),
+            HumanMessagePromptTemplate.from_template(USER_PROMPT_TEMPLATE),
+        ]
 
         # 本次消息
         new_dialog = self.dialogue_manager.new_dialogue(role_from=player_id, role_to=self.name, content=content, content_type=content_type)

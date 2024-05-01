@@ -21,6 +21,9 @@ from dataclasses import dataclass
 
 # debuglog = DebugLogger("memory")
 
+CONTENT_TYPE_TEXT = "text"
+CONTENT_TYPE_IMAGE = "image"
+
 summarize_dialogue_template = """
 # 角色
 {character}
@@ -142,7 +145,11 @@ class DialogueEntry(Base):
         self.role_from = role_from
         self.role_to = role_to
         self.content = content  # 存储对话内容
-        self.content_type = content_type
+        # 类型：text, image
+        if content_type in [CONTENT_TYPE_TEXT, CONTENT_TYPE_IMAGE]:
+            self.content_type = content_type 
+        else:
+            self.content_type = CONTENT_TYPE_TEXT
         self.created_at = datetime.now()
 
     def to_dict(self):
@@ -156,13 +163,14 @@ class DialogueEntry(Base):
         }
     
     def __str__(self) -> str:
+        '''处理对话，加入外部变量'''
         speaker = self.role_from
         message = self.content
-        created_at = self.created_at
-        '''处理对话，加入外部变量'''
-        if created_at == None:
-            created_at = datetime.now()
-        return "当前时间: %s, 当前说话对象: %s, 说话内容: %s"%(created_at.strftime("%A %B-%d %X"), speaker, message)
+        if self.created_at == None:
+            self.created_at = datetime.now()
+        created_at = self.created_at.strftime("%A %B-%d %X"), 
+        content = "%s: %s"%(speaker, message)
+        return content
 
 @dataclass
 class ConverationEntry:
@@ -301,7 +309,7 @@ class Mind:
 
 @dataclass
 class DialogueMemory:
-    def __init__(self, dialogue_context:List, mind:Mind, summarize_limit=10, max_dialogue_history=100):
+    def __init__(self, dialogue_context:List[DialogueEntry], mind:Mind, summarize_limit=10, max_dialogue_history=100):
         self.mind = mind
         # 对话上下文
         self.dialogue_context = dialogue_context  
@@ -356,9 +364,14 @@ class DialogueMemory:
         dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         return dialogue
 
-    def get_recent_dialogue(self, round=6)->List[DialogueEntry]:
-        # 返回最新的上下文
-        return self.dialogue_context[-round:] if self.dialogue_context else list()
+    def get_recent_dialogue(self, round=6)->str:
+        '''返回最新的上下文，并进行格式化输出
+        '''
+        output_diglogue = ""
+        for ctx in self.dialogue_context:
+            if ctx.content_type == CONTENT_TYPE_TEXT:
+                output_diglogue = output_diglogue + str(ctx)
+        return output_diglogue
 
     def get_all_contexts(self)->List[DialogueEntry]:
         # 返回所有上下文，按时间顺序排列
