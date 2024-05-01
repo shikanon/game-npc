@@ -101,7 +101,7 @@ def get_npc_user(npc_id: str, user_id: str, scene: str) -> NPCUser:
             if npc == None:
                 return None
             default_npc_relationship = "" # 这个值应该来至于npc表
-            npc_user = npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, sex=npc.sex, npc_relationship=default_npc_relationship,
+            npc_user = npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, npc_relationship=default_npc_relationship, sex=npc.sex, 
                                                    trait=npc.trait, scene=scene, affinity_rules=npc.affinity_rules)
         return npc_user
     except KeyError:

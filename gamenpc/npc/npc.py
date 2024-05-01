@@ -629,13 +629,13 @@ class NPCManager:
         return None
 
     
-    def create_npc_user(self, name:str, npc_id:str, user_id:str, relationship:str, trait:str, scene: str, sex: int, affinity_rules: any) -> NPCUser:
+    def create_npc_user(self, name:str, npc_id:str, user_id:str, npc_relationship:str, trait:str, scene: str, sex: int, affinity_rules: any) -> NPCUser:
         dialogue_context = []
         npc_user_id = f'{npc_id}_{user_id}'
         # TODO 根据不同的npc获取其affinity_level，传给AffinityManager，暂时使用默认
         affinity_manager = AffinityManager(score=0, affinity=Affinity(affinity_rules=affinity_rules))
         new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, 
-                               sex=sex, relationship=relationship, trait=trait, scene=scene, affinity_manager=affinity_manager, 
+                               sex=sex, relationship=npc_relationship, trait=trait, scene=scene, affinity_manager=affinity_manager, 
                                dialogue_context=dialogue_context)
         self.mysql_client.insert_record(new_npc_user)
         self._instances[npc_user_id] = new_npc_user
