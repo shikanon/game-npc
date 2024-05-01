@@ -397,14 +397,10 @@ class NPCUser(Base):
 {history_dialogues}
 ```
 {name}:'''
-        user_prompt=PromptTemplate(
-            template=USER_PROMPT_TEMPLATE,
-            input_variables=[history_dialogues, self.name],
-        )
-        user_prompt_temlp = HumanMessagePromptTemplate(prompt=user_prompt)
+        user_prompt=jinja2.Template(USER_PROMPT_TEMPLATE).render(history_dialogues=history_dialogues,name=self.name)
         all_messages = [
             SystemMessage(content=self.system_prompt),
-            user_prompt_temlp
+            HumanMessage(content=user_prompt),
         ]
 
         # 本次消息
