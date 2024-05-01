@@ -29,10 +29,10 @@ def generator_dialogue_suggestion(dialogue:str, npc_trait:str)->dict:
 ```json
 {
 "1": {
-  "reply": <温柔小奶狗的方式回复，俘获对方芳心>
+  "reply": <温柔小奶狗一样的方式回复来俘获对方芳心>
 },
 "2": {
-  "reply": <霸道总裁方式回应，强硬而自信>
+  "reply": <霸道总裁的方式回应，强硬而自信>
 },
 "3": {
   "reply": <极限拉扯回复>
@@ -68,6 +68,7 @@ json格式:
         SystemMessage(content=system_prompt),
         HumanMessage(content=user_prompt)
     ])
+    print(response.content)
     try:
         suggestion_dict = json.loads(response.content)
     except:
