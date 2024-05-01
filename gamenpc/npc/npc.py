@@ -393,13 +393,14 @@ class NPCUser(Base):
         self.system_prompt = self.render_role_template()
         USER_PROMPT_TEMPLATE = '''以下为对话上下文：
 ```
-{{history_dialogues}}
+{history_dialogues}
 ```
-{{name}}:'''
+{name}:'''
+        user_temlp = HumanMessagePromptTemplate.from_template(USER_PROMPT_TEMPLATE)
         history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
         all_messages = [
             SystemMessage(content=self.system_prompt),
-            HumanMessagePromptTemplate.from_template(USER_PROMPT_TEMPLATE),
+            user_temlp.format_messages([history_dialogues, self.name]),
         ]
 
         # 本次消息
