@@ -40,7 +40,7 @@ export const request: RequestConfig = {
   // 根据访问域名区分接口网关
   baseURL:
     {
-      localhost: '/local',
+      localhost: '/dev',
       'management-game-npc.clarkchu.com': 'http://game-npc.clarkchu.com/api/', // 云开发
     }[window.location.hostname] || '/',
   timeout: 120000, // 超时设置

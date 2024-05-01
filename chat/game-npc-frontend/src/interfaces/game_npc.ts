@@ -76,7 +76,6 @@ export interface INPCMessage {
   affinityScore: number;
   message: string;
   messageType: string;
-  intimacyLevel: number;
 }
 export interface INPCChatResponse {
   code: number;
@@ -115,7 +114,6 @@ export interface INPCAllInfo {
   shortDescription: string;
   trait: string;
   userId: string;
-  intimacyLevel: number;
   affinityRules?: IAffinityRules[] | null;
   pictures?: INPCLevelPicture[] | null;
   presetProblems?: string[] | null;

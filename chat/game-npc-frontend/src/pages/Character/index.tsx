@@ -12,7 +12,7 @@ const { Paragraph } = Typography;
 
 const Character = () => {
   const theme = useTheme();
-  const { userInfo, setOpenLoginModal } = useModel('user');
+  const { userInfo, setOpenLoginModal, setCurrentCharacter } = useModel('user');
 
   const [characterList, setCharacterList] = useState<INPCInfo[]>([]);
 
@@ -77,6 +77,7 @@ const Character = () => {
                       if (userInfo?.id) {
                         history.push(`/conversation?characterId=${item.id}`);
                       } else {
+                        setCurrentCharacter(item);
                         setOpenLoginModal(true);
                       }
                     }}

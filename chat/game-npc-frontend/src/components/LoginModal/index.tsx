@@ -31,7 +31,7 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
 
   const [form] = Form.useForm();
 
-  const { setUserInfo, setOpenSexModal } = useModel('user');
+  const { setUserInfo, setOpenSexModal, currentCharacter } = useModel('user');
   // 登录模式
   const [loginType, setLoginType] = useState<'login' | 'register'>('login');
 
@@ -75,6 +75,10 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
 
           // 打开设置性别弹窗
           setOpenSexModal(true);
+
+          if (currentCharacter) {
+            history.push(`/conversation?characterId=${currentCharacter.id}`);
+          }
         }
       })
       .catch(() => {});
@@ -104,6 +108,10 @@ const CreateFormModal: React.FC<Values & ModalProps> = ({
 
           // 进入角色页面
           onChange(true);
+
+          if (currentCharacter) {
+            history.push(`/conversation?characterId=${currentCharacter.id}`);
+          }
         }
       })
       .catch(() => {});

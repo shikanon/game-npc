@@ -1,15 +1,17 @@
 import userImg from '@/assets/images/user.png';
+import lvPictureLockImg from '@/assets/images/lv_picture_lock.png';
 import LoadingDots from '@/components/LoadingDots';
 import { INPCAllInfo, INPCLevelPicture } from '@/interfaces/game_npc';
 import gameNpcService from '@/services/game_npc';
 import { getHashParams } from '@/utils';
-import { ClearOutlined, CloseOutlined, LeftOutlined, SendOutlined, UnlockOutlined } from '@ant-design/icons';
+import { ClearOutlined, LeftOutlined, SendOutlined, StarOutlined, UnlockOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { useRequest } from 'ahooks';
 import { App, Avatar, Button, Col, Divider, Input, Row, Typography, Image, Progress, Tooltip } from 'antd';
 import { useTheme } from 'antd-style';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from './index.less';
+import dayjs from "dayjs";
 
 const { TextArea } = Input;
 const { Paragraph, Text } = Typography;
@@ -19,6 +21,7 @@ interface IChatItem {
   status?: 'wait' | 'success' | 'fail'; // 状态
   content?: string | null; // 内容
   contentType?: 'text' | 'image' | null; // 内容类型
+  messageTime?: string; // 消息时间
   isClear?: boolean; // 是否清空
   presetProblems?: string[]; // npc预置问题
 }
@@ -35,8 +38,11 @@ const Conversation = () => {
   const [chatBg, setChatBg] = useState('');
   const [achieveNextLvPicture, setAchieveNextLvPicture] =
     useState<INPCLevelPicture|null>(null);
-  const [openLvPicture, setOpenLvPicture] = useState(false);
+  const [showLvPicture, setShowLvPicture] = useState<INPCLevelPicture|null>(null);
+  const [openNextLvPicture, setOpenNextLvPicture] = useState(false);
   const [isUnlockNpcPicture, setIsUnlockNpcPicture] = useState(false);
+  const lvPictureContainerRef = useRef(null);
+  const showPictureContainerRef = useRef(null);
 
   // 获取NPC全部信息
   const {
@@ -134,17 +140,22 @@ const Conversation = () => {
         setChatBg(result.data.chatBackground || '')
         // }
 
+        // setOpenLvPicture(true);
+        // setIsUnlockNpcPicture(false);
+        // setAchieveNextLvPicture({ imageUrl: result?.data?.chatBackground || '' , description: '聊天背景' });
+
         if (result?.data?.dialogueContext?.length) {
           // 插入历史对话内容
           const newChatList: IChatItem[] =
             result?.data?.dialogueContext?.map((item) => {
               return {
-                from: item?.roleTo?.includes(result?.data?.npcId)
-                  ? 'user'
-                  : 'npc',
+                from: item?.roleFrom === result?.data?.name
+                  ? 'npc'
+                  : 'user',
                 status: 'success',
                 content: item?.content || null,
                 contentType: item?.contentType || null,
+                messageTime: item?.createdAt,
               };
             }) || [];
           // 插入npc回复的预设问题
@@ -153,6 +164,7 @@ const Conversation = () => {
             status: 'success',
             content: result?.data.prologue || '',
             contentType: 'text',
+            messageTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
           })
           console.log(newChatList, '对话列表');
           setChatList(newChatList);
@@ -167,6 +179,7 @@ const Conversation = () => {
               content: result?.data.prologue || '',
               contentType: 'text',
               presetProblems: result?.data?.presetProblems || [],
+              messageTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
             }
           ]);
         }
@@ -217,14 +230,14 @@ const Conversation = () => {
 
     // 如果是图片类型消息，则发送一张图片
     if (imageUrl) {
-      waitChatList.push({ from: 'npc', status: 'success', content: imageUrl, contentType: 'image' });
-      waitChatList.push({ from: 'npc', status: 'success', content: inputQuestion });
+      waitChatList.push({ from: 'npc', status: 'success', content: imageUrl, contentType: 'image', messageTime: dayjs().format('YYYY-MM-DD HH:mm:ss')});
+      waitChatList.push({ from: 'npc', status: 'success', content: inputQuestion, messageTime: dayjs().format('YYYY-MM-DD HH:mm:ss') });
 
       setChatList(waitChatList);
 
       scrollToBottom();
     } else {
-      waitChatList.push({ from: 'user', content: inputQuestion });
+      waitChatList.push({ from: 'user', content: inputQuestion, messageTime: dayjs().format('YYYY-MM-DD HH:mm:ss') });
       waitChatList.push({ from: 'npc', status: 'wait', content: '' });
 
       setChatList(waitChatList);
@@ -245,10 +258,12 @@ const Conversation = () => {
       if (result?.data?.message) {
         waitChatList[waitChatList.length - 1].status = 'success';
         waitChatList[waitChatList.length - 1].content = result.data.message;
+        waitChatList[waitChatList.length - 1].messageTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
         setChatList(waitChatList);
       } else {
         waitChatList[waitChatList.length - 1].status = 'fail';
         waitChatList[waitChatList.length - 1].content = '回答失败，请重试';
+        waitChatList[waitChatList.length - 1].messageTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
         setChatList(waitChatList);
       }
 
@@ -295,7 +310,7 @@ const Conversation = () => {
     const currentLv = npcAllInfo?.affinityLevel || 0;
     const nextLv = currentLv + 1;
     const currentScore = npcAllInfo?.score || 0;
-    const nextLvScore = npcAllInfo?.affinityRules?.[currentLv]?.score || 0;
+    const nextLvScore = npcAllInfo?.affinityRules?.[nextLv]?.score || 0;
 
     return (
       <Col>
@@ -336,6 +351,25 @@ const Conversation = () => {
     )
   }
 
+  const handleClickOutside = (event: any) => {
+    // @ts-ignore
+    if (lvPictureContainerRef.current && !lvPictureContainerRef.current?.contains(event.target)) {
+      setOpenNextLvPicture(false);
+    }
+
+    // @ts-ignore
+    if (showPictureContainerRef.current && !showPictureContainerRef.current?.contains(event.target)) {
+      setShowLvPicture(null);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     if (userInfo) {
       // 初始化获取NPC全部信息
@@ -352,7 +386,7 @@ const Conversation = () => {
     <div
       style={{
         backgroundColor: theme.colorBgLayout,
-        // backgroundImage: `url(${chatBg || ''})`,
+        backgroundImage: `url(${chatBg || ''})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -371,12 +405,58 @@ const Conversation = () => {
             }}
           />
         </Row>
+
+        {
+          npcAllInfo?.pictures?.length ? (
+            <Row className={styles.pictureList} justify={'start'}>
+              {
+                npcAllInfo?.pictures?.map((item, index) => {
+                  // 解锁当前图片等级
+                  if (item?.imageUrl && item.lv > 0 && item.lv <= npcAllInfo?.affinityLevel) {
+                    return (
+                      <Col
+                        key={index}
+                        className={styles.photoItem}
+                        onClick={() => {
+                          setShowLvPicture(item);
+                        }}
+                      >
+                        <Image
+                          preview={false}
+                          className={styles.photoItem}
+                          src={item.imageUrl || ''}
+                          alt={'相册图片'}
+                        />
+                      </Col>
+                    )
+                  } else if (item.lv > 0 && item.lv > npcAllInfo?.affinityLevel) {
+                    return (
+                      <Col
+                        key={index}
+                        className={styles.noPhotoItem}
+                      >
+                        <Image
+                          preview={false}
+                          src={lvPictureLockImg || ''}
+                          alt={'相册图片'}
+                        />
+                        <Text>等级{item.lv}开放</Text>
+                      </Col>
+                    );
+                  } else {
+                    return null;
+                  }
+                })
+              }
+            </Row>
+          ) : null
+        }
       </div>
       <div
         className={styles.chatContainer}
         style={{
           backgroundColor: theme.colorBgLayout,
-          // backgroundImage: `url(${chatBg || ''})`,
+          backgroundImage: `url(${chatBg || ''})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat',
@@ -393,8 +473,29 @@ const Conversation = () => {
                   wrap={false}
                   style={{ marginBottom: 10, paddingLeft: 40 }}
                 >
-                  <Col className={styles.userChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
-                    <Text className={styles.content}>{item.content}</Text>
+                  <Col>
+                    {/*<Row*/}
+                    {/*  justify={'end'}*/}
+                    {/*  style={{*/}
+                    {/*    marginBottom: 5,*/}
+                    {/*    marginRight: 5,*/}
+                    {/*    color: '#ffffff',*/}
+                    {/*  }}*/}
+                    {/*>*/}
+                    {/*  {userInfo?.name || '-'}*/}
+                    {/*</Row>*/}
+                    <Row className={styles.userChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
+                      <Text className={styles.content}>{item.content}</Text>
+                    </Row>
+                    <Row
+                      justify={'end'}
+                      style={{
+                        marginRight: 5,
+                        color: '#ffffff',
+                      }}
+                    >
+                      {item?.messageTime || '-'}
+                    </Row>
                   </Col>
                   <Col>
                     <Avatar src={userImg} size={32} />
@@ -424,19 +525,44 @@ const Conversation = () => {
                           width={300 * 0.75}
                           src={item?.content || ''}
                           onClick={() => {
-                            setOpenLvPicture(true);
+                            setOpenNextLvPicture(true);
                           }}
                         />
                       ) : (
-                        <Row className={styles.npcChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
-                          {item?.status === 'wait' ? <LoadingDots /> : null}
-                          {item?.status === 'success' ? (
-                            <Text className={styles.content}>{item.content}</Text>
-                          ) : null}
-                          {item?.status === 'fail' ? (
-                            <Text className={styles.content}>{item.content}</Text>
-                          ) : null}
-                        </Row>
+                        <Col>
+                          {/*<Row*/}
+                          {/*  justify={'start'}*/}
+                          {/*  style={{*/}
+                          {/*    marginBottom: 5,*/}
+                          {/*    marginLeft: 5,*/}
+                          {/*    color: '#ffffff',*/}
+                          {/*  }}*/}
+                          {/*>*/}
+                          {/*  {npcAllInfo?.name || '-'}*/}
+                          {/*</Row>*/}
+                          <Row className={styles.npcChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
+                            {item?.status === 'wait' ? <LoadingDots /> : null}
+                            {item?.status === 'success' ? (
+                              <Text className={styles.content}>{item.content}</Text>
+                            ) : null}
+                            {item?.status === 'fail' ? (
+                              <Text className={styles.content}>{item.content}</Text>
+                            ) : null}
+                          </Row>
+                          {
+                            item?.messageTime ? (
+                              <Row
+                                justify={'start'}
+                                style={{
+                                  marginLeft: 5,
+                                  color: '#ffffff',
+                                }}
+                              >
+                                {item?.messageTime || '-'}
+                              </Row>
+                            ) : null
+                          }
+                        </Col>
                       )
                     }
                     {
@@ -610,8 +736,9 @@ const Conversation = () => {
       </div>
 
       {
-        openLvPicture ? (
+        openNextLvPicture ? (
           <div
+            ref={lvPictureContainerRef}
             className={styles.lvPictureContainer}
           >
             <div
@@ -626,21 +753,7 @@ const Conversation = () => {
               }
             />
             {
-              isUnlockNpcPicture ? (
-                <Button
-                  type={'primary'}
-                  icon={<CloseOutlined />}
-                  className={styles.unlock}
-                  onClick={() => {
-                    // 关闭等级lv图片弹窗
-                    setOpenLvPicture(false);
-                    // 清空等级lv图片
-                    // setAchieveNextLvPicture(null);
-                  }}
-                >
-                  关闭
-                </Button>
-              ) : (
+              isUnlockNpcPicture ? null : (
                 <Button
                   type={'primary'}
                   icon={<UnlockOutlined/>}
@@ -656,6 +769,33 @@ const Conversation = () => {
                 </Button>
               )
             }
+          </div>
+        ) : null
+      }
+
+      {
+        showLvPicture ? (
+          <div
+            ref={showPictureContainerRef}
+            className={styles.lvPictureContainer}
+          >
+            <div
+              className={styles.lvPicture}
+              style={{
+                backgroundImage: `url(${showLvPicture?.imageUrl || ''})`,
+              }}
+            />
+            <Button
+              type={'primary'}
+              icon={<StarOutlined />}
+              className={styles.unlock}
+              onClick={() => {
+                setChatBg(showLvPicture?.imageUrl || '');
+                setShowLvPicture(null);
+              }}
+            >
+              设为聊天背景
+            </Button>
           </div>
         ) : null
       }

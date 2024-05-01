@@ -18,6 +18,37 @@
     padding: 50px 0 0 20px;
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
+
+    .pictureList {
+      margin-top: 20px;
+      margin-right: 20px;
+      padding: 20px 10px;
+      border-radius: 6px;
+      background: linear-gradient(to bottom, #A17891, #C3A292);
+    }
+
+    .photoItem {
+      width: calc(110px * 0.75);
+      height: 110px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      margin-right: 20px;
+      cursor: pointer;
+    }
+
+    .noPhotoItem {
+      display: flex;
+      flex-flow: column nowrap;
+      justify-content: center;
+      align-items: center;
+      width: calc(110px * 0.75);
+      height: 110px;
+      background-color: #fff;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      margin-right: 20px;
+      cursor: pointer;
+    }
   }
 
   .chatContainer {
@@ -150,6 +181,14 @@
       z-index: 1010;
       border: none;
       background: linear-gradient(to right, #ED6BC9, #F8DA77);
+
+      &:hover {
+        background: linear-gradient(to right, #ED6BC9, #F8DA77);
+      }
+
+      &:focus {
+        background: linear-gradient(to right, #ED6BC9, #F8DA77);
+      }
     }
   }
 
@@ -157,5 +196,13 @@
     border: none;
     border-radius: 20px;
     background: linear-gradient(to right, #ED6BC9, #F8DA77);
+
+    &:hover {
+      background: linear-gradient(to right, #ED6BC9, #F8DA77);
+    }
+
+    &:focus {
+      background: linear-gradient(to right, #ED6BC9, #F8DA77);
+    }
   }
 }

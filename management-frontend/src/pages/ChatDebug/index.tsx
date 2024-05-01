@@ -96,6 +96,7 @@ const ChatDebug = () => {
   const [prologue, setPrologue] = useState<string>('');
   const [presetProblems, setPresetProblems] = useState<string[]>(['', '', '']);
   const [affinityRules, setAffinityRules] = useState<IAffinityRules[]>([
+    { lv: 0, score: 0, content: '' },
     { lv: 1, score: 5, content: '陌生' },
     { lv: 2, score: 15, content: '普通' },
     { lv: 3, score: 30, content: '友好' },
@@ -103,6 +104,7 @@ const ChatDebug = () => {
     { lv: 5, score: 100, content: '恋人' },
   ]);
   const [picturesRule, setPicturesRule] = useState<ILevelPictureRule[]>([
+    { lv: 0, score: 0, imageUrl: '', description: '' },
     { lv: 1, score: 5, imageUrl: '', description: '' },
     { lv: 2, score: 15, imageUrl: '', description: '' },
     { lv: 3, score: 30, imageUrl: '', description: '' },
@@ -891,7 +893,8 @@ const ChatDebug = () => {
                             <Col style={{ marginRight: 10 }}>
                               <InputNumber
                                 style={{ width: 80 }}
-                                value={item.score || ''}
+                                defaultValue={0}
+                                value={item.score || null}
                                 placeholder={'所需亲密值'}
                                 onChange={(value) => {
                                   console.log(value, '亲密值');
