@@ -10,7 +10,7 @@ from typing import List, Tuple, Optional
 from datetime import datetime
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
-from langchain.prompts import HumanMessagePromptTemplate
+from langchain.prompts import HumanMessagePromptTemplate, PromptTemplate
 
 from gamenpc.memory.memory import Mind, DialogueMemory
 from gamenpc.model import doubao
@@ -391,16 +391,20 @@ class NPCUser(Base):
     async def chat(self, client: RedisList, player_id:str, content:str, content_type: str)->str:
         '''NPC对话'''
         self.system_prompt = self.render_role_template()
+        history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
         USER_PROMPT_TEMPLATE = '''以下为对话上下文：
 ```
 {history_dialogues}
 ```
 {name}:'''
-        user_temlp = HumanMessagePromptTemplate.from_template(USER_PROMPT_TEMPLATE)
-        history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
+        user_prompt=PromptTemplate(
+            template=USER_PROMPT_TEMPLATE,
+            input_variables=[history_dialogues, self.name],
+        )
+        user_prompt_temlp = HumanMessagePromptTemplate(prompt=user_prompt)
         all_messages = [
             SystemMessage(content=self.system_prompt),
-            user_temlp.format_messages([history_dialogues, self.name]),
+            user_prompt_temlp
         ]
 
         # 本次消息
