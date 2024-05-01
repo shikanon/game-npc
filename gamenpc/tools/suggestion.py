@@ -23,7 +23,8 @@ def generator_dialogue_suggestion(dialogue:str, npc_trait:str)->dict:
 
 # 回复格式
 - 回复格式采用：对话 + 行为，其中内心活动放在括号里
-- 你会同时提供三种不同类型的回复句式，语气分别是<挑逗调侃>、<霸道总裁>、<极限拉扯>
+- 你会同时提供三种不同类型的回复句式，语气分别是<温柔小奶狗>、<霸道总裁>、<极限拉扯>
+- 回复要基于对话内容
 - 回复采用json格式，并且能够被 python 的 json.loads 解析
 格式：
 ```json
@@ -62,7 +63,7 @@ json格式:
 {{dialogue}}
 ```
 
-回复：
+
 """
     response = model(messages=[
         SystemMessage(content=system_prompt),
