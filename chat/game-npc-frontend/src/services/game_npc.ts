@@ -7,8 +7,16 @@ import {
   IGetNPCChatHistoryResponse,
   IGetNPCListRequest,
   IGetNPCListResponse,
+  IGetNPCPictureRequest,
+  IGetNPCPictureResponse,
+  IGetNPCPresetProblemsRequest,
+  IGetNPCPresetProblemsResponse,
+  IGetNPCPrologueRequest,
+  IGetNPCPrologueResponse,
   IMyNPCSceneChangeRequest,
   IMyNPCSceneChangeResponse,
+  INPCChatPromptRequest,
+  INPCChatPromptResponse,
   INPCChatRequest,
   INPCChatResponse,
 } from '@/interfaces/game_npc';
@@ -76,6 +84,49 @@ export default {
    */
   async MyNPCSceneSwitch(data?: IMyNPCSceneChangeRequest) {
     return await request<IMyNPCSceneChangeResponse>('/npc/shift_scenes', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * 获取NPC开场白信息
+   */
+  async GetNPCPrologue(data?: IGetNPCPrologueRequest) {
+    return await request<IGetNPCPrologueResponse>('/npc/get_prologue', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * 获取NPC预置问题
+   */
+  async GetNPCPresetProblems(data?: IGetNPCPresetProblemsRequest) {
+    return await request<IGetNPCPresetProblemsResponse>(
+      '/npc/get_preset_problems',
+      {
+        method: 'POST',
+        data,
+      },
+    );
+  },
+
+  /**
+   * 获取NPC相关图片
+   */
+  async GetNPCPicture(data?: IGetNPCPictureRequest) {
+    return await request<IGetNPCPictureResponse>('/npc/get_picture', {
+      method: 'POST',
+      data,
+    });
+  },
+
+  /**
+   * NPC聊天提示
+   */
+  async NPCChatPrompt(data?: INPCChatPromptRequest) {
+    return await request<INPCChatPromptResponse>('/npc/chat-suggestion', {
       method: 'POST',
       data,
     });

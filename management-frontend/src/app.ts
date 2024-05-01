@@ -1,10 +1,10 @@
 // 运行时配置
+import { ACCESS_TOKEN_KEY, USER_ID_KEY } from '@/constants';
+import { IUserInfo } from '@/interfaces/user';
+import userService from '@/services/user';
 import { RequestConfig } from '@umijs/max';
 import { message } from 'antd';
 import humps from 'humps';
-import { ACCESS_TOKEN_KEY, USER_ID_KEY } from "@/constants";
-import { IUserInfo } from '@/interfaces/user';
-import userService from '@/services/user';
 
 interface IInitialState {
   user: {
@@ -41,8 +41,7 @@ export const request: RequestConfig = {
   baseURL:
     {
       localhost: '/local',
-      'management-game-npc.clarkchu.com':
-        'http://game-npc.clarkchu.com/api/', // 云开发
+      'management-game-npc.clarkchu.com': 'http://game-npc.clarkchu.com/api/', // 云开发
     }[window.location.hostname] || '/',
   timeout: 120000, // 超时设置
   withCredentials: true,

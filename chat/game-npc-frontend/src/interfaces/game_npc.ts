@@ -5,25 +5,56 @@ export enum NPCCharacterStatusEnum {
   NPCCharacterStatusEnum_Publish = 2, // 已发布
 }
 
-// 获取NPC角色列表
-export interface IGetNPCListRequest {
-  limit?: number;
-  page?: number;
+// NPC角色性别枚举
+export enum NPCCharacterSexEnum {
+  NPCCharacterSexEnum_Unknown = 0, // 未知
+  NPCCharacterSexEnum_Male = 1, // 男
+  NPCCharacterSexEnum_Female = 2, // 女
 }
+
+// 好感度规则
+export interface IAffinityRules {
+  lv: number;
+  content?: string;
+  score?: number;
+}
+
+// NPC聊天等级
+export interface INPCLevelPicture {
+  lv: number;
+  imageUrl?: string;
+  description?: string;
+  score?: number;
+}
+
+// NPC角色信息
 export interface INPCInfo {
   id: string;
   name: string;
   shortDescription: string;
   trait: string;
-  status: NPCCharacterStatusEnum;
   promptDescription: string;
   profile: string;
   chatBackground: string;
   affinityLevelDescription: string;
   knowledgeId: string;
+  sex: NPCCharacterSexEnum;
+  status: NPCCharacterStatusEnum;
   createdAt: string;
   updatedAt: string;
+  affinityRules?: IAffinityRules[] | null;
+  pictures?: INPCLevelPicture[] | null;
+  presetProblems?: string[] | null;
+  prologue?: string;
 }
+
+// 获取NPC角色列表
+export interface IGetNPCListRequest {
+  name?: string;
+  limit?: number;
+  page?: number;
+}
+
 export interface IGetNPCListResponse {
   code: number;
   data: {
@@ -31,19 +62,6 @@ export interface IGetNPCListResponse {
     total: number;
   };
   msg: string;
-}
-
-// 创建NPC
-export interface ICreateNPCRequest {
-  name: string;
-  shortDescription: string;
-  trait: string;
-  profile: string;
-  chatBackground: string;
-  affinityLevelDescription: string;
-}
-export interface ICreateNPCResponse {
-  name: string;
 }
 
 // NPC文字聊天
@@ -58,6 +76,7 @@ export interface INPCMessage {
   affinityScore: number;
   message: string;
   messageType: string;
+  intimacyLevel: number;
 }
 export interface INPCChatResponse {
   code: number;
@@ -80,7 +99,7 @@ export interface dialogueItem {
 }
 // NPC全部信息
 export interface INPCAllInfo {
-  affinityLevel: string;
+  affinityLevel: number;
   affinityLevelDescription: string;
   chatBackground: string;
   createdAt: string;
@@ -96,6 +115,11 @@ export interface INPCAllInfo {
   shortDescription: string;
   trait: string;
   userId: string;
+  intimacyLevel: number;
+  affinityRules?: IAffinityRules[] | null;
+  pictures?: INPCLevelPicture[] | null;
+  presetProblems?: string[] | null;
+  prologue?: string;
 }
 export interface IGetNPCAllInfoResponse {
   code: number;
@@ -132,4 +156,48 @@ export interface IMyNPCSceneChangeRequest {
 }
 export interface IMyNPCSceneChangeResponse {
   name: string;
+}
+
+// 获取NPC开场白信息
+export interface IGetNPCPrologueRequest {
+  id: string;
+}
+export interface IGetNPCPrologueResponse {
+  code: number;
+  data: string;
+  msg: string;
+}
+
+// 获取NPC预置问题
+export interface IGetNPCPresetProblemsRequest {
+  id: string;
+}
+export interface IGetNPCPresetProblemsResponse {
+  code: number;
+  data: string[];
+  msg: string;
+}
+
+// 获取NPC相关图片
+export interface IGetNPCPictureRequest {
+  id: string;
+  lv: number;
+}
+export interface IGetNPCPictureResponse {
+  code: number;
+  data: INPCLevelPicture[];
+  msg: string;
+}
+
+// NPC聊天提示推荐
+export interface INPCChatPromptRequest {
+  npcId: string;
+  userId: string;
+}
+export interface INPCChatPromptResponse {
+  code: number;
+  data: {
+    suggestionMessages: string[];
+  };
+  msg: string;
 }

@@ -1,25 +1,26 @@
 import userImg from '@/assets/images/user.png';
 import LoadingDots from '@/components/LoadingDots';
-import { INPCAllInfo } from '@/interfaces/game_npc';
+import { INPCAllInfo, INPCLevelPicture } from '@/interfaces/game_npc';
 import gameNpcService from '@/services/game_npc';
 import { getHashParams } from '@/utils';
-import { ClearOutlined, LeftOutlined, SendOutlined } from '@ant-design/icons';
+import { ClearOutlined, CloseOutlined, LeftOutlined, SendOutlined, UnlockOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { useRequest } from 'ahooks';
-import { App, Avatar, Button, Col, Divider, Input, Row, Typography } from 'antd';
+import { App, Avatar, Button, Col, Divider, Input, Row, Typography, Image, Progress, Tooltip } from 'antd';
 import { useTheme } from 'antd-style';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './index.less';
 
 const { TextArea } = Input;
 const { Paragraph, Text } = Typography;
 
 interface IChatItem {
-  from: 'npc' | 'user' | 'clear';
-  status?: 'wait' | 'success' | 'fail';
-  content?: string | null;
-  contentType?: 'text' | 'image' | null;
-  isClear?: boolean;
+  from: 'npc' | 'user' | 'clear'; // 来源
+  status?: 'wait' | 'success' | 'fail'; // 状态
+  content?: string | null; // 内容
+  contentType?: 'text' | 'image' | null; // 内容类型
+  isClear?: boolean; // 是否清空
+  presetProblems?: string[]; // npc预置问题
 }
 
 const Conversation = () => {
@@ -29,7 +30,13 @@ const Conversation = () => {
 
   const [npcAllInfo, setNpcAllInfo] = useState<INPCAllInfo | null>(null);
   const [question, setQuestion] = useState('');
+  const [promptQuestionList, setPromptQuestionList] = useState<string[]>([]);
   const [chatList, setChatList] = useState<IChatItem[]>([]);
+  const [chatBg, setChatBg] = useState('');
+  const [achieveNextLvPicture, setAchieveNextLvPicture] =
+    useState<INPCLevelPicture|null>(null);
+  const [openLvPicture, setOpenLvPicture] = useState(false);
+  const [isUnlockNpcPicture, setIsUnlockNpcPicture] = useState(false);
 
   // 获取NPC全部信息
   const {
@@ -43,9 +50,47 @@ const Conversation = () => {
     { manual: true },
   );
 
+  // NPC聊天Prompt
+  const {
+    loading: getNPCChatPromptLoading,
+    runAsync: getNPCChatPromptRequest,
+  } = useRequest(
+    gameNpcService.NPCChatPrompt,
+    { manual: true },
+  );
+
   // 清除NPC聊天历史
   const { loading: clearNPCHistoryLoading, runAsync: clearNPCHistoryRequest } =
     useRequest(gameNpcService.ClearNPCHistory, { manual: true });
+
+  // // 获取开场白
+  // const {
+  //   runAsync: getNPCPrologueRequest,
+  //   // loading: getNPCPrologueLoading,
+  // } = useRequest(gameNpcService.GetNPCPrologue, { manual: true });
+  //
+  // // 获取预置问题
+  // const {
+  //   runAsync: getNPCPresetProblemsRequest,
+  //   // loading: getNPCPresetProblemsLoading,
+  // } = useRequest(gameNpcService.GetNPCPresetProblems, { manual: true });
+
+  // /**
+  //  * 获取开场白信息
+  //  */
+  // const getNPCPrologue = async () => {
+  //   const prologueResult = await getNPCPrologueRequest({
+  //     id: getHashParams()?.characterId || '',
+  //   });
+  //   console.log(prologueResult, '开场白信息');
+  //   const problemsResult = await getNPCPresetProblemsRequest({
+  //     id: getHashParams()?.characterId || '',
+  //   });
+  //
+  //   if (prologueResult.data) {
+  //
+  //   }
+  // };
 
   /**
    * 滚动到底部
@@ -61,8 +106,9 @@ const Conversation = () => {
 
   /**
    * 获取NPC全部信息
+   * @param action
    */
-  const getNPCAllInfo = async () => {
+  const getNPCAllInfo = async (action: 'init' | 'update') => {
     const result = await getNPCAllInfoRequest({
       npcId: getHashParams()?.characterId || '',
       userId: userInfo?.id || '',
@@ -72,58 +118,147 @@ const Conversation = () => {
     if (result?.data) {
       setNpcAllInfo(result.data);
 
-      if (result?.data?.dialogueContext?.length) {
-        const chatList: IChatItem[] =
-          result?.data?.dialogueContext?.map((item) => {
-            return {
-              from: item?.roleTo?.includes(result?.data?.npcId)
-                ? 'user'
-                : 'npc',
-              status: 'success',
-              content: item?.content || null,
-              contentType: item?.contentType || null,
-            };
-          }) || [];
-        console.log(chatList, '对话列表');
-        setChatList(chatList);
+      // 判断是init还是update
+      if (action === 'init') {
+        // 初始化设置聊天背景
 
-        // 滚动到底部
-        scrollToBottom();
+        // // 当前聊天亲密度分数
+        // const currentScore = result?.data?.score || 0;
+        // // 下一个等级的聊天背景
+        // const nextLvPicture =
+        //   result?.data?.pictures?.find((item) => currentScore >= (item?.score || 0)) || null;
+        // console.log(nextLvPicture, '下一个等级的聊天背景');
+        // if (nextLvPicture) {
+        //   setChatBg(nextLvPicture?.imageUrl || '');
+        // } else {
+        setChatBg(result.data.chatBackground || '')
+        // }
+
+        if (result?.data?.dialogueContext?.length) {
+          // 插入历史对话内容
+          const newChatList: IChatItem[] =
+            result?.data?.dialogueContext?.map((item) => {
+              return {
+                from: item?.roleTo?.includes(result?.data?.npcId)
+                  ? 'user'
+                  : 'npc',
+                status: 'success',
+                content: item?.content || null,
+                contentType: item?.contentType || null,
+              };
+            }) || [];
+          // 插入npc回复的预设问题
+          newChatList.unshift({
+            from: 'npc',
+            status: 'success',
+            content: result?.data.prologue || '',
+            contentType: 'text',
+          })
+          console.log(newChatList, '对话列表');
+          setChatList(newChatList);
+
+          // 滚动到底部
+          scrollToBottom();
+        } else {
+          setChatList([
+            {
+              from: 'npc',
+              status: 'success',
+              content: result?.data.prologue || '',
+              contentType: 'text',
+              presetProblems: result?.data?.presetProblems || [],
+            }
+          ]);
+        }
+      } else {
+        // 当前聊天亲密度分数
+        const currentScore = result?.data?.score || 0;
+        const nextLvPicture =
+          result?.data?.pictures?.find((item) => item.score === currentScore) || null;
+
+        if (nextLvPicture) {
+
+          // 设置等级lv图片
+          setAchieveNextLvPicture(nextLvPicture || null);
+
+          // 发送聊天问题
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+          sendNPCChat(nextLvPicture?.description || '', nextLvPicture?.imageUrl).then();
+        }
       }
     }
   };
 
   /**
+   * 获取NPC聊天提示
+   */
+  const getNPCChatPrompt = async () => {
+    const result = await getNPCChatPromptRequest({
+      npcId: getHashParams()?.characterId || '',
+      userId: userInfo?.id || '',
+    });
+
+    if (result?.data?.suggestionMessages) {
+      setPromptQuestionList(result.data.suggestionMessages);
+
+      // 滚动到底部
+      scrollToBottom();
+    } else {
+      setPromptQuestionList([]);
+    }
+  }
+
+  /**
    * 发起NPC聊天
    */
-  const sendNPCChat = async () => {
+  const sendNPCChat = async (inputQuestion: string, imageUrl?: string) => {
     // 组装我发送的信息
-    const waitChatList = JSON.parse(JSON.stringify(chatList));
-    waitChatList.push({ from: 'user', content: question });
-    waitChatList.push({ from: 'npc', status: 'wait', content: '' });
-    setChatList(waitChatList);
-    setQuestion('');
+    const waitChatList: IChatItem[] = JSON.parse(JSON.stringify(chatList));
 
-    scrollToBottom();
+    // 如果是图片类型消息，则发送一张图片
+    if (imageUrl) {
+      waitChatList.push({ from: 'npc', status: 'success', content: imageUrl, contentType: 'image' });
+      waitChatList.push({ from: 'npc', status: 'success', content: inputQuestion });
 
-    const result = await npcChatRequest({
-      question: question,
-      userId: userInfo?.id || '',
-      npcId: getHashParams()?.characterId || '',
-      scene: npcAllInfo?.scene || '',
-      contentType: 'text',
-    });
-    console.log(result, '对话信息');
-
-    // 更新waitChatList中最后一项NPC发送的信息
-    if (result?.data?.message) {
-      waitChatList[waitChatList.length - 1].status = 'success';
-      waitChatList[waitChatList.length - 1].content = result.data.message;
       setChatList(waitChatList);
+
+      scrollToBottom();
     } else {
-      waitChatList[waitChatList.length - 1].status = 'fail';
-      waitChatList[waitChatList.length - 1].content = '回答失败，请重试';
+      waitChatList.push({ from: 'user', content: inputQuestion });
+      waitChatList.push({ from: 'npc', status: 'wait', content: '' });
+
       setChatList(waitChatList);
+      setQuestion('');
+
+      scrollToBottom();
+
+      const result = await npcChatRequest({
+        question: inputQuestion,
+        userId: userInfo?.id || '',
+        npcId: getHashParams()?.characterId || '',
+        scene: npcAllInfo?.scene || '',
+        contentType: 'text',
+      });
+      console.log(result, '对话信息');
+
+      // 更新waitChatList中最后一项NPC发送的信息
+      if (result?.data?.message) {
+        waitChatList[waitChatList.length - 1].status = 'success';
+        waitChatList[waitChatList.length - 1].content = result.data.message;
+        setChatList(waitChatList);
+      } else {
+        waitChatList[waitChatList.length - 1].status = 'fail';
+        waitChatList[waitChatList.length - 1].content = '回答失败，请重试';
+        setChatList(waitChatList);
+      }
+
+      scrollToBottom();
+
+      // 更新npc对象信息
+      getNPCAllInfo('update').then();
+
+      // 获取NPC聊天提示
+      getNPCChatPrompt().then();
     }
   };
 
@@ -153,9 +288,63 @@ const Conversation = () => {
     }
   };
 
+  /**
+   * 获取等级lv进度条
+   */
+  const getLvContainer = () => {
+    const currentLv = npcAllInfo?.affinityLevel || 0;
+    const nextLv = currentLv + 1;
+    const currentScore = npcAllInfo?.score || 0;
+    const nextLvScore = npcAllInfo?.affinityRules?.[currentLv]?.score || 0;
+
+    return (
+      <Col>
+        <Tooltip
+          overlayInnerStyle={{ background: 'linear-gradient(to right, #ED6BC9, #F8DA77)' }}
+          title={(
+            <Col>
+              <Row>当前已有：{currentScore}亲密值</Row>
+              <Row>升级到LV{nextLv}所需：{nextLvScore}亲密值</Row>
+            </Col>
+          )}
+        >
+          <Progress
+            showInfo={false}
+            strokeColor={{'0%': '#f759ab', '100%' : '#ffd6e7'}}
+            trailColor={'#ffd6e7'}
+            percent={(currentScore / nextLvScore) * 100}
+          />
+        </Tooltip>
+        <Row justify={'space-between'}>
+          <Col>LV{currentLv}</Col>
+          <Col>
+            <Row justify={'end'}>
+              LV{nextLv}
+            </Row>
+            <Row justify={'end'}>
+              <Button
+                className={styles.upgradeBtn}
+                type={'primary'}
+                size={'small'}
+              >
+                升级有惊喜
+              </Button>
+            </Row>
+          </Col>
+        </Row>
+      </Col>
+    )
+  }
+
   useEffect(() => {
     if (userInfo) {
-      getNPCAllInfo().then();
+      // 初始化获取NPC全部信息
+      getNPCAllInfo('init').then();
+
+      // 初始化获取开场白
+      // getNPCPrologue().then();
+      // 初始化获取回复推荐问题
+      getNPCChatPrompt().then();
     }
   }, [userInfo]);
 
@@ -163,7 +352,7 @@ const Conversation = () => {
     <div
       style={{
         backgroundColor: theme.colorBgLayout,
-        backgroundImage: `url(${npcAllInfo?.chatBackground || ''})`,
+        // backgroundImage: `url(${chatBg || ''})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -187,7 +376,7 @@ const Conversation = () => {
         className={styles.chatContainer}
         style={{
           backgroundColor: theme.colorBgLayout,
-          backgroundImage: `url(${npcAllInfo?.chatBackground || ''})`,
+          // backgroundImage: `url(${chatBg || ''})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat',
@@ -224,14 +413,95 @@ const Conversation = () => {
                   <Col>
                     <Avatar src={npcAllInfo?.profile || ''} size={32} />
                   </Col>
-                  <Col className={styles.npcChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
-                    {item?.status === 'wait' ? <LoadingDots /> : null}
-                    {item?.status === 'success' ? (
-                      <Text className={styles.content}>{item.content}</Text>
-                    ) : null}
-                    {item?.status === 'fail' ? (
-                      <Text className={styles.content}>{item.content}</Text>
-                    ) : null}
+                  <Col>
+                    {
+                      item?.contentType === 'image' ? (
+                        <Image
+                          className={styles.npcImageItem}
+                          style={isUnlockNpcPicture ? {} : { filter: 'blur(5px)' }}
+                          preview={false}
+                          height={300}
+                          width={300 * 0.75}
+                          src={item?.content || ''}
+                          onClick={() => {
+                            setOpenLvPicture(true);
+                          }}
+                        />
+                      ) : (
+                        <Row className={styles.npcChatItem} style={item?.isClear ? { opacity: 0.7 } : {}}>
+                          {item?.status === 'wait' ? <LoadingDots /> : null}
+                          {item?.status === 'success' ? (
+                            <Text className={styles.content}>{item.content}</Text>
+                          ) : null}
+                          {item?.status === 'fail' ? (
+                            <Text className={styles.content}>{item.content}</Text>
+                          ) : null}
+                        </Row>
+                      )
+                    }
+                    {
+                      item?.presetProblems?.length && chatList.length === 1 ? (
+                        <>
+                          {item?.presetProblems?.map((problem, index) => {
+                            return (
+                              <div key={index} style={{ textAlign: 'left', marginLeft: 5 }}>
+                                <Row
+                                  className={styles.presetProblemItem}
+                                  justify={'end'}
+                                  key={index}
+                                  style={{ display: 'inline-flex' }}
+                                  onClick={() => {
+                                    setQuestion(problem);
+
+                                    // 发送聊天
+                                    if (!npcChatLoading) {
+                                      sendNPCChat(problem).then();
+                                    }
+                                  }}
+                                >
+                                  {problem}
+                                </Row>
+                                <br/>
+                              </div>
+                            );
+                          })}
+                        </>
+                      ) : null
+                    }
+                    {
+                      !getNPCChatPromptLoading &&
+                      !npcChatLoading &&
+                      promptQuestionList.length &&
+                      chatList.length > 1 &&
+                      index === (chatList.length - 1) ? (
+                        <>
+                          {promptQuestionList?.map((problem, index) => {
+                            return (
+                              <div key={index} style={{ textAlign: 'left', marginLeft: 5 }}>
+                                <Row
+                                  className={styles.presetProblemItem}
+                                  justify={'end'}
+                                  key={index}
+                                  style={{ display: 'inline-flex' }}
+                                  onClick={() => {
+                                    setQuestion(problem);
+
+                                    // 发送聊天
+                                    if (!npcChatLoading) {
+                                      sendNPCChat(problem).then();
+                                      setPromptQuestionList([]);
+                                    }
+                                  }}
+                                >
+                                  {problem}
+                                </Row>
+                                <br/>
+                              </div>
+                            );
+                          })}
+                        </>
+                      ) : null
+                    }
                   </Col>
                 </Row>
               );
@@ -279,7 +549,7 @@ const Conversation = () => {
 
                     // 发送聊天
                     if (!npcChatLoading) {
-                      sendNPCChat().then();
+                      sendNPCChat(target.value).then();
                     }
                   }
                 }}
@@ -296,7 +566,7 @@ const Conversation = () => {
                 loading={npcChatLoading}
                 onClick={() => {
                   // 发送聊天
-                  sendNPCChat().then();
+                  sendNPCChat(question).then();
                 }}
               />
             </Col>
@@ -324,7 +594,8 @@ const Conversation = () => {
         </div>
       </div>
       <div className={styles.right}>
-        <Row justify={'start'} align={'bottom'}>
+        {getLvContainer()}
+        <Row style={{ marginTop: 10 }} justify={'start'} align={'bottom'}>
           <Col>
             <Avatar src={npcAllInfo?.profile || ''} size={48} />
           </Col>
@@ -332,11 +603,62 @@ const Conversation = () => {
         </Row>
 
         <Row>
-          <Paragraph style={{ margin: '10px 20px 0 0' }}>
+          <Paragraph style={{ margin: '10px 0 0 0' }}>
             {npcAllInfo?.shortDescription || '-'}
           </Paragraph>
         </Row>
       </div>
+
+      {
+        openLvPicture ? (
+          <div
+            className={styles.lvPictureContainer}
+          >
+            <div
+              className={styles.lvPicture}
+              style={
+                isUnlockNpcPicture ? {
+                  backgroundImage: `url(${achieveNextLvPicture?.imageUrl || ''})`,
+                } : {
+                  filter: 'blur(5px)',
+                  backgroundImage: `url(${achieveNextLvPicture?.imageUrl || ''})`,
+                }
+              }
+            />
+            {
+              isUnlockNpcPicture ? (
+                <Button
+                  type={'primary'}
+                  icon={<CloseOutlined />}
+                  className={styles.unlock}
+                  onClick={() => {
+                    // 关闭等级lv图片弹窗
+                    setOpenLvPicture(false);
+                    // 清空等级lv图片
+                    // setAchieveNextLvPicture(null);
+                  }}
+                >
+                  关闭
+                </Button>
+              ) : (
+                <Button
+                  type={'primary'}
+                  icon={<UnlockOutlined/>}
+                  className={styles.unlock}
+                  onClick={() => {
+                    // 解锁等级lv图片
+                    setIsUnlockNpcPicture(true);
+                    // 免费解锁，应用等级lv聊天背景
+                    // setChatBg(achieveNextLvPicture?.imageUrl || '');
+                  }}
+                >
+                  免费解锁
+                </Button>
+              )
+            }
+          </div>
+        ) : null
+      }
     </div>
   );
 };

@@ -78,7 +78,7 @@ export const request: RequestConfig = {
   responseInterceptors: [
     (response: any) => {
       // 拦截响应数据，进行个性化处理
-      // console.log('响应结果', response);
+      console.log('响应结果', response);
 
       // 将返回的数据转驼峰
       if (response.data) {
@@ -86,7 +86,7 @@ export const request: RequestConfig = {
       }
 
       // 全局统一响应错误信息处理
-      if (response.data?.code !== 0) {
+      if (response.data?.code !== 0 && !/chat-suggestion/.test(response.config.url)) {
         message.error(response.data?.msg || '异常错误').then();
       }
 

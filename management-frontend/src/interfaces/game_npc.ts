@@ -1,3 +1,5 @@
+import { UploadFile } from 'antd';
+
 export enum ImageTypeEnum {
   ImageTypeEnum_Unknown = 0,
   ImageTypeEnum_Avatar = 1,
@@ -18,12 +20,7 @@ export enum NPCCharacterSexEnum {
   NPCCharacterSexEnum_Female = 2, // 女
 }
 
-// 获取NPC角色列表
-export interface IGetNPCListRequest {
-  name?: string;
-  limit?: number;
-  page?: number;
-}
+// NPC角色信息
 export interface INPCInfo {
   id: string;
   name: string;
@@ -38,6 +35,41 @@ export interface INPCInfo {
   status: NPCCharacterStatusEnum;
   createdAt: string;
   updatedAt: string;
+  affinityRules?: IAffinityRules[] | null;
+  pictures?: INPCLevelPicture[] | null;
+  presetProblems?: string[] | null;
+  prologue?: string;
+}
+
+// 好感度规则
+export interface IAffinityRules {
+  lv: number;
+  content?: string;
+  score?: number;
+}
+
+// NPC聊天等级
+export interface INPCLevelPicture {
+  lv: number;
+  imageUrl?: string;
+  description?: string;
+  score?: number;
+}
+
+// 图片规则
+export interface ILevelPictureRule {
+  lv: number; // 等级
+  imageUrl?: string; // 图片
+  description?: string; // 场景或描述
+  score?: number;
+  imageFileList?: UploadFile[]; // 图片文件列表
+}
+
+// 获取NPC角色列表
+export interface IGetNPCListRequest {
+  name?: string;
+  limit?: number;
+  page?: number;
 }
 export interface IGetNPCListResponse {
   code: number;
@@ -58,6 +90,10 @@ export interface ICreateNPCRequest {
   chatBackground?: string;
   promptDescription?: string;
   affinityLevelDescription?: string;
+  affinityRules?: IAffinityRules[] | null;
+  pictures?: INPCLevelPicture[] | null;
+  presetProblems?: string[] | null;
+  prologue?: string;
 }
 export interface ICreateNPCResponse {
   code: number;
@@ -78,6 +114,11 @@ export interface IUpdateNPCCharacterRequest {
   shortDescription?: string; // NPC角色短描述
   trait?: string; // NPC角色描述
   promptDescription?: string; // NPC角色详细描述
+  affinityRules?: IAffinityRules[] | null;
+  pictures?: INPCLevelPicture[] | null;
+  presetProblems?: string[] | null;
+  prologue?: string;
+  status?: NPCCharacterStatusEnum;
 }
 
 export interface IUpdateNPCCharacterResponse {
@@ -93,6 +134,10 @@ export interface IUpdateNPCCharacterResponse {
     status: NPCCharacterStatusEnum;
     createdAt: string;
     updatedAt: string;
+    affinityRules?: IAffinityRules[] | null;
+    pictures?: INPCLevelPicture[] | null;
+    presetProblems?: string[] | null;
+    prologue?: string;
   };
   msg: string;
 }
@@ -115,6 +160,10 @@ export interface IUpdateNPCStatusResponse {
     status: NPCCharacterStatusEnum;
     createdAt: string;
     updatedAt: string;
+    affinityRules?: IAffinityRules[];
+    pictures?: INPCLevelPicture[];
+    presetProblems?: string[];
+    prologue?: string;
   };
   msg: string;
 }
@@ -159,6 +208,7 @@ export interface INPCMessage {
   affinityScore: number;
   message: string;
   messageType: string;
+  intimacyLevel: number;
 }
 export interface INPCChatResponse {
   code: number;
@@ -177,6 +227,8 @@ export interface INPCDebugChatRequest {
 export interface INPCDebugMessage {
   message: string;
   messageType: string;
+  affinityScore: number;
+  intimacyLevel: number;
   debugMessage: string;
   totalTime: number;
 }
@@ -228,6 +280,10 @@ export interface INPCAllInfo {
   shortDescription: string;
   trait: string;
   userId: string;
+  intimacyLevel: number;
+  pictures?: INPCLevelPicture[];
+  presetProblems?: string[];
+  prologue?: string;
 }
 export interface IGetNPCAllInfoResponse {
   code: number;
@@ -264,6 +320,37 @@ export interface IMyNPCSceneChangeRequest {
 }
 export interface IMyNPCSceneChangeResponse {
   name: string;
+}
+
+// 获取NPC开场白信息
+export interface IGetNPCPrologueRequest {
+  id: string;
+}
+export interface IGetNPCPrologueResponse {
+  code: number;
+  data: string;
+  msg: string;
+}
+
+// 获取NPC预置问题
+export interface IGetNPCPresetProblemsRequest {
+  id: string;
+}
+export interface IGetNPCPresetProblemsResponse {
+  code: number;
+  data: string[];
+  msg: string;
+}
+
+// 获取NPC相关图片
+export interface IGetNPCPictureRequest {
+  id: string;
+  lv: number;
+}
+export interface IGetNPCPictureResponse {
+  code: number;
+  data: INPCLevelPicture[];
+  msg: string;
 }
 
 // 文件上传
