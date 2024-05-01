@@ -394,9 +394,10 @@ class NPCUser(Base):
         history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
         USER_PROMPT_TEMPLATE = '''以下为对话上下文：
 ```
-{history_dialogues}
+{{history_dialogues}}
 ```
-{name}:'''
+
+{{name}}:'''
         user_prompt=jinja2.Template(USER_PROMPT_TEMPLATE).render(history_dialogues=history_dialogues,name=self.name)
         all_messages = [
             SystemMessage(content=self.system_prompt),
