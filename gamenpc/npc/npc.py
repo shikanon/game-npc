@@ -187,7 +187,6 @@ class NPCUser(Base):
     '''
     # TODO: 需要将ORM和NPCUser的业务逻辑解耦成两个对象
     def __init__(self, 
-                 redis_client,
                  id=None,
                  name=None,
                  npc_id=None, 
@@ -220,11 +219,24 @@ class NPCUser(Base):
         self.event = None
         self.dialogue_round = dialogue_round
         self.dialogue_summarize_num = dialogue_summarize_num
+        self.role_template_filename = role_template_filename
+        self.trait = trait
+        self.dialogue_context = dialogue_context
+        
+        # character model
+        self.character_model = doubao.ChatSkylark(
+            model="skylark2-pro-4k",
+            model_version="1.2",
+            top_p=0.7,
+        )
+        self.debug_info = {}
+    
+    def init(self, redis_client: RedisDB):
         #加载角色模板
-        if role_template_filename == None:
+        if self.role_template_filename == None:
             file_content = DEFAULT_ROLE_TEMPLATE
         else:
-            with open(role_template_filename, 'r', encoding="utf-8") as fr:
+            with open(self.role_template_filename, 'r', encoding="utf-8") as fr:
                 file_content = fr.read()
         if not self.validate_template(file_content):
             raise ValueError(f"模板错误，缺少必须的关键字")
@@ -234,20 +246,13 @@ class NPCUser(Base):
             model="skylark2-pro-32k",
             top_k=1,
         )
-        self.thoughts = Mind(model=model, character=trait)
+        self.thoughts = Mind(model=model, character=self.trait)
         self.dialogue_manager = DialogueMemory(db_client=redis_client,
                                                npc_id=self.npc_id,
                                                user_id=self.user_id,
-                                               dialogue_context=dialogue_context, 
+                                               dialogue_context=self.dialogue_context, 
                                                mind=self.thoughts, 
                                                summarize_limit=self.dialogue_summarize_num)
-        # character model
-        self.character_model = doubao.ChatSkylark(
-            model="skylark2-pro-4k",
-            model_version="1.2",
-            top_p=0.7,
-        )
-        self.debug_info = {}
     
     def to_dict(self):
         dialogue_context = self.get_dialogue_context()
@@ -479,6 +484,7 @@ class NPCManager:
                                    scene=npc_user.scene,
                                    affinity_manager=affinity_manager,
                                    )
+            new_npc_user.init(redis_client=redis_client)
             new_npc_user.load_from_db()
             debuglog.info(f'npc_user load_from_db: new npc_user === {new_npc_user.to_dict()}')
             self._instances[npc_user.id] = new_npc_user
