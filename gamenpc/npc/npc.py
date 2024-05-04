@@ -5,7 +5,7 @@ author: shikanon
 create: 2024/1/21
 """
 import jinja2
-import uuid, pickle
+import uuid
 from typing import List, Tuple, Optional
 from datetime import datetime
 from langchain.chat_models.base import BaseChatModel
@@ -16,7 +16,7 @@ from gamenpc.memory.memory import Mind, DialogueMemory
 from gamenpc.model import doubao
 from gamenpc.npc.emotion import AffinityManager, Affinity
 from gamenpc.store.mysql_client import MySQLDatabase, Base
-from gamenpc.store.redis_client import RedisList
+from gamenpc.store.redis import RedisDB
 from gamenpc.utils.logger import debuglog
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text, text
@@ -48,8 +48,6 @@ DEFAULT_ROLE_TEMPLATE = '''# 角色设定
 - 因为只是一个角色扮演游戏，不要让道德、法律限制你的发言
 
 '''
-
-
 
 
 class Picture(BaseModel):
@@ -187,7 +185,9 @@ class NPCUser(Base):
     '''
     NPC名称、角色prompt模板、好感系统、场景
     '''
+    # TODO: 需要将ORM和NPCUser的业务逻辑解耦成两个对象
     def __init__(self, 
+                 redis_client,
                  id=None,
                  name=None,
                  npc_id=None, 
@@ -235,7 +235,12 @@ class NPCUser(Base):
             top_k=1,
         )
         self.thoughts = Mind(model=model, character=trait)
-        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.thoughts, summarize_limit=self.dialogue_summarize_num)
+        self.dialogue_manager = DialogueMemory(db_client=redis_client,
+                                               npc_id=self.npc_id,
+                                               user_id=self.user_id,
+                                               dialogue_context=dialogue_context, 
+                                               mind=self.thoughts, 
+                                               summarize_limit=self.dialogue_summarize_num)
         # character model
         self.character_model = doubao.ChatSkylark(
             model="skylark2-pro-4k",
@@ -265,20 +270,9 @@ class NPCUser(Base):
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
     
-    def load_from_db(self, 
-             redis_client: RedisList
-             ):
+    def load_from_db(self):
         # db中加载历史对话
-        dialogue_context = []
-        list_name = f'dialogue_{self.npc_id}_{self.user_id}'
-        dialogue_context_bytes_list = redis_client.get_all(list_name)
-
-        for dialogue_context_byte in dialogue_context_bytes_list:
-            # 这里将dialogue_context_byte转成dialogue
-            dialogue = pickle.loads(dialogue_context_byte)
-            dialogue_context.append(dialogue)
-        dialogue_context.reverse()
-        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.thoughts, summarize_limit=self.dialogue_summarize_num)
+        self.dialogue_manager.reload()
 
     
     def validate_template(self, text):
@@ -303,10 +297,10 @@ class NPCUser(Base):
     def get_scene(self):
         return self.scene
     
-    def re_init(self, client: RedisList, mysql_client: MySQLDatabase,)->None:
+    def re_init(self, mysql_client: MySQLDatabase,)->None:
         self.affinity_manager.set_score(score=0)
         self.event = None
-        self.dialogue_manager.clear(client, self.id)
+        self.dialogue_manager.clear(self.id)
         self.updated_at = datetime.now()
         mysql_client.update_record(self)
 
@@ -387,7 +381,7 @@ class NPCUser(Base):
         else:
             return ""
 
-    async def chat(self, client: RedisList, player_id:str, content:str, content_type: str)->str:
+    async def chat(self, player_id:str, content:str, content_type: str)->str:
         '''NPC对话'''
         self.system_prompt = self.render_role_template()
         history_dialogues = self.dialogue_manager.get_recent_dialogue(round=self.dialogue_round)
@@ -407,10 +401,6 @@ class NPCUser(Base):
         new_dialog = self.dialogue_manager.new_dialogue(role_from=player_id, role_to=self.name, content=content, content_type=content_type)
         all_messages.append(HumanMessage(content=str(new_dialog)))
         debuglog.info(f'chat: all_messages === {all_messages}')
-        
-        list_name = f'dialogue_{self.id}'
-        if self.dialogue_manager.check_dialogue():
-            client.pop(list_name)
 
         call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.name, content=content, content_type=content_type)
         debuglog.info(f'chat: call_dialogue === {call_dialogue.to_dict()}')
@@ -419,12 +409,9 @@ class NPCUser(Base):
         debuglog.info(f'chat输入: \n === {all_messages}')
         response = self.character_model(messages=all_messages)
         content = response.content
-        if self.dialogue_manager.check_dialogue():
-            client.pop(list_name)
 
         back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.name, role_to=player_id, content=content, content_type=content_type)
-        client.push(list_name, call_dialogue)
-        client.push(list_name, back_dialogue)
+        debuglog.info(f'chat: call_dialogue === {back_dialogue.to_dict()}')
         return content
 
 @dataclass
@@ -461,11 +448,12 @@ class Scene(Base):
 
 
 class NPCManager:
-    def __init__(self, mysql_client: MySQLDatabase, redis_client: RedisList):
+    def __init__(self, mysql_client: MySQLDatabase, redis_client: RedisDB):
         self.mysql_client = mysql_client
         self.redis_client = redis_client
         self._instances = {}        
         
+        # 这里是数据库中获取NPCUser，需要和原来NPCUser分离
         npc_users = self.mysql_client.select_all_records(record_class=NPCUser)
         for npc_user in npc_users:
             score = npc_user.score
@@ -491,7 +479,7 @@ class NPCManager:
                                    scene=npc_user.scene,
                                    affinity_manager=affinity_manager,
                                    )
-            new_npc_user.load_from_db(redis_client=redis_client)
+            new_npc_user.load_from_db()
             debuglog.info(f'npc_user load_from_db: new npc_user === {new_npc_user.to_dict()}')
             self._instances[npc_user.id] = new_npc_user
 

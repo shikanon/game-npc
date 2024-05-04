@@ -9,8 +9,8 @@ from langchain.chat_models.base import BaseChatModel
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessagePromptTemplate
 from gamenpc.store.mysql_client import Base
-from gamenpc.store.redis_client import RedisList
-import uuid
+from gamenpc.store.redis import RedisDB
+import uuid, pickle
 from gamenpc.utils.logger import debuglog
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
@@ -309,7 +309,7 @@ class Mind:
 
 @dataclass
 class DialogueMemory:
-    def __init__(self, dialogue_context:List[DialogueEntry], mind:Mind, summarize_limit=10, max_dialogue_history=100):
+    def __init__(self,  db_client: RedisDB, npc_id:str, user_id:str, dialogue_context:List[DialogueEntry], mind:Mind, summarize_limit=10, max_dialogue_history=100):
         self.mind = mind
         # 对话上下文
         self.dialogue_context = dialogue_context  
@@ -320,6 +320,8 @@ class DialogueMemory:
         # 计数器，每个会话由多个对话对组成
         self.summarize_limit = summarize_limit
         self.dialogue_pair_count = 0
+        self.db_client = db_client
+        self.conversion_table_id = f'dialogue_{npc_id}_{user_id}'
 
     def to_dict(self):
         return {
@@ -330,6 +332,20 @@ class DialogueMemory:
             'summarize_limit': self.summarize_limit,
             'dialogue_pair_count': self.dialogue_pair_count,
         }
+    
+    def reload(self):
+        # db中加载历史对话
+        dialogue_context = []
+        # 不需要加载全部，只需要加载部分
+        dialogue_context_bytes_list = self.db_client.get_range_number(self.conversion_table_id, self.context_limit)
+
+        for dialogue_context_byte in dialogue_context_bytes_list:
+            # 这里将dialogue_context_byte转成dialogue
+            dialogue = pickle.loads(dialogue_context_byte)
+            dialogue_context.append(dialogue)
+        dialogue_context.reverse()
+        self.dialogue_context = dialogue_context
+        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.mind, summarize_limit=self.summarize_limit)        
     
     def check_dialogue(self)-> bool:
         flag = False
@@ -342,6 +358,10 @@ class DialogueMemory:
         return flag
     
     def add_dialogue(self, role_from, role_to, content, content_type)->DialogueEntry:
+        '''
+        添加会话：大模型使用到的会话存在内存中，历史会话存在数据库中
+        隔一段时间会对会话进行总结
+        '''
         dialogue =  DialogueEntry(role_from=role_from, role_to=role_to, content=content, content_type=content_type)
         # 历史对话持久化到db中
         self.dialogue_context.append(dialogue)
@@ -357,6 +377,11 @@ class DialogueMemory:
             asyncio.create_task(self.add_summary(recent_dialogues))
             # 重置对话长度
             self.dialogue_pair_count = 0
+        
+        # 对队列数据进行校验
+        self.check_dialogue()
+        # 对话实体做持久化
+        self.db_client.push(self.conversion_table_id, dialogue)
 
         return dialogue
     
@@ -394,13 +419,13 @@ class DialogueMemory:
     def get_all_conversation(self)->List[ConverationEntry]:
         return self.conversation
     
-    def clear(self, redis_client: RedisList, npc_user_id)->None:
+    def clear(self, npc_user_id)->None:
         # 清空db数据
         list_name = f'dialogue_{npc_user_id}'
-        redis_client.delete(list_name)    
         self.dialogue_context = []
         self.conversation = []
         self.dialogue_pair_count = 0
+        self.db_client.delete(list_name)
 
     def gen_topic_event(self)->TopicEvent:
         conversation = self.get_all_conversation()
