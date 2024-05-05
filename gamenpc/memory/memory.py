@@ -419,13 +419,12 @@ class DialogueMemory:
     def get_all_conversation(self)->List[ConverationEntry]:
         return self.conversation
     
-    def clear(self, npc_user_id)->None:
+    def clear(self)->None:
         # 清空db数据
-        list_name = f'dialogue_{npc_user_id}'
         self.dialogue_context = []
         self.conversation = []
         self.dialogue_pair_count = 0
-        self.db_client.delete(list_name)
+        self.db_client.delete(self.conversion_table_id)
 
     def gen_topic_event(self)->TopicEvent:
         conversation = self.get_all_conversation()

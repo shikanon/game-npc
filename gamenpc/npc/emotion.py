@@ -211,3 +211,9 @@ class AffinityManager:
     def __str__(self):
         """返回好感度的字符串表示"""
         return "当前好感度为: %s。\n关系表现: %s"%(self.score, self.get_affinity_level_description())
+
+
+class DefaultAffinityManager(AffinityManager):
+    def calculate_affinity(self, npc:str, target:str, history_dialogues:str, dialogue_content:str)->None:
+        # 默认永远+1
+        self.score = self.score + 1

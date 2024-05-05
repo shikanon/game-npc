@@ -14,7 +14,7 @@ from langchain.prompts import HumanMessagePromptTemplate, PromptTemplate
 
 from gamenpc.memory.memory import Mind, DialogueMemory
 from gamenpc.model import doubao
-from gamenpc.npc.emotion import AffinityManager, Affinity
+from gamenpc.npc.emotion import AffinityManager, Affinity, DefaultAffinityManager
 from gamenpc.store.mysql_client import MySQLDatabase, Base
 from gamenpc.store.redis import RedisDB
 from gamenpc.utils.logger import debuglog
@@ -177,51 +177,58 @@ class NPCUser(Base):
     sex = Column(Integer)  # NPC性别
     relationship = Column(String(255))  # NPC和玩家的关系
     scene = Column(String(255))  # 场景描述
-    trait = Column(Text)  # 场景描述
-    score = Column(Integer)  # 好感分数
+    trait = Column(Text)  # 人物特征描述
+    score = Column(Integer,default=0)  # 好感分数
     affinity_level = Column(Integer)  # 亲密度等级
     affinity_level_description = Column(Text)  # 亲密度等级描述
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'npc_id': self.npc_id,
+            'user_id': self.user_id,
+            'sex': self.sex,
+            'relationship': self.relationship,
+            'scene': self.scene,
+            'trait': self.trait,
+            'score': self.score,
+            'affinity_level': self.affinity_level,
+            'affinity_level_description': self.affinity_level_description,
+            'dialogue_round': self.dialogue_round,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
+        }
+
+
+class ChatBot:
     '''
     NPC名称、角色prompt模板、好感系统、场景
     '''
     # TODO: 需要将ORM和NPCUser的业务逻辑解耦成两个对象
     def __init__(self, 
-                 id=None,
-                 name=None,
-                 npc_id=None, 
-                 user_id=None,    
-                 scene='窝在家里', 
-                 sex=0,
-                 relationship=None,
-                 trait=None, 
-                 score=0,  
-                 affinity_level=0, 
-                 affinity_level_description='', 
-                 dialogue_context=None,
+                 npc_instance: NPCUser,
+                 redis_client: RedisDB,
                  affinity_manager=None, 
                  role_template_filename=None,
                  dialogue_summarize_num=20,
                  dialogue_round=20,
                  )->None:
-        self.id = id
-        self.name = name
-        self.npc_id = npc_id
-        self.user_id = user_id
-        self.score = score
-        self.sex = sex
-        self.relationship = relationship
-        self.scene = scene
-        self.trait = trait
-        self.affinity_manager = affinity_manager
-        self.affinity_level = affinity_level
-        self.affinity_level_description = affinity_level_description
-        self.event = None
+        # 调试日志
+        self.debug_info = {}
+        # 加载npc实例(npcuser)
+        self.npc_instance = npc_instance
+        self.scene = self.npc_instance.scene
+        # affinity_manager 默认值
+        if affinity_manager == None:
+            self.affinity_manager = DefaultAffinityManager(0, Affinity())
+        else:
+            self.affinity_manager = affinity_manager
+        # 会话管理
         self.dialogue_round = dialogue_round
         self.dialogue_summarize_num = dialogue_summarize_num
         self.role_template_filename = role_template_filename
-        self.trait = trait
-        self.dialogue_context = dialogue_context
+        self.trait = self.npc_instance.trait
         
         # character model
         self.character_model = doubao.ChatSkylark(
@@ -229,9 +236,7 @@ class NPCUser(Base):
             model_version="1.2",
             top_p=0.7,
         )
-        self.debug_info = {}
     
-    def init(self, redis_client: RedisDB):
         #加载角色模板
         if self.role_template_filename == None:
             file_content = DEFAULT_ROLE_TEMPLATE
@@ -242,40 +247,22 @@ class NPCUser(Base):
             raise ValueError(f"模板错误，缺少必须的关键字")
         self.role_chat_template = jinja2.Template(file_content)
         # 记忆及思维
-        model = doubao.ChatSkylark(
+        # 会话总结及计算LLM模型
+        self.dialogue_model = doubao.ChatSkylark(
             model="skylark2-pro-32k",
             top_k=1,
         )
-        self.thoughts = Mind(model=model, character=self.trait)
+        self.thoughts = Mind(model=self.dialogue_model, character=self.trait)
+        # 初始化dialogue_manager会话管理
         self.dialogue_manager = DialogueMemory(db_client=redis_client,
-                                               npc_id=self.npc_id,
-                                               user_id=self.user_id,
-                                               dialogue_context=self.dialogue_context, 
+                                               npc_id=self.npc_instance.npc_id,
+                                               user_id=self.npc_instance.user_id,
+                                               dialogue_context=[], 
                                                mind=self.thoughts, 
                                                summarize_limit=self.dialogue_summarize_num)
     
-    def to_dict(self):
-        dialogue_context = self.get_dialogue_context()
-        dialogue_context_list = [dialogue.to_dict() for dialogue in dialogue_context]
-
-        return {
-            'id': self.id,
-            'name': self.name,
-            'npc_id': self.npc_id,
-            'user_id': self.user_id,
-            'sex': self.sex,
-            'relationship': self.relationship,
-            'scene': self.scene,
-            'trait': self.trait,
-            'dialogue_context': dialogue_context_list,
-            'score': self.score,
-            'affinity_level': self.affinity_level,
-            'affinity_level_description': self.affinity_level_description,
-            'dialogue_round': self.dialogue_round,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
-        }
     
-    def load_from_db(self):
+    def load_dialogue_from_db(self):
         # db中加载历史对话
         self.dialogue_manager.reload()
 
@@ -290,24 +277,25 @@ class NPCUser(Base):
         '''变更人物对话模型'''
         self.character_model = model
     
-    def set_scene(self, client: MySQLDatabase, scene:str):
+    def set_scene(self, scene:str):
         '''变更场景'''
-        filter_dict = {'id': f'{self.npc_id}_{self.user_id}'}
-        npc_user = client.select_record(NPCUser, filter_dict)
-        npc_user.scene = scene
         self.scene = scene
-        self.updated_at = datetime.now()
-        client.update_record(npc_user)
+        # TODO：添加持久化操作
+        # filter_dict = {'id': f'{self.npc_id}_{self.user_id}'}
+        # npc_user = client.select_record(NPCUser, filter_dict)
+        # npc_user.scene = scene
+        # self.updated_at = datetime.now()
+        # client.update_record(npc_user)
     
     def get_scene(self):
         return self.scene
     
-    def re_init(self, mysql_client: MySQLDatabase,)->None:
+    def re_init(self)->None:
         self.affinity_manager.set_score(score=0)
         self.event = None
-        self.dialogue_manager.clear(self.id)
+        self.dialogue_manager.clear()
         self.updated_at = datetime.now()
-        mysql_client.update_record(self)
+        # TODO：添加持久化操作
 
     def set_dialogue_context(self, dialogue_context: List)->List:
         return self.dialogue_manager.set_contexts(dialogue_context)
@@ -318,7 +306,7 @@ class NPCUser(Base):
     def get_recent_dialogue(self, round=6)->str:
         return self.dialogue_manager.get_recent_dialogue(round=round)
     
-    async def update_affinity(self, client: MySQLDatabase, player_id:str, content:str):
+    async def update_affinity(self, player_id:str, content:str):
         '''更新亲密度'''
         history_dialogues = self.dialogue_manager.get_recent_dialogue(round=2)
         self.affinity_manager.calculate_affinity(
@@ -328,27 +316,20 @@ class NPCUser(Base):
             dialogue_content=content,
         )
         self.score = self.affinity_manager.get_score()
-        self.affinity_level = self.affinity_manager.get_affinity_level()
-        self.affinity_level_description = self.affinity_manager.get_affinity_level_description()
-        self.updated_at = datetime.now()
-        client.update_record(self)
+        # TODO：在外部添加持久化操作，不放在改方法内
         return {
             'score': self.score,
-            'affinity_level': self.affinity_level,
-            'affinity_level_description': self.affinity_level_description,
+            'affinity_level': self.affinity_manager.get_affinity_level(),
+            'affinity_level_description': self.affinity_manager.get_affinity_level_description(),
         }
     
-    async def increase_affinity(self, client: MySQLDatabase, player_id:str, content:str):
+    async def increase_affinity(self, player_id:str, content:str):
         self.affinity_manager.increase_affinity(amount=1)
         self.score = self.affinity_manager.get_score()
-        self.affinity_level = self.affinity_manager.get_affinity_level()
-        self.affinity_level_description = self.affinity_manager.get_affinity_level_description()
-        self.updated_at = datetime.now()
-        client.update_record(self)
         return {
             'score': self.score,
-            'affinity_level': self.affinity_level,
-            'affinity_level_description': self.affinity_level_description,
+            'affinity_level': self.affinity_manager.get_affinity_level(),
+            'affinity_level_description': self.affinity_manager.get_affinity_level_description(),
         }
 
     
@@ -374,7 +355,7 @@ class NPCUser(Base):
         return "当前时间：%s。\n %s：%s"%(created_at.strftime("%A %B-%d %X"), speaker, message)
     
     async def thinking(self):
-        '''NPC思考问题'''
+        '''NPC思考问题，改变event数值'''
         self.event = self.dialogue_manager.gen_topic_event()
         return self.event
     
@@ -458,18 +439,16 @@ class NPCManager:
         self.redis_client = redis_client
         self._instances = {}        
         
-        # 这里是数据库中获取NPCUser，需要和原来NPCUser分离
         npc_users = self.mysql_client.select_all_records(record_class=NPCUser)
         for npc_user in npc_users:
             score = npc_user.score
-            affinity_level = npc_user.affinity_level
-            affinity_level_description = npc_user.affinity_level_description
-            affinity_manager = AffinityManager(score=score, affinity=Affinity(level=affinity_level))
             # 获取affinity_rules
             npc = self.get_npc(npc_user.npc_id)
             affinity_rules = npc.affinity_rules
             if affinity_rules != None and len(affinity_rules) != 0:
-                affinity_manager = AffinityManager(score=score, affinity=Affinity(level=affinity_level, affinity_rules=affinity_rules))
+                affinity_manager = DefaultAffinityManager(score=score, affinity=Affinity(level=npc_user.affinity_level, affinity_rules=affinity_rules))
+            else:
+                affinity_manager = DefaultAffinityManager(score=score, affinity=Affinity(level=npc_user.affinity_level))
             
             new_npc_user = NPCUser(id=npc_user.id, 
                                    name=npc_user.name, 
@@ -477,17 +456,17 @@ class NPCManager:
                                    user_id=npc_user.user_id, 
                                    sex=npc_user.sex, 
                                    score=score,
-                                   affinity_level=affinity_level,
-                                   affinity_level_description=affinity_level_description,
+                                   affinity_level=npc_user.affinity_level,
+                                   affinity_level_description=npc_user.affinity_level_description,
                                    trait=npc_user.trait, 
                                    relationship=npc_user.relationship, 
                                    scene=npc_user.scene,
                                    affinity_manager=affinity_manager,
                                    )
-            new_npc_user.init(redis_client=redis_client)
-            new_npc_user.load_from_db()
+            chat = ChatBot(npc_instance=new_npc_user, redis_client=redis_client, affinity_manager=affinity_manager)
+            chat.load_dialogue_from_db()
             debuglog.info(f'npc_user load_from_db: new npc_user === {new_npc_user.to_dict()}')
-            self._instances[npc_user.id] = new_npc_user
+            self._instances[npc_user.id] = chat
 
     def get_npcs(self, order_by=None, filter_dict=None, page=1, limit=10) -> Tuple:
         npcs, total = self.mysql_client.select_records(record_class=NPC, order_by=order_by, filter_dict=filter_dict, page=page, limit=limit)
@@ -575,20 +554,27 @@ class NPCManager:
         new_npc = self.mysql_client.insert_record(new_npc)
         return new_npc
     
-    def get_npc_user(self, npc_id: str, user_id: str) -> NPCUser:
+    def get_npc_user_if_not_exist(self, npc_id: str, user_id: str) -> ChatBot:
         npc_user_id = f'{npc_id}_{user_id}'
-        npc_user = self._instances.get(npc_user_id, None)
-        return npc_user
+        chat = self._instances.get(npc_user_id, None)
+        if chat == None:
+            npc = self.get_npc(npc_id)
+            self.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, sex=npc.sex, 
+                                                   trait=npc.trait, affinity_rules=npc.affinity_rules)
+        return chat
     
     def update_npc_user(self, npc_user: NPCUser)->NPCUser:
         # 更新npc的配置
         npc_user.updated_at = datetime.now()
         new_npc_user = self.mysql_client.update_record(npc_user)
+        chat = self.get_npc_user(npc_user.npc_id, npc_user.user_id)
+        chat.npc_instance = new_npc_user
         return new_npc_user
     
     def remove_npc_user(self, npc_id: str, user_id: str):
         npc_user_id = f'{npc_id}_{user_id}'
         self.mysql_client.delete_record_by_id(NPCUser, npc_user_id)
+        del self._instances[npc_user_id]
 
     def get_npc_users(self, order_by=None, filter_dict=None, page=1, limit=10) -> List[NPCUser]:
         npc_users = self._instances.values()
@@ -624,14 +610,15 @@ class NPCManager:
         return None
 
     
-    def create_npc_user(self, name:str, npc_id:str, user_id:str, npc_relationship:str, trait:str, scene: str, sex: int, affinity_rules: any) -> NPCUser:
+    def create_npc_user(self, name:str, npc_id:str, user_id:str, trait:str, sex: int, affinity_rules: any) -> NPCUser:
         dialogue_context = []
         npc_user_id = f'{npc_id}_{user_id}'
         # TODO 根据不同的npc获取其affinity_level，传给AffinityManager，暂时使用默认
         affinity_manager = AffinityManager(score=0, affinity=Affinity(affinity_rules=affinity_rules))
         new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, 
-                               sex=sex, relationship=npc_relationship, trait=trait, scene=scene, affinity_manager=affinity_manager, 
+                               sex=sex,  trait=trait, affinity_manager=affinity_manager, 
                                dialogue_context=dialogue_context)
         self.mysql_client.insert_record(new_npc_user)
-        self._instances[npc_user_id] = new_npc_user
+        chat = ChatBot(npc_instance=new_npc_user, redis_client=self.redis_client, affinity_manager=affinity_manager)
+        self._instances[npc_user_id] = chat
         return new_npc_user

@@ -1,6 +1,6 @@
 import os
 from gamenpc.store.mysql_client import MySQLDatabase
-from gamenpc.store.redis_client import RedisList
+from gamenpc.store.redis import RedisDB
 from urllib.parse import quote
 
 class Config:
@@ -17,4 +17,4 @@ class Config:
             redis_password = os.environ.get('REDIS_PASSWORD')
             redis_db = os.environ.get('REDIS_DATABASE')
         self.mysql_client = MySQLDatabase(host=mysql_host, port=mysql_port, user=mysql_user, password=mysql_password, database=mysql_database)
-        self.redis_client = RedisList(host=redis_host, port=redis_port, user=redis_user, password=redis_password, db=int(redis_db))
+        self.redis_client = RedisDB(host=redis_host, port=redis_port, user=redis_user, password=redis_password, db=int(redis_db))

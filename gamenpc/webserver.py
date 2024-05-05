@@ -1,8 +1,9 @@
 # coding:utf-8
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Header, Depends, File, UploadFile, Form
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from gamenpc.npc.npc import NPCManager, NPCUser, Picture, AffinityRule
+from gamenpc.npc.npc import NPCManager, NPCUser, Picture, AffinityRule, ChatBot
 from gamenpc.services.user import UserManager, User
 from gamenpc.utils.config import Config
 from gamenpc.utils.logger import debuglog
@@ -89,21 +90,9 @@ class ChatRequest(BaseModel):
     prologue: Optional[str] = ""
     content_type: str
 
-def get_npc_user(npc_id: str, user_id: str, scene: str) -> NPCUser:
+def get_npc_user(npc_id: str, user_id: str) -> ChatBot:
     try:
-        npc_user = npc_manager.get_npc_user(npc_id=npc_id, user_id=user_id)
-        if npc_user == None:
-            # filter_dict = {"id": req.user_id}
-            # user = user_manager.get_user(filter_dict=filter_dict)
-            # if user == None:
-            #     return None
-            npc = npc_manager.get_npc(npc_id)
-            if npc == None:
-                return None
-            default_npc_relationship = "" # 这个值应该来至于npc表
-            npc_user = npc_manager.create_npc_user(name=npc.name, npc_id=npc_id, user_id=user_id, npc_relationship=default_npc_relationship, sex=npc.sex, 
-                                                   trait=npc.trait, scene=scene, affinity_rules=npc.affinity_rules)
-        return npc_user
+        return npc_manager.get_npc_user_if_not_exist(npc_id=npc_id, user_id=user_id)
     except KeyError:
         return None
 
@@ -111,7 +100,7 @@ def get_npc_user(npc_id: str, user_id: str, scene: str) -> NPCUser:
 async def chat(req: ChatRequest, user: User = Depends(check_user_validate)):
     user_id = user.id
     name = user.name
-    print(f'req.npc_id: {req.npc_id}, user_id: {user_id}, scene: {req.scene}')
+    debuglog.info(f'req.npc_id: {req.npc_id}, user_id: {user_id}, scene: {req.scene}')
     npc_user_instance: NPCUser = get_npc_user(npc_id=req.npc_id, user_id=user_id, scene=req.scene)
     '''NPC聊天对话'''
     if npc_user_instance == None:
@@ -130,6 +119,12 @@ async def chat(req: ChatRequest, user: User = Depends(check_user_validate)):
         # "affinity_level": affinity_level,
     }
     return response(message="返回成功", data=data)
+
+
+@app.post("/api/npc/steaming-chat")
+async def steaming_chat(req: ChatRequest, user: User = Depends(check_user_validate)):
+    # 检查输入参数是否合法
+    pass
 
 @router.post("/npc/debug_chat")
 async def debug_chat(req: ChatRequest, user: User= Depends(check_user_validate)):
