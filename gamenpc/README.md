@@ -101,6 +101,7 @@ info的格式：
 | name    | str  | 是 | 0 | None| npc名称 |
 | scene     | str  | 是 | None| 场景描述 |
 | score    | int  | 否 | None | 好感分数 |
+| relationship    | str  | 否 | None | 用户和NPC的关系|
 | trait    | istrnt  | 是 | 0 | NPC特征，提示词内容 |
 | affinity_level_description     | str  | 是 | None| 亲密度等级描述 |
 | affinity_level     | int  | 是 | None| 当前亲密度等级 |
@@ -168,9 +169,24 @@ dialogue的格式：
 | 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
 |---------|--------------------|----------|--------|------------------|
 | code | int | 是 | 0或400 | 响应状态码，0表示执行成功，400表示NPC未找到 |
-| msg  | str | 是 | "记忆、好感重置成功!"或"NPC not found" | 返回的消息说明 |
+| msg  | str | 是 | "记忆清空成功!" 或 "NPC not found" | 返回的消息说明 |
 
+---------------------------------------------------------------------------------------
 
+### 重置NPC历史对话
+接口路径(URL)：/api/npc/reset_affinity_score
+请求方式：POST
+
+请求参数：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|----------|----------|--------|--------|
+| npc_id | str | 是 | 无 | NPCID |
+
+返回参数：
+| 字段名称 | 数据类型 | 是否必须 | 默认值 | 描述 |
+|---------|--------------------|----------|--------|------------------|
+| code | int | 是 | 0或400 | 响应状态码，0表示执行成功，400表示NPC未找到 |
+| msg  | str | 是 | "好感重置成功!" 或 "NPC not found" | 返回的消息说明 |
 
 ---------------------------------------------------------------------------------------
 
@@ -184,6 +200,7 @@ dialogue的格式：
 | name | str | 是 | 无 | NPC的名字 |
 | sex | int | 是 | 无 | NPC的性别 |
 | trait | str | 是 | 无 | NPC的角色描述 |
+| relationship    | str  | 否 | None | 用户和NPC的关系|
 | short_description | str | 否 | "" | NPC的简短描述 |
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
@@ -273,6 +290,7 @@ data的结构如下：
 | name | str | 是 | 无 | NPC的名字 |
 | sex | int | 是 | 无 | NPC的性别 |
 | trait | str | 是 | 无 | NPC的角色描述 |
+| relationship    | str  | 否 | None | 用户和NPC的关系|
 | short_description | str | 否 | "" | NPC的简短描述 |
 | profile | str | 是 | 无 | NPC的个人资料 |
 | chat_background | str | 是 | 无 | NPC的聊天背景 |
@@ -596,6 +614,7 @@ data的格式
 | short_description | String(255)| 否 | None | 否 |    |    | 短描述，主要用于前端展示 |
 | trait   | Text           |  否    | None   | 否  |    |    | NPC特征，提示词内容 |
 | sex   | Integer           |  否    | None   | 否  |    |    | NPC性别 |
+| relationship   | String(255)           |  否    | None   | 否  |    |    | NPC和用户的关系 |
 | prompt_description | Text  |  否    | None   | 否  |    |    | 提示词描述，存储完整提示词模板 |
 | profile  | Text           |  否    | None   | 否  |    |    | 头像图片路径 |
 | chat_background| Text   |  否    | None   | 否  |    |    | 聊天背景图片路径 |
@@ -621,6 +640,7 @@ class NPC(Base):
     short_description = Column(String(255))
     trait = Column(Text)
     sex = Column(Integer)  # NPC性别
+    relationship = Column(String(255))  # NPC和玩家的关系
     prompt_description = Column(Text)
     profile = Column(Text)
     chat_background = Column(Text)
@@ -701,6 +721,7 @@ class Scene(Base):
 |     user_id        |  String(255) |  否    |  None   | 否   | ForeignKey('user.id') | User    | 用户对象，外键         |
 |      name          |  String(255) |  否    |  None   | 否   |                       |         | 场景描述              |
 |      scene         |  String(255) |  否    |  None   | 否   |                       |         | 场景描述              |
+| relationship   | String(255)           |  否    | None   | 否  |    |    | NPC和用户的关系 |
 |      score         |  Integer     |  否    |  None   | 否   |                       |         | 好感分数              |
 |     trait          |  Text        |  否    |  None   | 否   |                       |         | NPC特征，提示词内容 |
 | affinity_level     |  Integer        |  否    |  None   | 否   |                       |         | 亲密度等级         |
@@ -724,11 +745,12 @@ class NPCUser(Base):
     user = relationship('User')
     name = Column(String(255))  # NPC名称
     sex = Column(Integer)  # NPC性别
+    relationship = Column(String(255))  # NPC和玩家的关系
     scene = Column(String(255))  # 场景描述
-    trait = Column(Text)  # 场景描述
-    score = Column(Integer)  # 好感分数
-    affinity_level = Column(Integer)  # 亲密度分数
-    affinity_level_description = Column(Text)  # 亲密度等级
+    trait = Column(Text)  # 人物特征描述
+    score = Column(Integer,default=0)  # 好感分数
+    affinity_level = Column(Integer)  # 亲密度等级
+    affinity_level_description = Column(Text)  # 亲密度等级描述
     created_at = Column(DateTime, default=datetime.now())  # 创建时间
 ```
 

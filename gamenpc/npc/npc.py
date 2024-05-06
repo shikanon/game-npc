@@ -289,9 +289,13 @@ class ChatBot:
     
     def get_scene(self):
         return self.scene
-    
-    def re_init(self)->None:
+
+    def re_init_score(self)->None:
         self.affinity_manager.set_score(score=0)
+        self.updated_at = datetime.now()
+        # TODO：添加持久化操作
+
+    def re_init_history(self)->None:
         self.event = None
         self.dialogue_manager.clear()
         self.updated_at = datetime.now()
