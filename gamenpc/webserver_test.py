@@ -4,12 +4,13 @@ from gamenpc.webserver import debug_chat, chat, get_npc_user, get_npc_users, get
 from gamenpc.webserver import update_npc, update_npc_status, query_npc, get_npc, remove_npc, shift_scenes, user_register, user_login, query_user
 from gamenpc.webserver import update_user, remove_user, remove_npc_user, generator_npc_trait, app, check_user_validate
 from gamenpc.webserver import ChatRequest, NpcUserQueryRequest, NpcUserAllInfoRequest, DefaultRequest, NPCRequest, NPCUpdateStatusRequest, NPCUserRemoveRequest
-from gamenpc.webserver import NpcGetRequest, NpcQueryRequest, NPCRemoveRequest, GenNPCTraitRequest, ShiftSceneRequest, UserCreateRequest, UserQueryRequest, UserRemoveRequest
+from gamenpc.webserver import NpcGetRequest, NpcQueryRequest, NPCRemoveRequest, GenNPCTraitRequest, ShiftSceneRequest, UserCreateRequest
 from io import BytesIO
 import pytest, json
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from gamenpc.npc.npc import NPC
+from gamenpc.services.user import User
 # import unittest
 # from passlib.context import CryptContext
 
@@ -38,7 +39,7 @@ def test_generate_chat_suggestion():
 
     
     # 开始编写单元测试
-    with patch('npc_manager.get_npc_user', return_value=npc_user_mock):
+    with patch('npc_manager.get_npc_user_if_not_exist', return_value=npc_user_mock):
         with patch('check_user_validate', return_value=user_id):
             response = client.post("/api/npc/chat-suggestion", json={
                 "npc_id": npc_id
@@ -159,7 +160,7 @@ async def test_user_login():
 @pytest.mark.asyncio
 async def test_query_user():
     # 创建 mock 数据
-    payload = UserQueryRequest(id=user_id)
+    payload = User(id=user_id)
     # 调用查询用户接口
     result = await query_user(req=payload)
     
@@ -309,9 +310,9 @@ async def test_remove_npc():
 @pytest.mark.asyncio
 async def test_remove_user():
     # 创建 mock 数据
-    payload = UserRemoveRequest(id=user_id)
+    payload = User(id=user_id)
     # 调用移除用户接口
-    result = await remove_user(req=payload)
+    result = await remove_user(user=payload)
     # 验证响应结果
     assert 'code' in result
     assert result['code'] == 0
