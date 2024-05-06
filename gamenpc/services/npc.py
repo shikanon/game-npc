@@ -299,8 +299,12 @@ class NPCUser(Base):
     def get_scene(self):
         return self.scene
     
-    def re_init(self, client: RedisList, mysql_client: MySQLDatabase,)->None:
+    def re_init_score(self, client: RedisList, mysql_client: MySQLDatabase)->None:
         self.affinity_manager.set_score(score=0)
+        self.updated_at = datetime.now()
+        mysql_client.update_record(self)
+
+    def re_init_history(self, client: RedisList, mysql_client: MySQLDatabase)->None:
         self.event = None
         self.dialogue_manager.clear(client, self.id)
         self.updated_at = datetime.now()

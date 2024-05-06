@@ -253,8 +253,18 @@ async def clear_history_dialogue(req: DefaultRequest, user: User= Depends(check_
     npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
     if npc_instance == None:
         return response(code=400, message="NPC not found")
-    npc_instance.re_init(client=config.redis_client, mysql_client=config.mysql_client)
-    return response(message="记忆、好感重置成功!")
+    npc_instance.re_init_history(client=config.redis_client, mysql_client=config.mysql_client)
+    return response(message="记忆重置成功!")
+
+@router.post("/npc/clear_affinity_score")
+async def clear_affinity_score(req: DefaultRequest, user: User= Depends(check_user_validate)):
+    user_id = user.id
+    '''获取NPC信息'''
+    npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
+    if npc_instance == None:
+        return response(code=400, message="NPC not found")
+    npc_instance.re_init_score(client=config.redis_client, mysql_client=config.mysql_client)
+    return response(message="好感重置成功!")
 
 class NPCRequest(BaseModel):
     id: Optional[str] = ""
