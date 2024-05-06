@@ -196,7 +196,6 @@ class NPCUser(Base):
             'score': self.score,
             'affinity_level': self.affinity_level,
             'affinity_level_description': self.affinity_level_description,
-            'dialogue_round': self.dialogue_round,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
 
@@ -460,8 +459,7 @@ class NPCManager:
                                    affinity_level_description=npc_user.affinity_level_description,
                                    trait=npc_user.trait, 
                                    relationship=npc_user.relationship, 
-                                   scene=npc_user.scene,
-                                   affinity_manager=affinity_manager,
+                                   scene=npc_user.scene
                                    )
             chat = ChatBot(npc_instance=new_npc_user, redis_client=redis_client, affinity_manager=affinity_manager)
             chat.load_dialogue_from_db()

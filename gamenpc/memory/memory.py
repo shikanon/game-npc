@@ -344,8 +344,7 @@ class DialogueMemory:
             dialogue = pickle.loads(dialogue_context_byte)
             dialogue_context.append(dialogue)
         dialogue_context.reverse()
-        self.dialogue_context = dialogue_context
-        self.dialogue_manager = DialogueMemory(dialogue_context=dialogue_context, mind=self.mind, summarize_limit=self.summarize_limit)        
+        self.dialogue_context = dialogue_context   
     
     def check_dialogue(self)-> bool:
         flag = False
