@@ -92,7 +92,7 @@ class ChatRequest(BaseModel):
 
 def get_npc_user(npc_id: str, user_id: str) -> ChatBot:
     try:
-        return npc_manager.get_npc_user_if_not_exist(npc_id=npc_id, user_id=user_id)
+        return npc_manager.get_npc_user_if_not_exist_if_not_exist(npc_id=npc_id, user_id=user_id)
     except KeyError:
         return None
 
@@ -161,7 +161,7 @@ async def get_npc_users(req: NpcUserQueryRequest, user: User= Depends(check_user
         req.page = 1
     if req.limit <= 0:
         req.limit = 10  
-    npc_users = npc_manager.get_npc_users(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
+    npc_users = npc_manager.get_npc_user_if_not_exists(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
     if npc_users == None:
         return response(code=400, message="Invaild value of npc_id, it not Exists")
     npc_instances = []
@@ -197,7 +197,7 @@ class SuggestionMessage(BaseModel):
 async def generate_chat_suggestion(req: ChatSuggestionRequest, user: User= Depends(check_user_validate)):
     user_id = user.id
     print(f'user_id: {user_id}, req.npc_id: {req.npc_id}')
-    npc_user = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
+    npc_user = npc_manager.get_npc_user_if_not_exist(npc_id=req.npc_id, user_id=user_id)
     if npc_user == None:
         return response(code=400, message=f"当前 npc {req.npc_id} 并未开始聊天")
     dialogue = npc_user.get_recent_dialogue(round=2)
@@ -236,7 +236,7 @@ class DefaultRequest(BaseModel):
 async def get_history_dialogue(req: DefaultRequest, user: User= Depends(check_user_validate)):
     user_id = user.id
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
+    npc_instance = npc_manager.get_npc_user_if_not_exist(npc_id=req.npc_id, user_id=user_id)
     if npc_instance == None:
         return response(code=400, message="NPC not found")
     return response(data= [dialogue.to_dict() for dialogue in npc_instance.get_dialogue_context()])
@@ -245,7 +245,7 @@ async def get_history_dialogue(req: DefaultRequest, user: User= Depends(check_us
 async def clear_history_dialogue(req: DefaultRequest, user: User= Depends(check_user_validate)):
     user_id = user.id
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
+    npc_instance = npc_manager.get_npc_user_if_not_exist(npc_id=req.npc_id, user_id=user_id)
     if npc_instance == None:
         return response(code=400, message="NPC not found")
     npc_instance.re_init_history()
@@ -255,7 +255,7 @@ async def clear_history_dialogue(req: DefaultRequest, user: User= Depends(check_
 async def reset_affinity_score(req: DefaultRequest, user: User= Depends(check_user_validate)):
     user_id = user.id
     '''获取NPC信息'''
-    npc_instance = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
+    npc_instance = npc_manager.get_npc_user_if_not_exist(npc_id=req.npc_id, user_id=user_id)
     if npc_instance == None:
         return response(code=400, message="NPC not found")
     npc_instance.re_init_score()
@@ -279,7 +279,9 @@ class NPCRequest(BaseModel):
 # prompt_description=req.prompt_description
 @router.post("/npc/create")
 async def create_npc(req: NPCRequest, user: User= Depends(check_user_validate)):
-    npc = npc_manager.set_npc(id=req.id, name=req.name, trait=req.trait, sex=req.sex, short_description=req.short_description,
+    npc = npc_manager.set_npc(id=req.id, name=req.name, trait=req.trait, sex=req.sex, 
+                              relationship="",
+                              short_description=req.short_description,
                                profile=req.profile, prompt_description="",
                                chat_background=req.chat_background, affinity_rules=req.affinity_rules,
                                prologue=req.prologue, pictures=req.pictures, preset_problems=req.preset_problems)
@@ -423,7 +425,7 @@ class ShiftSceneRequest(BaseModel):
 async def shift_scenes(req: ShiftSceneRequest, user: User= Depends(check_user_validate)):
     user_id = user.id
     '''切换场景'''
-    npc_user = npc_manager.get_npc_user(npc_id=req.npc_id, user_id=user_id)
+    npc_user = npc_manager.get_npc_user_if_not_exist(npc_id=req.npc_id, user_id=user_id)
     if npc_user is None:
         return response(code=400, message="Invaild value of npc_name, it not Exists")
     npc_user.set_scene(client=config.mysql_client, scene=req.scene)
