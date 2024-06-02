@@ -17,6 +17,12 @@ class Config:
             redis_user = os.environ.get('REDIS_USER')
             redis_password = os.environ.get('REDIS_PASSWORD')
             redis_db = os.environ.get('REDIS_DATABASE')
+
+            app_id = os.environ.get('APP_ID')
+            app_secret = os.environ.get('APP_SECRET')
+
         debuglog.info(f"MySQL:\n host:{mysql_host}; port: {mysql_port}; user: {mysql_user}; passwd: {mysql_password}, database: {mysql_database}")
+        self.app_id = app_id
+        self.app_secret = app_secret
         self.mysql_client = MySQLDatabase(host=mysql_host, port=mysql_port, user=mysql_user, password=mysql_password, database=mysql_database)
         self.redis_client = RedisDB(host=redis_host, port=redis_port, user=redis_user, password=redis_password, db=int(redis_db))

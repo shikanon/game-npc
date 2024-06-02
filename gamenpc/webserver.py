@@ -1,5 +1,5 @@
 # coding:utf-8
-from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Header, Depends, File, UploadFile, Form
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, Header, Depends, File, UploadFile, Form, Cookie, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -9,11 +9,13 @@ from gamenpc.utils.config import Config
 from gamenpc.utils.logger import debuglog
 from gamenpc.tools import generator, suggestion
 from passlib.context import CryptContext
-import time, json
+import time, json, requests
 import asyncio
 from pydantic import BaseModel
 from typing import Optional, List
 import os, uuid, mimetypes
+from starlette.responses import RedirectResponse
+from datetime import datetime, timedelta
 
 
 
@@ -41,6 +43,8 @@ config = Config()
 
 npc_manager = NPCManager(mysql_client=config.mysql_client, redis_client=config.redis_client)
 user_manager = UserManager(mysql_client=config.mysql_client)
+# 初始化微信对象
+weixin = Weixin(appid=config.app_id, secret=config.app_secret)
 
 def response(code=0, message="执行成功", data=None)->any:
     return {"code": code, "msg": message, "data": data}
@@ -581,6 +585,34 @@ async def update_user(req: UserUpdateRequest, user: User= Depends(check_user_val
     if user == None:
         return response(code=400, message=f'user {req.name} 不存在, 请先注册')
     return response(data=user.to_dict())
+
+@app.get('/wechat/get_access_token')
+def get_access_token(code: str):
+    url = 'https://api.weixin.qq.com/sns/oauth2/access_token'
+    params = {
+        'appid': config.app_id,
+        'secret': config.app_secret,
+        'code': code,
+        'grant_type': 'authorization_code'
+    }
+    resp = requests.get(url, params=params)
+    data = resp.json()
+    if 'errcode' in data:
+        raise Exception('Get access token error: {}'.format(data['errmsg']))
+    return data
+
+@app.get('/wechat/get_user_info')
+def get_user_info(access_token: str, openid: str):
+    url = 'https://api.weixin.qq.com/sns/userinfo'
+    params = {
+        'access_token': access_token,
+        'openid': openid
+    }
+    resp = requests.get(url, params=params)
+    data = resp.json()
+    if 'errcode' in data:
+        raise Exception('Get user info error: {}'.format(data['errmsg']))
+    return data
 
 if __name__ == "__main__":
     # 创建一个全局对象
