@@ -4,7 +4,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from gamenpc.npc.npc import NPCManager, NPCUser, Picture, AffinityRule, ChatBot
-from gamenpc.services.user import UserManager, User
+from gamenpc.services.user import UserManager, User, PlotManager, Plot
 from gamenpc.utils.config import Config
 from gamenpc.utils.logger import debuglog
 from gamenpc.tools import generator, suggestion
@@ -14,8 +14,6 @@ import asyncio
 from pydantic import BaseModel
 from typing import Optional, List
 import os, uuid, mimetypes
-from starlette.responses import RedirectResponse
-from datetime import datetime, timedelta
 
 
 
@@ -43,6 +41,7 @@ config = Config()
 
 npc_manager = NPCManager(mysql_client=config.mysql_client, redis_client=config.redis_client)
 user_manager = UserManager(mysql_client=config.mysql_client)
+plot_manager = PlotManager(mysql_client=config.mysql_client)
 # 初始化微信对象
 weixin = Weixin(appid=config.app_id, secret=config.app_secret)
 
@@ -613,6 +612,138 @@ def get_user_info(access_token: str, openid: str):
     if 'errcode' in data:
         raise Exception('Get user info error: {}'.format(data['errmsg']))
     return data
+
+class PlotGetRequest(BaseModel):
+    id: str
+
+@router.post("/plot/remove")
+async def remove_plot(req: PlotGetRequest):
+    plot_id = req.id
+    filter_dict = {'id': plot_id}
+    plot = plot_manager.get_polt(filter_dict=filter_dict)
+    if plot == None:
+        return response(code=400, message=f"plot {plot_id} 不存在")
+    plot_manager.remove_plot(plot_id=plot_id)
+    return response(message=f'删除 plot {plot_id} 成功')
+
+
+@router.post("/plot/get")
+async def get_plot(req: PlotGetRequest):
+    plot_id = req.id
+    filter_dict = {'id': plot_id}
+    plot = plot_manager.get_plot(filter_dict=filter_dict)
+    if plot == None:
+        return response(code=400, message=f"plot {plot_id} 不存在")
+    return response(data=plot.to_dict())
+
+class PlotQueryRequest(BaseModel):
+    name: Optional[str] = ""
+    status: Optional[int] = -1
+    order_by: Optional[str] = {"updated_at": False}
+    page: Optional[int] = 1
+    limit: Optional[int] = 10
+
+@router.post("/plot/query")
+async def query_plot(req: PlotQueryRequest):
+    filter_dict = {}
+    if req.name != "":
+        filter_dict['name'] = req.name
+    if req.page <= 0:
+        req.page = 1
+    if req.limit <= 0:
+        req.limit = 10 
+        
+    plots, total = plot_manager.get_plots(filter_dict=filter_dict, order_by=req.order_by, page=req.page, limit=req.limit)
+    return response(data={'list': [plot.to_dict() for plot in plots], 'total': total})
+
+class PlotCreateRequest(BaseModel):
+    id: str
+    npc_id: str
+    name: Optional[str] = ""
+    cover_url: Optional[str] = ""
+    bg_url: Optional[str] = ""
+    description: Optional[str] = ""
+    status: Optional[int] = -1
+
+@router.post("/plot/update")
+async def update_plot(req: PlotCreateRequest, bg_image: UploadFile = File(...), cover_image: UploadFile = File(...), content_file: UploadFile = File(...)):  
+    bg_image_full_file_path = f'{file_path}/bg_image'
+    if not os.path.exists(bg_image_full_file_path):
+      os.makedirs(bg_image_full_file_path)
+
+    cover_image_full_file_path = f'{file_path}/cover_image'
+    if not os.path.exists(cover_image_full_file_path):
+      os.makedirs(cover_image_full_file_path)
+
+    _, bg_extension = os.path.splitext(bg_image.filename)
+    bg_filename = f'{uuid.uuid4()}{bg_extension}'
+    bg_file_location = f"{cover_image_full_file_path}/{bg_filename}"  
+    # 使用 'wb' 模式以二进制写入文件
+    with open(bg_file_location, "wb") as f:
+        # 读取上传的文件数据
+        content = await bg_image.read()
+        f.write(content)
+
+    _, cover_extension = os.path.splitext(cover_image.filename)
+    cover_filename = f'{uuid.uuid4()}{cover_extension}'
+    cover_file_location = f"{cover_image_full_file_path}/{cover_filename}"  
+    # 使用 'wb' 模式以二进制写入文件
+    with open(cover_file_location, "wb") as f:
+        # 读取上传的文件数据
+        content = await cover_image.read()
+        f.write(content)
+
+    bg_url = f'{base_file_url}/{bg_image}/{bg_filename}'
+    cover_url = f'{base_file_url}/{bg_image}/{cover_filename}'
+
+    contents = await content_file.read()
+    content_json = json.loads(contents.decode())
+
+    plot_id = req.id
+    plot = plot_manager.update_plot(id=plot_id, npc_id=req.npc_id, name=req.name, status=req.status, bg_url=bg_url, cover_url=cover_url, description=req.description, content=content_json)
+    if plot == None:
+        return response(code=400, message=f'plot {req.name} 不存在')
+    return response(data=plot.to_dict())
+
+@router.post("/plot/create")
+async def create_plot(req: PlotCreateRequest, bg_image: UploadFile = File(...), cover_image: UploadFile = File(...), content_file: UploadFile = File(...)):
+    bg_image_full_file_path = f'{file_path}/bg_image'
+    if not os.path.exists(bg_image_full_file_path):
+      os.makedirs(bg_image_full_file_path)
+
+    cover_image_full_file_path = f'{file_path}/cover_image'
+    if not os.path.exists(cover_image_full_file_path):
+      os.makedirs(cover_image_full_file_path)
+
+    _, bg_extension = os.path.splitext(bg_image.filename)
+    bg_filename = f'{uuid.uuid4()}{bg_extension}'
+    bg_file_location = f"{cover_image_full_file_path}/{bg_filename}"  
+    # 使用 'wb' 模式以二进制写入文件
+    with open(bg_file_location, "wb") as f:
+        # 读取上传的文件数据
+        content = await bg_image.read()
+        f.write(content)
+
+    _, cover_extension = os.path.splitext(cover_image.filename)
+    cover_filename = f'{uuid.uuid4()}{cover_extension}'
+    cover_file_location = f"{cover_image_full_file_path}/{cover_filename}"  
+    # 使用 'wb' 模式以二进制写入文件
+    with open(cover_file_location, "wb") as f:
+        # 读取上传的文件数据
+        content = await cover_image.read()
+        f.write(content)
+
+    bg_url = f'{base_file_url}/{bg_image}/{bg_filename}'
+    cover_url = f'{base_file_url}/{bg_image}/{cover_filename}'
+
+    contents = await content_file.read()
+    content_json = json.loads(contents.decode())
+
+    plot_id = req.id
+    plot = plot_manager.set_plot(id=plot_id, npc_id=req.npc_id, name=req.name, status=req.status, bg_url=bg_url, cover_url=cover_url, description=req.description, content=content_json)
+    if plot == None:
+        return response(code=400, message=f'plot {req.name} 创建失败')
+    return response(data=plot.to_dict())
 
 if __name__ == "__main__":
     # 创建一个全局对象
