@@ -25,7 +25,7 @@ class Plot(Base):
     cover_url = Column(String(255))
     bg_url = Column(String(255))
     status = Column(Integer)
-    description = Column(String(255))
+    description = Column(Text)
     content = Column(Text)
     updated_at = Column(DateTime, default=datetime.now())
     created_at = Column(DateTime, default=datetime.now())
@@ -68,7 +68,7 @@ class PlotManager:
             return None
         return plot
     
-    def set_plot(self, id, npc_id, name, cover_url, bg_url, status, description, content) -> Plot:
+    def set_plot(self, id="", npc_id="", name="", cover_url="", bg_url="", status=-1, description="", content="") -> Plot:
         # 创建新剧本
         plot = Plot(name=name, npc_id=npc_id, bg_url=bg_url, cover_url=cover_url, status=status, description=description, content=content)
         if id != "":
@@ -76,7 +76,7 @@ class PlotManager:
         plot = self.mysql_client.insert_record(plot)
         return plot
     
-    def update_plot(self, id, npc_id, name, cover_url, bg_url, status=-1, description="", content="") -> Plot:
+    def update_plot(self, id="", npc_id="", name="", cover_url="", bg_url="", status=-1, description="", content="") -> Plot:
         filter_dict = {'id': id}
         plot = self.mysql_client.select_record(record_class=Plot, filter_dict=filter_dict)
         if plot == None:

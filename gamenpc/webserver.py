@@ -4,7 +4,8 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from gamenpc.npc.npc import NPCManager, NPCUser, Picture, AffinityRule, ChatBot
-from gamenpc.services.user import UserManager, User, PlotManager, Plot
+from gamenpc.services.user import UserManager, User
+from gamenpc.services.plot import PlotManager, Plot
 from gamenpc.utils.config import Config
 from gamenpc.utils.logger import debuglog
 from gamenpc.tools import generator, suggestion
@@ -42,8 +43,6 @@ config = Config()
 npc_manager = NPCManager(mysql_client=config.mysql_client, redis_client=config.redis_client)
 user_manager = UserManager(mysql_client=config.mysql_client)
 plot_manager = PlotManager(mysql_client=config.mysql_client)
-# 初始化微信对象
-weixin = Weixin(appid=config.app_id, secret=config.app_secret)
 
 def response(code=0, message="执行成功", data=None)->any:
     return {"code": code, "msg": message, "data": data}
@@ -585,6 +584,8 @@ async def update_user(req: UserUpdateRequest, user: User= Depends(check_user_val
         return response(code=400, message=f'user {req.name} 不存在, 请先注册')
     return response(data=user.to_dict())
 
+# 在用户点击了"通过微信登录"的按钮之后，你的应用需要重定向用户到如下的URL
+# https://open.weixin.qq.com/connect/qrconnect?appid=YOUR_APPID&redirect_uri=YOUR_CALLBACK_URL&response_type=code&scope=snsapi_login&state=STATE#wechat_redirect
 @app.get('/wechat/get_access_token')
 def get_access_token(code: str):
     url = 'https://api.weixin.qq.com/sns/oauth2/access_token'
@@ -620,7 +621,7 @@ class PlotGetRequest(BaseModel):
 async def remove_plot(req: PlotGetRequest):
     plot_id = req.id
     filter_dict = {'id': plot_id}
-    plot = plot_manager.get_polt(filter_dict=filter_dict)
+    plot = plot_manager.get_plot(filter_dict=filter_dict)
     if plot == None:
         return response(code=400, message=f"plot {plot_id} 不存在")
     plot_manager.remove_plot(plot_id=plot_id)
@@ -656,9 +657,9 @@ async def query_plot(req: PlotQueryRequest):
     plots, total = plot_manager.get_plots(filter_dict=filter_dict, order_by=req.order_by, page=req.page, limit=req.limit)
     return response(data={'list': [plot.to_dict() for plot in plots], 'total': total})
 
-class PlotCreateRequest(BaseModel):
+class PlotUpdateRequest(BaseModel):
     id: str
-    npc_id: str
+    npc_id: Optional[str] = ""
     name: Optional[str] = ""
     cover_url: Optional[str] = ""
     bg_url: Optional[str] = ""
@@ -666,18 +667,18 @@ class PlotCreateRequest(BaseModel):
     status: Optional[int] = -1
 
 @router.post("/plot/update")
-async def update_plot(req: PlotCreateRequest, bg_image: UploadFile = File(...), cover_image: UploadFile = File(...), content_file: UploadFile = File(...)):  
-    bg_image_full_file_path = f'{file_path}/bg_image'
+async def update_plot(id: str = Form(...), npc_id: str = Form(...), name: str = Form(...), description: str = Form(...), status: int = Form(...), bg_image: UploadFile = File(...), cover_image: UploadFile = File(...), content_file: UploadFile = File(...)):  
+    bg_image_full_file_path = f'{file_path}/bg'
     if not os.path.exists(bg_image_full_file_path):
       os.makedirs(bg_image_full_file_path)
 
-    cover_image_full_file_path = f'{file_path}/cover_image'
+    cover_image_full_file_path = f'{file_path}/cover'
     if not os.path.exists(cover_image_full_file_path):
       os.makedirs(cover_image_full_file_path)
 
     _, bg_extension = os.path.splitext(bg_image.filename)
     bg_filename = f'{uuid.uuid4()}{bg_extension}'
-    bg_file_location = f"{cover_image_full_file_path}/{bg_filename}"  
+    bg_file_location = f"{bg_image_full_file_path}/{bg_filename}"  
     # 使用 'wb' 模式以二进制写入文件
     with open(bg_file_location, "wb") as f:
         # 读取上传的文件数据
@@ -693,31 +694,32 @@ async def update_plot(req: PlotCreateRequest, bg_image: UploadFile = File(...), 
         content = await cover_image.read()
         f.write(content)
 
-    bg_url = f'{base_file_url}/{bg_image}/{bg_filename}'
-    cover_url = f'{base_file_url}/{bg_image}/{cover_filename}'
+    bg_url = f'{base_file_url}/bg/{bg_filename}'
+    cover_url = f'{base_file_url}/cover/{cover_filename}'
 
     contents = await content_file.read()
     content_json = json.loads(contents.decode())
+    content_str = json.dumps(content_json)
 
-    plot_id = req.id
-    plot = plot_manager.update_plot(id=plot_id, npc_id=req.npc_id, name=req.name, status=req.status, bg_url=bg_url, cover_url=cover_url, description=req.description, content=content_json)
+    plot_id = id
+    plot = plot_manager.update_plot(id=plot_id, npc_id=npc_id, name=name, status=status, bg_url=bg_url, cover_url=cover_url, description=description, content=content_str)
     if plot == None:
-        return response(code=400, message=f'plot {req.name} 不存在')
+        return response(code=400, message=f'plot {name} 不存在')
     return response(data=plot.to_dict())
 
 @router.post("/plot/create")
-async def create_plot(req: PlotCreateRequest, bg_image: UploadFile = File(...), cover_image: UploadFile = File(...), content_file: UploadFile = File(...)):
-    bg_image_full_file_path = f'{file_path}/bg_image'
+async def create_plot(npc_id: str = Form(...), name: str = Form(...), description: str = Form(...), status: int = Form(...), bg_image: UploadFile = File(...), cover_image: UploadFile = File(...), content_file: UploadFile = File(...)):
+    bg_image_full_file_path = f'{file_path}/bg'
     if not os.path.exists(bg_image_full_file_path):
       os.makedirs(bg_image_full_file_path)
 
-    cover_image_full_file_path = f'{file_path}/cover_image'
+    cover_image_full_file_path = f'{file_path}/cover'
     if not os.path.exists(cover_image_full_file_path):
       os.makedirs(cover_image_full_file_path)
 
     _, bg_extension = os.path.splitext(bg_image.filename)
     bg_filename = f'{uuid.uuid4()}{bg_extension}'
-    bg_file_location = f"{cover_image_full_file_path}/{bg_filename}"  
+    bg_file_location = f"{bg_image_full_file_path}/{bg_filename}"  
     # 使用 'wb' 模式以二进制写入文件
     with open(bg_file_location, "wb") as f:
         # 读取上传的文件数据
@@ -733,16 +735,16 @@ async def create_plot(req: PlotCreateRequest, bg_image: UploadFile = File(...), 
         content = await cover_image.read()
         f.write(content)
 
-    bg_url = f'{base_file_url}/{bg_image}/{bg_filename}'
-    cover_url = f'{base_file_url}/{bg_image}/{cover_filename}'
+    bg_url = f'{base_file_url}/bg/{bg_filename}'
+    cover_url = f'{base_file_url}/cover/{cover_filename}'
 
     contents = await content_file.read()
     content_json = json.loads(contents.decode())
+    content_str = json.dumps(content_json)
 
-    plot_id = req.id
-    plot = plot_manager.set_plot(id=plot_id, npc_id=req.npc_id, name=req.name, status=req.status, bg_url=bg_url, cover_url=cover_url, description=req.description, content=content_json)
+    plot = plot_manager.set_plot(npc_id=npc_id, name=name, status=status, bg_url=bg_url, cover_url=cover_url, description=description, content=content_str)
     if plot == None:
-        return response(code=400, message=f'plot {req.name} 创建失败')
+        return response(code=400, message=f'plot {name} 创建失败')
     return response(data=plot.to_dict())
 
 if __name__ == "__main__":
