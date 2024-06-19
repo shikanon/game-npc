@@ -4,6 +4,7 @@ npc module.
 author: shikanon
 create: 2024/1/21
 """
+import os
 import jinja2
 import uuid
 from typing import List, Tuple, Optional
@@ -13,7 +14,7 @@ from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts import HumanMessagePromptTemplate, PromptTemplate
 
 from gamenpc.memory.memory import Mind, DialogueMemory
-from gamenpc.model import doubao
+from langchain_community.chat_models.openai import ChatOpenAI
 from gamenpc.npc.emotion import AffinityManager, Affinity, DefaultAffinityManager
 from gamenpc.store.mysql_client import MySQLDatabase, Base
 from gamenpc.store.redis import RedisDB
@@ -28,6 +29,8 @@ import json
 from pydantic import BaseModel
 
 # debuglog = DebugLogger("npc")
+api_key = os.environ.get("OPENAI_API_KEY")
+endpoint_id = os.environ.get("doubao_model")
 
 DEFAULT_ROLE_TEMPLATE = '''# 角色设定
 你扮演的角色名字是{{name}}。
@@ -230,10 +233,10 @@ class ChatBot:
         self.trait = self.npc_instance.trait
         
         # character model
-        self.character_model = doubao.ChatSkylark(
-            model="skylark2-pro-4k",
-            model_version="1.2",
-            top_p=0.7,
+        self.character_model = ChatOpenAI(
+            openai_api_key=api_key,
+            openai_api_base="https://ark.cn-beijing.volces.com/api/v3",
+            model_name=endpoint_id
         )
     
         #加载角色模板
@@ -247,9 +250,10 @@ class ChatBot:
         self.role_chat_template = jinja2.Template(file_content)
         # 记忆及思维
         # 会话总结及计算LLM模型
-        self.dialogue_model = doubao.ChatSkylark(
-            model="skylark2-pro-32k",
-            top_k=1,
+        self.dialogue_model = ChatOpenAI(
+            openai_api_key=api_key,
+            openai_api_base="https://ark.cn-beijing.volces.com/api/v3",
+            model_name=endpoint_id
         )
         self.thoughts = Mind(model=self.dialogue_model, character=self.trait)
         # 初始化dialogue_manager会话管理

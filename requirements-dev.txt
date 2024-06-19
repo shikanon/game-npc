@@ -29,6 +29,7 @@ marshmallow==3.20.2
 multidict==6.0.4
 mypy-extensions==1.0.0
 numpy==1.26.3
+openai==1.35.0
 packaging==23.2
 protobuf==4.25.2
 py==1.11.0
