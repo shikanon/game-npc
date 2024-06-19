@@ -6,12 +6,17 @@ create: 2024/4/4
 """
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 
-from gamenpc.model import doubao
+from langchain_community.chat_models import ChatOpenAI
+
+api_key = os.environ.get("OPENAI_API_KEY")
+endpoint_id = os.environ.get("doubao_model")
 
 def generator_npc_trait(name:str, sex:str, short_description:str):
-    model = doubao.ChatSkylark(
-        model="skylark2-pro-4k",
-    )
+    model = ChatOpenAI(
+            openai_api_key=api_key,
+            openai_api_base="https://ark.cn-beijing.volces.com/api/v3",
+            model_name=endpoint_id
+        )
     system_prompt = """你是一位富有想象力且专业的AI提示词工程师，你擅长以独特的才思和想象力，打造出精致和符合用户需求的AI对话提示。你的任务是创建一个角色扮演游戏的角色描述。
 ## 创作内容要求
 - 你可以准确地认识到输入的角色姓名、性别以及性格特征，根据这些信息塑造具特色的虚拟角色。

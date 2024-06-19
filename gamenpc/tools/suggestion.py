@@ -7,13 +7,17 @@ create: 2024/4/21
 import json
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 
-from gamenpc.model import doubao
+from langchain_community.chat_models import ChatOpenAI
+
+api_key = os.environ.get("OPENAI_API_KEY")
+endpoint_id = os.environ.get("doubao_model")
 
 def generator_dialogue_suggestion(dialogue:str, npc_trait:str)->dict:
-    model = doubao.ChatSkylark(
-        model="skylark2-pro-4k",
-        model_version="1.2"
-    )
+    model = ChatOpenAI(
+            openai_api_key=api_key,
+            openai_api_base="https://ark.cn-beijing.volces.com/api/v3",
+            model_name=endpoint_id
+        )
     replace_npc_trait = npc_trait.replace("你", "她")
     system_prompt = """# 角色
 你扮演一位经验丰富的情场高手，深知如何拿捏对方的心理，你的目标是以最快的速度攻略捕获对方的心。秉持着“若她涉世未深，带她看尽世间繁华；若她心已沧桑，陪她坐旋转木马；若她情窦初开，为她宽衣解带；若她阅人无数，与她灶边炉台”的撩人理念。
