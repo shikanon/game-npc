@@ -103,7 +103,7 @@ async def chat(req: ChatRequest, user: User = Depends(check_user_validate)):
     user_id = user.id
     name = user.name
     debuglog.info(f'req.npc_id: {req.npc_id}, user_id: {user_id}, scene: {req.scene}')
-    npc_user_instance: NPCUser = get_npc_user(npc_id=req.npc_id, user_id=user_id, scene=req.scene)
+    npc_user_instance: NPCUser = get_npc_user(npc_id=req.npc_id, user_id=user_id)
     '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="400", message="选择NPC异常: 用户不存在/NPC不存在")
