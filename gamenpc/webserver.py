@@ -94,7 +94,7 @@ class ChatRequest(BaseModel):
 
 def get_npc_user(npc_id: str, user_id: str) -> ChatBot:
     try:
-        return npc_manager.get_npc_user_if_not_exist_if_not_exist(npc_id=npc_id, user_id=user_id)
+        return npc_manager.get_npc_user_if_not_exist(npc_id=npc_id, user_id=user_id)
     except KeyError:
         return None
 
@@ -103,12 +103,12 @@ async def chat(req: ChatRequest, user: User = Depends(check_user_validate)):
     user_id = user.id
     name = user.name
     debuglog.info(f'req.npc_id: {req.npc_id}, user_id: {user_id}, scene: {req.scene}')
-    npc_user_instance: NPCUser = get_npc_user(npc_id=req.npc_id, user_id=user_id)
+    npc_user_instance: ChatBot = get_npc_user(npc_id=req.npc_id, user_id=user_id)
     '''NPC聊天对话'''
     if npc_user_instance == None:
         return response(code="400", message="选择NPC异常: 用户不存在/NPC不存在")
     message, affinity_info = await asyncio.gather(
-        npc_user_instance.chat(client=config.redis_client, player_id=name, content=req.question, content_type=req.content_type),     
+        npc_user_instance.chat(player_id=name, content=req.question, content_type=req.content_type),     
         npc_user_instance.increase_affinity(config.mysql_client, user_id, req.question),
     )
     debuglog.info(f'user_id: {user_id}, content: {req.question}, affinity_info: {affinity_info}')
@@ -132,7 +132,7 @@ async def steaming_chat(req: ChatRequest, user: User = Depends(check_user_valida
 async def debug_chat(req: ChatRequest, user: User= Depends(check_user_validate)):
     user_id = user.id
     print(f'req.npc_id: {req.npc_id}, user_id: {user_id}, scene: {req.scene}')
-    npc_user_instance: NPCUser = get_npc_user(npc_id=req.npc_id, user_id=user_id, scene=req.scene)
+    npc_user_instance: ChatBot = get_npc_user(npc_id=req.npc_id, user_id=user_id, scene=req.scene)
     if npc_user_instance == None:
         return response(code="400", message="选择NPC异常: 用户不存在/NPC不存在")
     '''chat debug 接口,相比chat接口多了dubug相关信息'''
@@ -163,7 +163,7 @@ async def get_npc_users(req: NpcUserQueryRequest, user: User= Depends(check_user
         req.page = 1
     if req.limit <= 0:
         req.limit = 10  
-    npc_users = npc_manager.get_npc_user_if_not_exists(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
+    npc_users = npc_manager.get_npc_user_if_not_exist(order_by=req.order_by, filter_dict=filter_dict, page=req.page, limit=req.limit)
     if npc_users == None:
         return response(code=400, message="Invaild value of npc_id, it not Exists")
     npc_instances = []
