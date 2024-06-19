@@ -14,7 +14,7 @@ from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from langchain.prompts import HumanMessagePromptTemplate, PromptTemplate
 
 from gamenpc.memory.memory import Mind, DialogueMemory
-from langchain_community.chat_models.openai import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from gamenpc.npc.emotion import AffinityManager, Affinity, DefaultAffinityManager
 from gamenpc.store.mysql_client import MySQLDatabase, Base
 from gamenpc.store.redis import RedisDB
@@ -605,7 +605,7 @@ class NPCManager:
         npc = self.get_npc(npc_id)
         if npc_user != None and npc != None:
             dict_1 = npc.to_dict()
-            dict_2 = npc_user.to_dict()
+            dict_2 = npc_user.npc_instance.to_dict()
             merged_dict = {**dict_2, **dict_1}
             return merged_dict
         if npc_user == None and npc != None:
