@@ -231,6 +231,7 @@ class ChatBot:
         self.dialogue_summarize_num = dialogue_summarize_num
         self.role_template_filename = role_template_filename
         self.trait = self.npc_instance.trait
+        self.event = None
         
         # character model
         self.character_model = ChatOpenAI(
@@ -347,9 +348,9 @@ class ChatBot:
         else:
             event = ''
         return self.role_chat_template.render(
-                name=self.name,
+                name=self.npc_instance.name,
                 scene=self.scene,
-                relationship=self.relationship,
+                relationship=self.npc_instance.relationship,
                 trait=self.trait,
                 event=event,
                 affinity_level_description=str(self.affinity_manager.get_affinity_level_description()),
@@ -384,18 +385,18 @@ class ChatBot:
 ```
 
 {{name}}:'''
-        user_prompt=jinja2.Template(USER_PROMPT_TEMPLATE).render(history_dialogues=history_dialogues,name=self.name)
+        user_prompt=jinja2.Template(USER_PROMPT_TEMPLATE).render(history_dialogues=history_dialogues,name=self.npc_instance.name)
         all_messages = [
             SystemMessage(content=self.system_prompt),
             HumanMessage(content=user_prompt),
         ]
 
         # 本次消息
-        new_dialog = self.dialogue_manager.new_dialogue(role_from=player_id, role_to=self.name, content=content, content_type=content_type)
+        new_dialog = self.dialogue_manager.new_dialogue(role_from=player_id, role_to=self.npc_instance.name, content=content, content_type=content_type)
         all_messages.append(HumanMessage(content=str(new_dialog)))
         debuglog.info(f'chat: all_messages === {all_messages}')
 
-        call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.name, content=content, content_type=content_type)
+        call_dialogue = self.dialogue_manager.add_dialogue(role_from=player_id, role_to=self.npc_instance.name, content=content, content_type=content_type)
         debuglog.info(f'chat: call_dialogue === {call_dialogue.to_dict()}')
 
         self.debug_info["模型输入"] = all_messages
@@ -403,7 +404,7 @@ class ChatBot:
         response = self.character_model(messages=all_messages)
         content = response.content
 
-        back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.name, role_to=player_id, content=content, content_type=content_type)
+        back_dialogue = self.dialogue_manager.add_dialogue(role_from=self.npc_instance.name, role_to=player_id, content=content, content_type=content_type)
         debuglog.info(f'chat: call_dialogue === {back_dialogue.to_dict()}')
         return content
 
@@ -517,18 +518,18 @@ class NPCManager:
         for npc_user in npc_user_list:
             # 更新内存
             npc_user_id = npc_user.id
-            old_npc_user = self._instances.get(npc_user_id, None)
-            if old_npc_user != None: 
+            old_npc_user_bot: ChatBot = self._instances.get(npc_user_id, None)
+            if old_npc_user_bot != None: 
                 # TODO 更新affinity_manager
-                old_npc_user.name = new_npc.name
-                old_npc_user.sex = new_npc.sex
-                old_npc_user.trait = new_npc.trait
-                old_npc_user.relationship = new_npc.relationship
-                affinity_manager = AffinityManager(score=old_npc_user.score, 
-                                                   affinity=Affinity(level=old_npc_user.affinity_level, affinity_rules=affinity_rules_data))
-                old_npc_user.affinity_manager = affinity_manager
-                self._instances[npc_user_id] = old_npc_user
-                debuglog.info(f'update_npc: update npc and update cache npc_user = {old_npc_user.to_dict()}')
+                old_npc_user_bot.npc_instance.name = new_npc.name
+                old_npc_user_bot.npc_instance.sex = new_npc.sex
+                old_npc_user_bot.npc_instance.trait = new_npc.trait
+                old_npc_user_bot.npc_instance.relationship = new_npc.relationship
+                affinity_manager = AffinityManager(score=old_npc_user_bot.npc_instance.score, 
+                                                   affinity=Affinity(level=old_npc_user_bot.npc_instance.affinity_level, affinity_rules=affinity_rules_data))
+                old_npc_user_bot.affinity_manager = affinity_manager
+                self._instances[npc_user_id] = old_npc_user_bot
+                debuglog.info(f'update_npc: update npc and update cache npc_user = {old_npc_user_bot.npc_instance.to_dict()}')
 
                 # 更新DB
                 npc_user.name = new_npc.name

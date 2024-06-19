@@ -109,7 +109,7 @@ async def chat(req: ChatRequest, user: User = Depends(check_user_validate)):
         return response(code="400", message="选择NPC异常: 用户不存在/NPC不存在")
     message, affinity_info = await asyncio.gather(
         npc_user_instance.chat(player_id=name, content=req.question, content_type=req.content_type),     
-        npc_user_instance.increase_affinity(config.mysql_client, user_id, req.question),
+        npc_user_instance.increase_affinity(user_id, req.question),
     )
     debuglog.info(f'user_id: {user_id}, content: {req.question}, affinity_info: {affinity_info}')
     # affinity_score = affinity_info['score']
@@ -132,7 +132,7 @@ async def steaming_chat(req: ChatRequest, user: User = Depends(check_user_valida
 async def debug_chat(req: ChatRequest, user: User= Depends(check_user_validate)):
     user_id = user.id
     print(f'req.npc_id: {req.npc_id}, user_id: {user_id}, scene: {req.scene}')
-    npc_user_instance: ChatBot = get_npc_user(npc_id=req.npc_id, user_id=user_id, scene=req.scene)
+    npc_user_instance: ChatBot = get_npc_user(npc_id=req.npc_id, user_id=user_id)
     if npc_user_instance == None:
         return response(code="400", message="选择NPC异常: 用户不存在/NPC不存在")
     '''chat debug 接口,相比chat接口多了dubug相关信息'''
@@ -430,7 +430,7 @@ async def shift_scenes(req: ShiftSceneRequest, user: User= Depends(check_user_va
     npc_user = npc_manager.get_npc_user_if_not_exist(npc_id=req.npc_id, user_id=user_id)
     if npc_user is None:
         return response(code=400, message="Invaild value of npc_name, it not Exists")
-    npc_user.set_scene(client=config.mysql_client, scene=req.scene)
+    npc_user.set_scene(scene=req.scene)
     return response(message="场景转移成功")
 
 # file: UploadFile = File(...)
