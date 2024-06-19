@@ -5,6 +5,7 @@ author: shikanon
 create: 2024/4/21
 """
 import json
+import os
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 
 from langchain_community.chat_models import ChatOpenAI

@@ -4,8 +4,8 @@ npc module.
 author: shikanon
 create: 2024/4/4
 """
+import os
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
-
 from langchain_community.chat_models import ChatOpenAI
 
 api_key = os.environ.get("OPENAI_API_KEY")
