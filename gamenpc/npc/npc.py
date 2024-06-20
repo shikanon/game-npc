@@ -623,8 +623,7 @@ class NPCManager:
         # TODO 根据不同的npc获取其affinity_level，传给AffinityManager，暂时使用默认
         affinity_manager = AffinityManager(score=0, affinity=Affinity(affinity_rules=affinity_rules))
         new_npc_user = NPCUser(id=npc_user_id, name=name, npc_id=npc_id, user_id=user_id, 
-                               sex=sex,  trait=trait, affinity_manager=affinity_manager, 
-                               dialogue_context=dialogue_context)
+                               sex=sex,  trait=trait)
         self.mysql_client.insert_record(new_npc_user)
         chat = ChatBot(npc_instance=new_npc_user, redis_client=self.redis_client, affinity_manager=affinity_manager)
         self._instances[npc_user_id] = chat
